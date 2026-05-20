@@ -1,12 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PageHeader, ComingSoon } from "@/components/layout/page-shell";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/playlists")({
-  head: () => ({ meta: [{ title: "Aethel — Playlists" }] }),
-  component: () => (
-    <div>
-      <PageHeader eyebrow="Your selections" title="Playlists." subtitle="Folders, tags, smart shuffle." />
-      <ComingSoon stage="Etapa 4" note="CRUD de playlists, pastas e tags personalizadas." />
-    </div>
-  ),
+  head: () => ({ meta: [{ title: "Focus Audio — Playlists" }] }),
+  component: () => <Outlet />,
 });

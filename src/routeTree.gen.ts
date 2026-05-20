@@ -21,6 +21,8 @@ import { Route as AuthenticatedPlaylistsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticated/explore'
 import { Route as AuthenticatedDownloadsRouteImport } from './routes/_authenticated/downloads'
+import { Route as AuthenticatedPlaylistsIndexRouteImport } from './routes/_authenticated/playlists.index'
+import { Route as AuthenticatedPlaylistsPlaylistIdRouteImport } from './routes/_authenticated/playlists.$playlistId'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -81,6 +83,18 @@ const AuthenticatedDownloadsRoute = AuthenticatedDownloadsRouteImport.update({
   path: '/downloads',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPlaylistsIndexRoute =
+  AuthenticatedPlaylistsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPlaylistsRoute,
+  } as any)
+const AuthenticatedPlaylistsPlaylistIdRoute =
+  AuthenticatedPlaylistsPlaylistIdRouteImport.update({
+    id: '/$playlistId',
+    path: '/$playlistId',
+    getParentRoute: () => AuthenticatedPlaylistsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -91,9 +105,11 @@ export interface FileRoutesByFullPath {
   '/downloads': typeof AuthenticatedDownloadsRoute
   '/explore': typeof AuthenticatedExploreRoute
   '/library': typeof AuthenticatedLibraryRoute
-  '/playlists': typeof AuthenticatedPlaylistsRoute
+  '/playlists': typeof AuthenticatedPlaylistsRouteWithChildren
   '/radios': typeof AuthenticatedRadiosRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/playlists/$playlistId': typeof AuthenticatedPlaylistsPlaylistIdRoute
+  '/playlists/': typeof AuthenticatedPlaylistsIndexRoute
 }
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
@@ -103,10 +119,11 @@ export interface FileRoutesByTo {
   '/downloads': typeof AuthenticatedDownloadsRoute
   '/explore': typeof AuthenticatedExploreRoute
   '/library': typeof AuthenticatedLibraryRoute
-  '/playlists': typeof AuthenticatedPlaylistsRoute
   '/radios': typeof AuthenticatedRadiosRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/': typeof AuthenticatedIndexRoute
+  '/playlists/$playlistId': typeof AuthenticatedPlaylistsPlaylistIdRoute
+  '/playlists': typeof AuthenticatedPlaylistsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -118,10 +135,12 @@ export interface FileRoutesById {
   '/_authenticated/downloads': typeof AuthenticatedDownloadsRoute
   '/_authenticated/explore': typeof AuthenticatedExploreRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
-  '/_authenticated/playlists': typeof AuthenticatedPlaylistsRoute
+  '/_authenticated/playlists': typeof AuthenticatedPlaylistsRouteWithChildren
   '/_authenticated/radios': typeof AuthenticatedRadiosRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/playlists/$playlistId': typeof AuthenticatedPlaylistsPlaylistIdRoute
+  '/_authenticated/playlists/': typeof AuthenticatedPlaylistsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +156,8 @@ export interface FileRouteTypes {
     | '/playlists'
     | '/radios'
     | '/settings'
+    | '/playlists/$playlistId'
+    | '/playlists/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/forgot-password'
@@ -146,10 +167,11 @@ export interface FileRouteTypes {
     | '/downloads'
     | '/explore'
     | '/library'
-    | '/playlists'
     | '/radios'
     | '/settings'
     | '/'
+    | '/playlists/$playlistId'
+    | '/playlists'
   id:
     | '__root__'
     | '/_authenticated'
@@ -164,6 +186,8 @@ export interface FileRouteTypes {
     | '/_authenticated/radios'
     | '/_authenticated/settings'
     | '/_authenticated/'
+    | '/_authenticated/playlists/$playlistId'
+    | '/_authenticated/playlists/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -260,14 +284,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDownloadsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/playlists/': {
+      id: '/_authenticated/playlists/'
+      path: '/'
+      fullPath: '/playlists/'
+      preLoaderRoute: typeof AuthenticatedPlaylistsIndexRouteImport
+      parentRoute: typeof AuthenticatedPlaylistsRoute
+    }
+    '/_authenticated/playlists/$playlistId': {
+      id: '/_authenticated/playlists/$playlistId'
+      path: '/$playlistId'
+      fullPath: '/playlists/$playlistId'
+      preLoaderRoute: typeof AuthenticatedPlaylistsPlaylistIdRouteImport
+      parentRoute: typeof AuthenticatedPlaylistsRoute
+    }
   }
 }
+
+interface AuthenticatedPlaylistsRouteChildren {
+  AuthenticatedPlaylistsPlaylistIdRoute: typeof AuthenticatedPlaylistsPlaylistIdRoute
+  AuthenticatedPlaylistsIndexRoute: typeof AuthenticatedPlaylistsIndexRoute
+}
+
+const AuthenticatedPlaylistsRouteChildren: AuthenticatedPlaylistsRouteChildren =
+  {
+    AuthenticatedPlaylistsPlaylistIdRoute:
+      AuthenticatedPlaylistsPlaylistIdRoute,
+    AuthenticatedPlaylistsIndexRoute: AuthenticatedPlaylistsIndexRoute,
+  }
+
+const AuthenticatedPlaylistsRouteWithChildren =
+  AuthenticatedPlaylistsRoute._addFileChildren(
+    AuthenticatedPlaylistsRouteChildren,
+  )
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDownloadsRoute: typeof AuthenticatedDownloadsRoute
   AuthenticatedExploreRoute: typeof AuthenticatedExploreRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
-  AuthenticatedPlaylistsRoute: typeof AuthenticatedPlaylistsRoute
+  AuthenticatedPlaylistsRoute: typeof AuthenticatedPlaylistsRouteWithChildren
   AuthenticatedRadiosRoute: typeof AuthenticatedRadiosRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -277,7 +332,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDownloadsRoute: AuthenticatedDownloadsRoute,
   AuthenticatedExploreRoute: AuthenticatedExploreRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
-  AuthenticatedPlaylistsRoute: AuthenticatedPlaylistsRoute,
+  AuthenticatedPlaylistsRoute: AuthenticatedPlaylistsRouteWithChildren,
   AuthenticatedRadiosRoute: AuthenticatedRadiosRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
@@ -297,13 +352,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
