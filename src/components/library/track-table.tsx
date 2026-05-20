@@ -187,7 +187,8 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
                   <input
                     type="checkbox"
                     checked={isSel}
-                    onChange={() => toggle(t.id, tracks.map((x) => x.id))}
+                    onChange={() => toggle(t.id)}
+
 
                     className="size-3.5 accent-accent"
                   />
