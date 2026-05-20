@@ -1,48 +1,151 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { listPlaylists, createPlaylist } from "@/lib/playlists.functions";
+import * as Dialog from "@radix-ui/react-dialog";
 import { PageHeader } from "@/components/layout/page-shell";
+import { toast } from "sonner";
+
+function MS({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+}
 
 export const Route = createFileRoute("/_authenticated/playlists/")({
   head: () => ({ meta: [{ title: "Focus Audio — Playlists" }] }),
   component: PlaylistsIndex,
 });
 
-const playlists = [
-  { id: "deep-focus-state", title: "Deep Focus State", curator: "Focus Audio Curators", tracks: 42 },
-  { id: "morning-ambient", title: "Morning Ambient", curator: "Focus Audio", tracks: 28 },
-  { id: "flow-state", title: "Flow State", curator: "Focus Audio", tracks: 35 },
-  { id: "study-sonata", title: "Study Sonata", curator: "Focus Audio", tracks: 24 },
-  { id: "night-drive", title: "Night Drive", curator: "Focus Audio", tracks: 31 },
-  { id: "cinematic", title: "Cinematic Soundscapes", curator: "Focus Audio", tracks: 19 },
-];
-
 function PlaylistsIndex() {
+  const listFn = useServerFn(listPlaylists);
+  const { data, isLoading } = useQuery({ queryKey: ["playlists"], queryFn: () => listFn({}) });
+  const playlists = data?.playlists ?? [];
+  const [open, setOpen] = useState(false);
+
   return (
     <div>
-      <PageHeader eyebrow="Your selections" title="Playlists" subtitle="Curated mixes, smart shuffle, deep work sessions." />
-      <div className="px-10 pb-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-        {playlists.map((p, i) => (
-          <Link
-            key={p.id}
-            to="/playlists/$playlistId"
-            params={{ playlistId: p.id }}
-            className="group cursor-pointer"
-          >
-            <div
-              className="relative w-full aspect-square rounded-xl overflow-hidden border border-border grid place-items-center"
-              style={{
-                background: `linear-gradient(${135 + i * 25}deg, oklch(0.${35 + i * 4} 0.${10 + i * 2} ${100 + i * 40}), oklch(0.${20 + i * 2} 0.${4 + i} ${260 + i * 20}))`,
-              }}
-            >
-              <span className="material-symbols text-[44px] text-foreground/40" aria-hidden>queue_music</span>
-              <span className="absolute bottom-3 right-3 size-11 rounded-full bg-accent text-accent-foreground grid place-items-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-lg shadow-accent/30">
-                <span className="material-symbols text-[24px]" aria-hidden>play_arrow</span>
-              </span>
-            </div>
-            <p className="mt-3 text-sm font-semibold leading-tight">{p.title}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{p.curator} • {p.tracks} tracks</p>
-          </Link>
-        ))}
+      <PageHeader
+        eyebrow="Your selections"
+        title="Playlists"
+        subtitle="Build and curate your own."
+      />
+      <div className="px-10 pb-6 flex justify-end">
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 h-10 px-4 rounded-full bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          <MS name="add" className="text-[18px]" />
+          New playlist
+        </button>
       </div>
+
+      {isLoading ? (
+        <p className="px-10 text-sm text-muted-foreground">Loading…</p>
+      ) : playlists.length === 0 ? (
+        <div className="px-10 py-16 text-center">
+          <div className="mx-auto size-14 rounded-full bg-secondary grid place-items-center mb-4">
+            <MS name="queue_music" className="text-[28px] text-muted-foreground" />
+          </div>
+          <p className="text-sm font-semibold">No playlists yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Create one to start organizing your music.</p>
+        </div>
+      ) : (
+        <div className="px-10 pb-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+          {playlists.map((p, i) => (
+            <Link
+              key={p.id}
+              to="/playlists/$playlistId"
+              params={{ playlistId: p.id }}
+              className="group cursor-pointer"
+            >
+              <div
+                className="relative w-full aspect-square rounded-xl overflow-hidden border border-border grid place-items-center"
+                style={{
+                  background: p.cover_url
+                    ? `url(${p.cover_url}) center/cover`
+                    : `linear-gradient(${135 + i * 25}deg, oklch(0.${35 + (i % 5) * 4} 0.${10 + (i % 4) * 2} ${100 + (i * 40) % 360}), oklch(0.${20 + (i % 4) * 2} 0.${4 + (i % 3)} ${260 + (i * 20) % 360}))`,
+                }}
+              >
+                {!p.cover_url && (
+                  <MS name="queue_music" className="text-[44px] text-foreground/40" />
+                )}
+                <span className="absolute bottom-3 right-3 size-11 rounded-full bg-accent text-accent-foreground grid place-items-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-lg shadow-accent/30">
+                  <MS name="play_arrow" className="text-[24px]" />
+                </span>
+              </div>
+              <p className="mt-3 text-sm font-semibold leading-tight truncate">{p.name}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {p.tracks_count} track{p.tracks_count === 1 ? "" : "s"}
+              </p>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <CreatePlaylistDialog open={open} onOpenChange={setOpen} />
     </div>
+  );
+}
+
+function CreatePlaylistDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const createFn = useServerFn(createPlaylist);
+  const qc = useQueryClient();
+
+  const mut = useMutation({
+    mutationFn: () => createFn({ data: { name: name.trim(), description: description.trim() || undefined } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["playlists"] });
+      toast.success(`Playlist "${name}" created.`);
+      setName("");
+      setDescription("");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[460px] max-w-[92vw] rounded-2xl bg-card border border-border p-6 shadow-2xl">
+          <Dialog.Title className="text-lg font-semibold">New playlist</Dialog.Title>
+          <div className="mt-5 space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Name</label>
+              <input
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="My playlist"
+                className="mt-1.5 w-full h-10 px-3 rounded-md bg-secondary text-sm outline-none border border-transparent focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Description (optional)</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="mt-1.5 w-full px-3 py-2 rounded-md bg-secondary text-sm outline-none border border-transparent focus:border-accent resize-none"
+              />
+            </div>
+          </div>
+          <div className="mt-6 flex gap-2 justify-end">
+            <Dialog.Close asChild>
+              <button className="h-9 px-4 rounded-md text-sm text-muted-foreground hover:bg-secondary">Cancel</button>
+            </Dialog.Close>
+            <button
+              disabled={!name.trim() || mut.isPending}
+              onClick={() => mut.mutate()}
+              className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              {mut.isPending ? "Creating…" : "Create"}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

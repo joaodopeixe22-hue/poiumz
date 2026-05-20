@@ -1,24 +1,17 @@
 import { useDropzone } from "react-dropzone";
-import { useTrackUpload } from "@/hooks/use-track-upload";
+import { useBulkUpload } from "@/hooks/use-bulk-upload";
 import { useUploadStore } from "@/stores/upload-store";
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useRef } from "react";
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
 }
 
 export function UploadDropzone() {
-  const { upload } = useTrackUpload();
-  const items = useUploadStore((s) => s.items);
-  const remove = useUploadStore((s) => s.remove);
-  const clearDone = useUploadStore((s) => s.clearDone);
-  const qc = useQueryClient();
-
-  const doneCount = items.filter((i) => i.status === "done").length;
-  useEffect(() => {
-    if (doneCount > 0) qc.invalidateQueries({ queryKey: ["tracks"] });
-  }, [doneCount, qc]);
+  const { upload } = useBulkUpload();
+  const duplicatePolicy = useUploadStore((s) => s.duplicatePolicy);
+  const setDuplicatePolicy = useUploadStore((s) => s.setDuplicatePolicy);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: upload,
@@ -30,6 +23,7 @@ export function UploadDropzone() {
       "audio/aac": [".aac"],
     },
     multiple: true,
+    maxFiles: 500,
   });
 
   return (
@@ -48,69 +42,48 @@ export function UploadDropzone() {
           {isDragActive ? "Drop to upload" : "Drag audio files here, or click to browse"}
         </p>
         <p className="text-xs text-muted-foreground mt-1.5">
-          MP3 · FLAC · WAV · M4A · AAC · up to 60 MB · up to 20 per batch
+          MP3 · FLAC · WAV · M4A · AAC · up to 50 MB · up to 500 per batch
         </p>
       </div>
 
-      {items.length > 0 && (
-        <div className="rounded-xl border border-border bg-card/60 divide-y divide-border">
-          <div className="px-4 py-3 flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Queue · {items.length}
-            </p>
-            <button
-              onClick={clearDone}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Clear completed
-            </button>
-          </div>
-          <ul className="divide-y divide-border max-h-[420px] overflow-y-auto">
-            {items.map((it) => (
-              <li key={it.id} className="px-4 py-3 flex items-center gap-3">
-                <div className="size-9 rounded-md bg-secondary grid place-items-center shrink-0">
-                  <MS
-                    name={
-                      it.status === "done" ? "check_circle"
-                      : it.status === "error" ? "error"
-                      : "music_note"
-                    }
-                    className={`text-[18px] ${
-                      it.status === "done" ? "text-accent"
-                      : it.status === "error" ? "text-destructive"
-                      : "text-muted-foreground"
-                    }`}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{it.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="h-1 flex-1 bg-border rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-300 ${
-                          it.status === "error" ? "bg-destructive" : "bg-accent"
-                        }`}
-                        style={{ width: `${it.progress}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] font-mono text-muted-foreground tabular-nums w-20 text-right">
-                      {it.status === "error" ? "failed" : `${it.status} ${it.progress}%`}
-                    </span>
-                  </div>
-                  {it.error && <p className="text-[10px] text-destructive mt-1 truncate">{it.error}</p>}
-                </div>
-                <button
-                  onClick={() => remove(it.id)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Remove"
-                >
-                  <MS name="close" className="text-[18px]" />
-                </button>
-              </li>
-            ))}
-          </ul>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => folderInputRef.current?.click()}
+          className="flex items-center gap-2 px-4 h-9 rounded-full bg-secondary text-xs font-medium hover:bg-secondary/70 transition-colors"
+        >
+          <MS name="folder" className="text-[16px]" />
+          Import folder
+        </button>
+        <input
+          ref={folderInputRef}
+          type="file"
+          // @ts-expect-error non-standard but widely supported
+          webkitdirectory=""
+          directory=""
+          multiple
+          hidden
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            if (files.length) upload(files);
+            e.target.value = "";
+          }}
+        />
+
+        <div className="flex items-center gap-2 ml-auto text-xs">
+          <span className="text-muted-foreground">Duplicates:</span>
+          <select
+            value={duplicatePolicy}
+            onChange={(e) => setDuplicatePolicy(e.target.value as typeof duplicatePolicy)}
+            className="h-8 px-2 rounded-md bg-secondary border border-transparent focus:border-accent outline-none text-xs"
+          >
+            <option value="ask">Skip duplicates</option>
+            <option value="skip">Skip</option>
+            <option value="replace">Replace</option>
+            <option value="keep_both">Keep both</option>
+          </select>
         </div>
-      )}
+      </div>
     </div>
   );
 }
