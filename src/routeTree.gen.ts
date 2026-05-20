@@ -23,6 +23,7 @@ import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDownloadsRouteImport } from './routes/_authenticated/downloads'
 import { Route as AuthenticatedPlaylistsIndexRouteImport } from './routes/_authenticated/playlists.index'
 import { Route as AuthenticatedPlaylistsPlaylistIdRouteImport } from './routes/_authenticated/playlists.$playlistId'
+import { Route as AuthenticatedLibraryUploadRouteImport } from './routes/_authenticated/library.upload'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -95,6 +96,12 @@ const AuthenticatedPlaylistsPlaylistIdRoute =
     path: '/$playlistId',
     getParentRoute: () => AuthenticatedPlaylistsRoute,
   } as any)
+const AuthenticatedLibraryUploadRoute =
+  AuthenticatedLibraryUploadRouteImport.update({
+    id: '/upload',
+    path: '/upload',
+    getParentRoute: () => AuthenticatedLibraryRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -104,10 +111,11 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/downloads': typeof AuthenticatedDownloadsRoute
   '/explore': typeof AuthenticatedExploreRoute
-  '/library': typeof AuthenticatedLibraryRoute
+  '/library': typeof AuthenticatedLibraryRouteWithChildren
   '/playlists': typeof AuthenticatedPlaylistsRouteWithChildren
   '/radios': typeof AuthenticatedRadiosRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/library/upload': typeof AuthenticatedLibraryUploadRoute
   '/playlists/$playlistId': typeof AuthenticatedPlaylistsPlaylistIdRoute
   '/playlists/': typeof AuthenticatedPlaylistsIndexRoute
 }
@@ -118,10 +126,11 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/downloads': typeof AuthenticatedDownloadsRoute
   '/explore': typeof AuthenticatedExploreRoute
-  '/library': typeof AuthenticatedLibraryRoute
+  '/library': typeof AuthenticatedLibraryRouteWithChildren
   '/radios': typeof AuthenticatedRadiosRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/': typeof AuthenticatedIndexRoute
+  '/library/upload': typeof AuthenticatedLibraryUploadRoute
   '/playlists/$playlistId': typeof AuthenticatedPlaylistsPlaylistIdRoute
   '/playlists': typeof AuthenticatedPlaylistsIndexRoute
 }
@@ -134,11 +143,12 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/downloads': typeof AuthenticatedDownloadsRoute
   '/_authenticated/explore': typeof AuthenticatedExploreRoute
-  '/_authenticated/library': typeof AuthenticatedLibraryRoute
+  '/_authenticated/library': typeof AuthenticatedLibraryRouteWithChildren
   '/_authenticated/playlists': typeof AuthenticatedPlaylistsRouteWithChildren
   '/_authenticated/radios': typeof AuthenticatedRadiosRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/library/upload': typeof AuthenticatedLibraryUploadRoute
   '/_authenticated/playlists/$playlistId': typeof AuthenticatedPlaylistsPlaylistIdRoute
   '/_authenticated/playlists/': typeof AuthenticatedPlaylistsIndexRoute
 }
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/playlists'
     | '/radios'
     | '/settings'
+    | '/library/upload'
     | '/playlists/$playlistId'
     | '/playlists/'
   fileRoutesByTo: FileRoutesByTo
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/radios'
     | '/settings'
     | '/'
+    | '/library/upload'
     | '/playlists/$playlistId'
     | '/playlists'
   id:
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
     | '/_authenticated/radios'
     | '/_authenticated/settings'
     | '/_authenticated/'
+    | '/_authenticated/library/upload'
     | '/_authenticated/playlists/$playlistId'
     | '/_authenticated/playlists/'
   fileRoutesById: FileRoutesById
@@ -298,8 +311,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlaylistsPlaylistIdRouteImport
       parentRoute: typeof AuthenticatedPlaylistsRoute
     }
+    '/_authenticated/library/upload': {
+      id: '/_authenticated/library/upload'
+      path: '/upload'
+      fullPath: '/library/upload'
+      preLoaderRoute: typeof AuthenticatedLibraryUploadRouteImport
+      parentRoute: typeof AuthenticatedLibraryRoute
+    }
   }
 }
+
+interface AuthenticatedLibraryRouteChildren {
+  AuthenticatedLibraryUploadRoute: typeof AuthenticatedLibraryUploadRoute
+}
+
+const AuthenticatedLibraryRouteChildren: AuthenticatedLibraryRouteChildren = {
+  AuthenticatedLibraryUploadRoute: AuthenticatedLibraryUploadRoute,
+}
+
+const AuthenticatedLibraryRouteWithChildren =
+  AuthenticatedLibraryRoute._addFileChildren(AuthenticatedLibraryRouteChildren)
 
 interface AuthenticatedPlaylistsRouteChildren {
   AuthenticatedPlaylistsPlaylistIdRoute: typeof AuthenticatedPlaylistsPlaylistIdRoute
@@ -321,7 +352,7 @@ const AuthenticatedPlaylistsRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedDownloadsRoute: typeof AuthenticatedDownloadsRoute
   AuthenticatedExploreRoute: typeof AuthenticatedExploreRoute
-  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
+  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRouteWithChildren
   AuthenticatedPlaylistsRoute: typeof AuthenticatedPlaylistsRouteWithChildren
   AuthenticatedRadiosRoute: typeof AuthenticatedRadiosRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -331,7 +362,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDownloadsRoute: AuthenticatedDownloadsRoute,
   AuthenticatedExploreRoute: AuthenticatedExploreRoute,
-  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
+  AuthenticatedLibraryRoute: AuthenticatedLibraryRouteWithChildren,
   AuthenticatedPlaylistsRoute: AuthenticatedPlaylistsRouteWithChildren,
   AuthenticatedRadiosRoute: AuthenticatedRadiosRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
