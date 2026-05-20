@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/app-shell";
+import { AudioEngine } from "@/components/library/audio-engine";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/_authenticated")({
   component: () => (
     <AppShell>
       <Outlet />
+      <AudioEngine />
     </AppShell>
   ),
 });
