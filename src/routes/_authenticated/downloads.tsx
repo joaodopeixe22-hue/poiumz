@@ -1,12 +1,27 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PageHeader, ComingSoon } from "@/components/layout/page-shell";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { PageHeader } from "@/components/layout/page-shell";
+import { UploadDropzone } from "@/components/library/upload-dropzone";
 
 export const Route = createFileRoute("/_authenticated/downloads")({
-  head: () => ({ meta: [{ title: "Aethel — Downloads" }] }),
-  component: () => (
-    <div>
-      <PageHeader eyebrow="Local" title="Downloads." subtitle="Upload your own MP3, FLAC, WAV." />
-      <ComingSoon stage="Etapa 7" note="Upload direto para o cofre seguro, metadata extraída automaticamente." />
-    </div>
-  ),
+  head: () => ({ meta: [{ title: "Focus Audio — Downloads" }] }),
+  component: DownloadsPage,
 });
+
+function DownloadsPage() {
+  return (
+    <div className="pb-20">
+      <PageHeader
+        eyebrow="Local files"
+        title="Downloads."
+        subtitle="Upload local audio to your private library."
+      />
+      <div className="px-10 max-w-4xl">
+        <UploadDropzone />
+        <p className="mt-6 text-xs text-muted-foreground">
+          Already uploaded?{" "}
+          <Link to="/library" className="text-accent hover:underline">Open library →</Link>
+        </p>
+      </div>
+    </div>
+  );
+}

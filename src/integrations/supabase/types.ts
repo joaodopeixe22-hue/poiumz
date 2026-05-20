@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -44,6 +71,140 @@ export type Database = {
           preferences?: Json
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      track_folders: {
+        Row: {
+          created_at: string
+          folder_id: string
+          track_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_id: string
+          track_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_id?: string
+          track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_folders_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "track_folders_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      track_tags: {
+        Row: {
+          created_at: string
+          id: string
+          tag: string
+          track_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          tag: string
+          track_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          tag?: string
+          track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_tags_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracks: {
+        Row: {
+          album: string | null
+          artist: string | null
+          bitrate: number | null
+          cover_url: string | null
+          created_at: string
+          duration: number | null
+          file_path: string
+          file_size: number | null
+          genre: string | null
+          id: string
+          is_favorite: boolean
+          last_played_at: string | null
+          mime_type: string | null
+          play_count: number
+          title: string
+          track_number: number | null
+          updated_at: string
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          album?: string | null
+          artist?: string | null
+          bitrate?: number | null
+          cover_url?: string | null
+          created_at?: string
+          duration?: number | null
+          file_path: string
+          file_size?: number | null
+          genre?: string | null
+          id?: string
+          is_favorite?: boolean
+          last_played_at?: string | null
+          mime_type?: string | null
+          play_count?: number
+          title: string
+          track_number?: number | null
+          updated_at?: string
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          album?: string | null
+          artist?: string | null
+          bitrate?: number | null
+          cover_url?: string | null
+          created_at?: string
+          duration?: number | null
+          file_path?: string
+          file_size?: number | null
+          genre?: string | null
+          id?: string
+          is_favorite?: boolean
+          last_played_at?: string | null
+          mime_type?: string | null
+          play_count?: number
+          title?: string
+          track_number?: number | null
+          updated_at?: string
+          user_id?: string
+          year?: number | null
         }
         Relationships: []
       }
@@ -80,6 +241,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
