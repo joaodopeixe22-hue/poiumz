@@ -18,7 +18,8 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <p className="font-mono-caption text-muted-foreground">404 // Not Found</p>
-        <h1 className="font-display italic text-5xl mt-4">Lost in the static.</h1>
+        <h1 className="font-display text-5xl mt-4">Lost in the static.</h1>
+
         <p className="mt-3 text-sm text-muted-foreground">
           This page doesn't exist or has drifted off the dial.
         </p>
@@ -42,7 +43,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <p className="font-mono-caption text-muted-foreground">Error</p>
-        <h1 className="font-display italic text-4xl mt-3">Something broke.</h1>
+        <h1 className="font-display text-4xl mt-3">Something broke.</h1>
+
         <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
         <div className="mt-6 flex justify-center gap-2">
           <button
@@ -83,9 +85,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,500;1,600;1,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap",
       },
     ],
+
   }),
   shellComponent: RootShell,
   component: RootComponent,
