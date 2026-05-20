@@ -10,6 +10,7 @@ import {
   incrementPlayCount,
 } from "@/lib/library.functions";
 import { useLibraryStore } from "@/stores/library-store";
+import { useSelectionStore } from "@/stores/selection-store";
 import { usePlayerStore, type Track } from "@/stores/player-store";
 import { CoverImage } from "./cover-image";
 import { toast } from "sonner";
@@ -41,10 +42,13 @@ export type TrackRow = {
 
 export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
   const { search, sort, favoritesOnly, genre, folderId } = useLibraryStore();
-  const selected = useLibraryStore((s) => s.selected);
-  const toggleSelect = useLibraryStore((s) => s.toggleSelect);
-  const selectAll = useLibraryStore((s) => s.selectAll);
-  const clearSelection = useLibraryStore((s) => s.clearSelection);
+  const selected = useSelectionStore((s) => s.selected);
+  const lastSelectedId = useSelectionStore((s) => s.lastSelectedId);
+  const toggle = useSelectionStore((s) => s.toggle);
+  const setRange = useSelectionStore((s) => s.setRange);
+  const selectOnly = useSelectionStore((s) => s.selectOnly);
+  const selectAll = useSelectionStore((s) => s.selectAll);
+  const clearSelection = useSelectionStore((s) => s.clear);
 
   const listFn = useServerFn(listTracks);
   const signFn = useServerFn(getTrackSignedUrl);
