@@ -3,12 +3,16 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
-      { title: "Aethel — Home" },
-      { name: "description", content: "Your daily rotation, curated picks, and recently played." },
+      { title: "Focus Audio — Home" },
+      { name: "description", content: "Your personalized audio space for deep focus." },
     ],
   }),
   component: HomePage,
 });
+
+function MS({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+}
 
 function HomePage() {
   const hour = new Date().getHours();
@@ -16,69 +20,100 @@ function HomePage() {
 
   return (
     <div>
-      <header className="p-12 pb-6 flex justify-between items-end">
-        <h1 className="font-display italic text-5xl text-balance animate-fade-in-up">{greeting}.</h1>
-        <div className="font-mono-caption text-muted-foreground">
-          {new Date().toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })} // {Intl.DateTimeFormat().resolvedOptions().timeZone}
-        </div>
+      <header className="px-10 pt-10 pb-6 animate-fade-in-up">
+        <h1 className="font-display text-4xl">{greeting}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Your personalized audio space.</p>
       </header>
 
-      <section className="p-12 pt-6 grid grid-cols-12 gap-8">
-        <div className="col-span-12 lg:col-span-8 group relative animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-          <div className="w-full aspect-[2/1] rounded-sm overflow-hidden ring-1 ring-border group-hover:ring-accent/30 transition-all relative">
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(ellipse at 30% 40%, oklch(0.45 0.10 30 / 0.6), transparent 60%), radial-gradient(ellipse at 80% 60%, oklch(0.30 0.06 80 / 0.6), transparent 70%), oklch(0.18 0.008 60)",
-              }}
-            />
-            <div className="absolute inset-0 grid place-items-end p-8">
-              <div>
-                <p className="font-mono-caption text-accent mb-2">Heavy Rotation // Archive 01</p>
-                <h2 className="font-display italic text-3xl">Selected Works for Dusk</h2>
-              </div>
-            </div>
+      {/* Hero */}
+      <section className="px-10">
+        <div
+          className="relative rounded-2xl overflow-hidden border border-border p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-10 animate-fade-in-up"
+          style={{
+            background:
+              "radial-gradient(ellipse at 80% 20%, oklch(0.86 0.18 130 / 0.18), transparent 55%), radial-gradient(ellipse at 20% 80%, oklch(0.55 0.16 280 / 0.22), transparent 60%), oklch(0.20 0.008 260)",
+          }}
+        >
+          <div className="flex-1 min-w-0">
+            <span className="inline-flex items-center gap-1.5 text-[10px] text-accent font-semibold tracking-wider uppercase bg-accent/10 px-2.5 py-1 rounded-full">
+              <MS name="bolt" className="text-[12px]" /> Deep Focus
+            </span>
+            <h2 className="font-display text-4xl md:text-5xl mt-4 leading-tight text-balance">
+              Binaural Beats & Alpha Waves
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground max-w-xl text-pretty">
+              2 hours of uninterrupted ambient frequencies designed to enhance cognitive flow and silence distractions.
+            </p>
+            <button className="mt-6 inline-flex items-center gap-2 bg-accent text-accent-foreground rounded-full pl-2 pr-5 py-2 text-sm font-semibold hover:scale-[1.02] transition-transform shadow-lg shadow-accent/20">
+              <span className="size-7 rounded-full bg-accent-foreground/10 grid place-items-center">
+                <MS name="play_arrow" className="text-[20px]" />
+              </span>
+              Play now
+            </button>
           </div>
-          <div className="mt-4 flex justify-between items-baseline">
-            <h3 className="font-display italic text-2xl">Pick up where you left off</h3>
-            <span className="font-mono text-xs text-accent cursor-pointer hover:underline">Play Now</span>
+          <div className="shrink-0 hidden md:grid size-44 rounded-xl border border-border/60 place-items-center"
+            style={{
+              background:
+                "conic-gradient(from 90deg at 50% 50%, oklch(0.86 0.18 130 / 0.4), oklch(0.55 0.16 280 / 0.4), oklch(0.86 0.18 130 / 0.4))",
+            }}
+          >
+            <MS name="graphic_eq" className="text-[64px] text-foreground/70" />
           </div>
-        </div>
-
-        <div className="col-span-12 lg:col-span-4 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
-          <p className="font-mono-caption text-muted-foreground mb-5">Recently Played</p>
-          <ul className="space-y-4">
-            {recentPlaceholders.map((t) => (
-              <li key={t.title} className="flex items-center gap-4 group cursor-pointer">
-                <div className="size-12 bg-secondary shrink-0 rounded-sm" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate group-hover:text-accent transition-colors">{t.title}</p>
-                  <p className="font-mono-caption text-muted-foreground truncate">{t.artist}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 
-      <section className="p-12 pt-0 space-y-8">
-        <div className="flex justify-between items-center border-b border-border pb-4">
-          <h2 className="font-mono-caption text-foreground">Curated for you</h2>
-          <a className="font-mono-caption text-muted-foreground hover:text-foreground cursor-pointer">View All</a>
+      {/* Quick row */}
+      <section className="px-10 mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {quickRow.map((q, i) => (
+          <div
+            key={q.title}
+            className="group flex items-center gap-4 bg-card/60 hover:bg-card border border-border rounded-xl p-3 pr-5 cursor-pointer transition-colors animate-fade-in-up"
+            style={{ animationDelay: `${100 + i * 60}ms` }}
+          >
+            <div
+              className="size-14 rounded-md shrink-0 grid place-items-center"
+              style={{
+                background: `linear-gradient(135deg, oklch(0.${35 + i * 5} 0.${8 + i * 2} ${130 + i * 60}), oklch(0.${22 + i * 3} 0.${4 + i} ${220 + i * 30}))`,
+              }}
+            >
+              <MS name="music_note" className="text-[22px] text-foreground/80" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate">{q.title}</p>
+              <p className="text-xs text-muted-foreground truncate">{q.subtitle}</p>
+            </div>
+            <button className="size-9 rounded-full bg-accent text-accent-foreground grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <MS name="play_arrow" className="text-[20px]" />
+            </button>
+          </div>
+        ))}
+      </section>
+
+      {/* Made for You */}
+      <section className="px-10 mt-12 pb-10">
+        <div className="flex justify-between items-end mb-5">
+          <div>
+            <p className="text-xs text-accent font-medium tracking-wide mb-1 uppercase">Curated</p>
+            <h2 className="font-display text-2xl">Made for You</h2>
+          </div>
+          <a className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">View All</a>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 animate-fade-in-up">
           {curated.map((c, i) => (
-            <div key={c.title} className="space-y-3 cursor-pointer group">
-              <div className="w-full aspect-square rounded-sm overflow-hidden ring-1 ring-border group-hover:ring-accent/40 transition-all grid place-items-center"
+            <div key={c.title} className="group cursor-pointer">
+              <div
+                className="relative w-full aspect-square rounded-xl overflow-hidden border border-border grid place-items-center"
                 style={{
-                  background: `linear-gradient(135deg, oklch(0.${30 + i * 5} 0.${4 + i} ${30 + i * 30}), oklch(0.${20 + i * 3} 0.${2 + i} ${10 + i * 20}))`,
+                  background: `linear-gradient(${135 + i * 30}deg, oklch(0.${35 + i * 4} 0.${10 + i * 2} ${100 + i * 40}), oklch(0.${20 + i * 2} 0.${4 + i} ${260 + i * 20}))`,
                 }}
               >
-                <span className="font-mono-caption text-foreground/40">00{i + 1}</span>
+                <MS name="album" className="text-[44px] text-foreground/40" />
+                <button className="absolute bottom-3 right-3 size-11 rounded-full bg-accent text-accent-foreground grid place-items-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-lg shadow-accent/30">
+                  <MS name="play_arrow" className="text-[24px]" />
+                </button>
               </div>
-              <p className="text-xs font-medium leading-tight">{c.title}</p>
-              <p className="font-mono-caption text-muted-foreground">{c.genre}</p>
+              <p className="mt-3 text-sm font-semibold leading-tight">{c.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{c.subtitle}</p>
             </div>
           ))}
         </div>
@@ -87,16 +122,15 @@ function HomePage() {
   );
 }
 
-const recentPlaceholders = [
-  { title: "Solace in Minor", artist: "The Highline Quartet" },
-  { title: "Concrete Echoes", artist: "Elias Thorne" },
-  { title: "Midnight Theory", artist: "Vespera" },
+const quickRow = [
+  { title: "Structural Silence", subtitle: "Minimal Techno" },
+  { title: "Night Drive", subtitle: "Synthwave Focus" },
+  { title: "Morning Ritual", subtitle: "Neo-Classical" },
 ];
 
 const curated = [
-  { title: "Spatial Discipline", genre: "Techno / Ambient" },
-  { title: "Morning Ritual", genre: "Neo-Classical" },
-  { title: "The Editor's Choice", genre: "Soul / Jazz" },
-  { title: "Night Drive", genre: "Synthwave" },
-  { title: "Structure & Form", genre: "Deep House" },
+  { title: "Morning Ambient", subtitle: "Start soft, stay focused." },
+  { title: "Flow State", subtitle: "Electronic beats for deep work." },
+  { title: "Study Sonata", subtitle: "Classical focus mix." },
+  { title: "Cinematic Soundscapes", subtitle: "Epic background textures." },
 ];
