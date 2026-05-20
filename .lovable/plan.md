@@ -1,161 +1,156 @@
-# Biblioteca Musical: Upload MP3 + Gerenciamento
 
-Implementação completa das Etapas 1–10 do escopo, integrando com o design system "Focus Audio" já em uso e o `usePlayerStore` existente.
+# Upload em massa + gerenciamento em lote
 
----
+Extende a biblioteca existente (`tracks`, `folders`, `track_tags`) com playlists reais, upload massivo resiliente, seleção múltipla e ações em lote. Mantém o visual Focus Audio atual.
 
-## 1. Backend (Lovable Cloud)
+## 1. Banco de dados (migration)
 
-### Storage
-- Bucket **privado** `tracks` — arquivos de áudio (path: `{user_id}/{track_id}.{ext}`).
-- Bucket **público** `covers` — capas extraídas (path: `{user_id}/{track_id}.jpg`).
-- Políticas RLS: cada usuário só lê/escreve dentro do seu próprio prefixo `{user_id}/`.
+Novas tabelas (RLS por `auth.uid() = user_id`):
 
-### Tabelas (migration única)
-- `tracks` — `id, user_id, title, artist, album, genre, year, duration, bitrate, track_number, cover_url, file_path, file_size, mime_type, play_count, last_played_at, is_favorite, created_at, updated_at`.
-- `folders` — `id, user_id, name, color, created_at`.
-- `track_folders` — junção `track_id ↔ folder_id`.
-- `track_tags` — `id, track_id, user_id, tag` (tags livres tipo "foco", "treino").
-- Índices em `user_id`, `(user_id, created_at desc)`, GIN trigram em `title/artist/album` para busca.
-- Trigger `set_updated_at` reutilizando função existente.
-- RLS: dono completo (CRUD), nada público.
+- `playlists` — `id, user_id, name, description, cover_url, is_public(bool, default false), tracks_count(int, default 0), duration_total(numeric, default 0), created_at, updated_at`
+- `playlist_tracks` — `playlist_id, track_id, user_id, position(int), added_at`; PK `(playlist_id, track_id)`; index em `(playlist_id, position)`
+- `upload_sessions` — `id, user_id, total_files, completed_files, failed_files, status('active'|'done'|'cancelled'), created_at, updated_at`
+- `track_uploads` — `id, session_id, user_id, file_name, file_size, status('queued'|'uploading'|'done'|'error'|'skipped'), progress, track_id(nullable), error_message, created_at`
+- Adicionar a `tracks`: `content_hash text` (sha-256 do arquivo, usado para detecção de duplicatas) + index único parcial `(user_id, content_hash) where content_hash is not null`.
 
-### URLs assinadas
-Server function `getTrackSignedUrl(trackId)` → URL temporária de 1h para reprodução. Capas usam URL pública direta.
+Triggers:
+- `set_updated_at` em `playlists` e `upload_sessions`.
+- Trigger AFTER INSERT/DELETE em `playlist_tracks` que recalcula `tracks_count` e `duration_total` na `playlists` correspondente.
 
----
+## 2. Server functions
 
-## 2. Upload + Metadados (client-side)
+`src/lib/playlists.functions.ts`:
+- `listPlaylists`, `getPlaylist(id)` (retorna playlist + tracks ordenadas)
+- `createPlaylist({ name, description?, trackIds? })`
+- `updatePlaylist`, `deletePlaylist`
+- `addTracksToPlaylist({ playlistId, trackIds, mode: 'append'|'prepend'|'afterCurrent', currentPosition? })`
+- `removeTracksFromPlaylist({ playlistId, trackIds })`
+- `reorderPlaylistTracks({ playlistId, orderedTrackIds })` — usa CTE para reescrever `position` atomicamente
 
-Toda a extração de metadados acontece no **browser** antes do upload (evita Worker runtime + dá feedback imediato):
+`src/lib/library.functions.ts` (estender):
+- `bulkUpdateTracks({ ids, patch: { genre?, is_favorite?, tags?[] } })` (limite 500)
+- `bulkDeleteTracks` (já existe `deleteTracks`, aumentar limite + aceitar até 500)
+- `findDuplicatesByHash({ hashes })` → retorna mapeamento hash→trackId existente
+- `createUploadSession`, `updateUploadSession`, `recordTrackUpload` (granular para retomar/retry)
 
-- `music-metadata-browser` → título, artista, álbum, gênero, ano, track#, duração, bitrate, capa embutida.
-- Validação: extensões `mp3/flac/wav/m4a/aac`, MIME real (magic bytes), tamanho máx **50 MB** por arquivo, máx **20 arquivos** por lote.
-- Fluxo por arquivo:
-  1. Validar tipo/tamanho.
-  2. Parsear metadados + extrair capa (blob).
-  3. Upload do áudio → Storage `tracks/{user_id}/{uuid}.{ext}`.
-  4. Upload da capa (se existir) → `covers/{user_id}/{uuid}.jpg`.
-  5. `INSERT` em `tracks` com metadados.
-  6. Fallback: se faltar título, usa nome do arquivo; se faltar capa, gradiente gerado.
+## 3. Upload em massa (cliente)
 
-### Componente `UploadDropzone`
-- Drag-and-drop + botão "Selecionar arquivos".
-- Lista de progresso por arquivo: nome, % barra, status (parsing → uploading → saving → done/error), velocidade aproximada, botão remover/retry.
-- Concorrência: 3 uploads paralelos (fila).
+Refatorar `src/hooks/use-track-upload.ts` em `src/hooks/use-bulk-upload.ts`:
+- Aceitar `File[]` ilimitado (UI valida count); fila interna com concorrência configurável (padrão 3, ajustável 1–6).
+- Para cada arquivo:
+  1. validar MIME/tamanho (mp3/flac/wav/m4a/aac, ≤50MB) e sanitizar nome
+  2. calcular sha-256 via `crypto.subtle.digest` em chunks (Web Worker para arquivos >10MB)
+  3. consultar `findDuplicatesByHash` em batch (lotes de 50); aplicar política escolhida (`skip` | `replace` | `keep_both`)
+  4. parsear metadados (`music-metadata-browser`) + cover
+  5. upload do áudio para bucket `tracks` (`{user_id}/{trackId}.{ext}`), cover para `covers`
+  6. INSERT em `tracks` (com `content_hash`)
+  7. atualizar `track_uploads.status='done'` + `upload_sessions.completed_files`
+- Controles: `pause()`, `resume()`, `cancel(itemId)`, `cancelAll()`, `retry(itemId)` (backoff exponencial: 1s, 3s, 9s, máx 3 tentativas).
+- Persistir progresso em `upload_sessions` para sobreviver a navegação (não a reload total).
 
----
+Atualizar `src/stores/upload-store.ts`:
+- Adicionar `sessionId`, `concurrency`, `isPaused`, `duplicatePolicy`, `speedBps`, `etaSec`
+- Computar throughput (bytes/segundo) com janela móvel de 5s
 
-## 3. Rotas e telas
+`<UploadDropzone>` (estender):
+- Aceitar `webkitdirectory` para drop/seleção de pastas inteiras (mapear estrutura → tags `folder:<nome>` automaticamente)
+- Mostrar contagem antes do upload + modal de "duplicatas detectadas" com 3 opções
 
-Substituir/expandir as rotas já existentes (mantendo layout `_authenticated` e `GlobalPlayer`):
+`<UploadQueuePanel>` (novo, fixo no canto inferior direito):
+- Lista virtualizada com progresso individual, status, retry inline
+- Header com progresso total, velocidade, ETA, botões pause/cancel/clear
+- Minimizável; permanece montado em todas as rotas autenticadas (mover para `_authenticated.tsx`)
 
-| Rota | Função |
-|---|---|
-| `/library` (já existe — substituir ComingSoon) | Hub com tabs: Músicas, Álbuns, Artistas, Recentes, Favoritos, Pastas |
-| `/library/upload` (novo) | Tela dedicada de upload com dropzone grande |
-| `/library/track/$trackId` (novo) | Drawer/modal de detalhes + edição de metadados |
-| `/downloads` (já existe — substituir) | Lista de uploads recentes (últimos 30 dias) |
+## 4. Seleção múltipla + ações em lote
 
-### `/library` — visual
-- Header com busca instantânea (debounce 200ms) + botão "Upload".
-- Tabs (Radix) para as 6 seções.
-- **Músicas**: tabela virtualizada (`@tanstack/react-virtual`) com colunas `#`, Título+Artista, Álbum, Gênero, Duração, ações. Seleção múltipla via checkbox + shift-click.
-- **Álbuns / Artistas**: grid de cards (capa + nome + contagem).
-- **Recentes**: ordenado por `created_at desc`, primeiras 50.
-- **Favoritos**: filtro `is_favorite=true`.
-- **Pastas**: grid de pastas + criar nova (modal).
+`src/stores/selection-store.ts` (novo): `Set<string>` de IDs + `lastSelectedId` para shift-click.
 
-### Toolbar de seleção múltipla
-Aparece sticky no rodapé quando ≥1 selecionada: **Tocar agora**, **Adicionar à fila**, **Adicionar à pasta**, **Favoritar**, **Excluir**.
+Atualizar `<TrackTable>`:
+- Checkbox por linha (visível no hover/quando há seleção)
+- Header com checkbox "select all"
+- Click: seleção única / `cmd/ctrl+click`: toggle / `shift+click`: range
+- `Esc` limpa seleção
 
-### Edição de metadados
-Drawer lateral (Sheet) com formulário: título, artista, álbum, gênero, ano, track#, upload de nova capa, tags (chips). Botões "Reprocessar metadados" (re-parse do arquivo) e "Salvar".
+`<BulkSelectionToolbar>` (novo, aparece fixo no topo quando `selection.size > 0`):
+- Contador, botões: Tocar agora, Adicionar à fila, Favoritar, Adicionar à playlist (popover), Mover para pasta, Editar tags/gênero (abre `<BulkEditModal>`), Baixar (gera signed URLs em batch), Deletar (confirmação)
+- Atalhos: `Delete`, `F` (favoritar), `P` (playlist)
 
----
+`<BulkEditModal>`: edita `genre`, adiciona/remove tags em N tracks via `bulkUpdateTracks`.
 
-## 4. Player local
+## 5. Playlists reais
 
-Integração com `usePlayerStore` (já existente):
-- Ao clicar play em uma track, server fn devolve URL assinada e seta `currentTrack` com `src`.
-- `GlobalPlayer` precisa de um `<audio>` real (hoje só renderiza UI). Adicionar `<AudioEngine />` montado em `_authenticated.tsx`:
-  - Reage a `currentTrack`, `playbackState`, `volume`, `muted`, `position`.
-  - Eventos `timeupdate` → `setPosition`; `ended` → `next()`.
-  - Crossfade (2/5/10s): dois elementos `<audio>` alternados.
-  - Equalizador via `AudioContext` + `BiquadFilterNode` (bass/mid/treble) — aplicado quando ≠ flat.
-- `play_count` e `last_played_at` incrementados via server fn ao completar 30s de reprodução.
+Substituir mock em `playlists.$playlistId.tsx` por dados reais (loader + `useQuery`).
 
-Multi-device sync e smart queue ficam como hooks instalados mas com implementação básica (registrar device em `localStorage`, smart queue = continuar do mesmo álbum/artista).
+Atualizar `playlists.index.tsx`: grid de playlists do usuário + botão "Nova playlist".
 
----
+`<PlaylistDropZone>`: zona drop em cada card e na sidebar (link de playlist) — aceita IDs de tracks via `dataTransfer`. Drag visual highlight + toast "+N adicionadas".
 
-## 5. Organização e filtros
+Drag-and-drop:
+- `react-dnd` ou HTML5 DnD nativo (preferência: nativo, sem dep extra)
+- Múltipla seleção arrastada conta como payload único `{ trackIds: [...] }`
+- Reordenação dentro da playlist via `@dnd-kit/sortable` (já comum; adicionar se ausente)
 
-- **Tags**: input com sugestões das tags já usadas, criação livre.
-- **Pastas**: relação N:N, drag-and-drop de tracks para pasta na sidebar.
-- **Filtros** (popover): gênero (multi-select), duração (slider min/max), bitrate (≥128/≥256/≥320), apenas favoritos.
-- **Ordenação**: dropdown — Recente / Nome / Artista / Duração / Mais tocadas.
-- **Busca**: full-text sobre `title/artist/album/genre` via `ilike` + trigram.
+Inserção: opções `append` (padrão), `prepend`, `afterCurrent` (usa `player-store.currentTrackId`).
 
----
+Menu contextual (`<TrackContextMenu>` via Radix `ContextMenu`):
+- Tocar agora, Adicionar à fila, Adicionar à playlist ▸ (lista + "Nova…"), Mover para pasta ▸, Favoritar, Editar, Deletar
 
 ## 6. Performance
 
-- Virtualização (`@tanstack/react-virtual`) para listas >100 itens.
-- Capas com `loading="lazy"` + `IntersectionObserver` para pré-carregar 10 acima/abaixo do viewport.
-- Cache de queries com `@tanstack/react-query` (já instalado): chave por `[tracks, filters, sort]`, invalidação após mutações.
-- Upload assíncrono não bloqueia navegação (estado global em Zustand `useUploadStore`).
-- URLs assinadas cacheadas em memória por 50min.
+- `@tanstack/react-virtual` (já instalado) em `TrackTable`, `UploadQueuePanel` e playlist tracks
+- Hash sha-256 em Web Worker (`src/workers/hash.worker.ts`) para não bloquear UI
+- `useQuery` com `staleTime` 30s para listagens; invalidação cirúrgica após mutations
+- Debounce de busca 250ms; `useDeferredValue` em filtros
 
----
+## 7. Componentes novos
 
-## 7. Segurança
+```
+src/components/library/
+  bulk-selection-toolbar.tsx
+  bulk-edit-modal.tsx
+  upload-queue-panel.tsx
+  track-context-menu.tsx
+  duplicate-resolver-modal.tsx
+src/components/playlists/
+  playlist-card.tsx
+  playlist-drop-zone.tsx
+  create-playlist-dialog.tsx
+  add-to-playlist-popover.tsx
+src/stores/selection-store.ts
+src/hooks/use-bulk-upload.ts
+src/hooks/use-drag-tracks.ts
+src/workers/hash.worker.ts
+src/lib/playlists.functions.ts
+```
 
-- Validação dupla: tipos MIME no client + check de extensão no server fn de delete (impede path traversal).
-- Tamanho máx 50MB enforced no client; Storage bucket configurado com limite.
-- RLS bloqueia leitura cruzada entre usuários.
-- Server fn de delete usa `requireSupabaseAuth` + verifica `user_id` antes de remover storage object.
-- Nomes de arquivo gerados via `crypto.randomUUID()` — nunca o original.
+## 8. Segurança
 
----
+- Validação dupla MIME (cliente + server-side via `mime_type` salvo)
+- Limite 50MB/arquivo, 500 arquivos/sessão, 5 sessões ativas/usuário
+- Rate limit em `recordTrackUpload` (server-side: máx 100 inserts/min por user via tabela `rate_limits` simples ou checagem `count(*) where created_at > now() - interval '1 minute'`)
+- Sanitização de nomes (`/[^a-zA-Z0-9._-]/g`)
+- Nomes de arquivo no storage = `crypto.randomUUID()`, nunca nome original
 
-## 8. Arquivos a criar/editar
+## 9. Fora do escopo
 
-**Migration (1)**: `supabase/migrations/{ts}_library_setup.sql` — buckets, tabelas, RLS, índices, triggers.
+- Compartilhamento social, colaboração realtime, comentários, feed
+- Conversão de formato server-side (sem ffmpeg)
+- Sync entre dispositivos em tempo real (mantém apenas player-store local)
 
-**Server functions** (`src/lib/library.functions.ts`):
-- `listTracks(filters, sort)`, `getTrackSignedUrl(id)`, `updateTrack(id, patch)`, `deleteTracks(ids[])`, `toggleFavorite(id)`, `incrementPlayCount(id)`, `listFolders`, `createFolder`, `addToFolder`, `listTags`.
+## Dependências a adicionar
 
-**Stores**:
-- `src/stores/upload-store.ts` — fila de uploads + progresso.
-- `src/stores/library-store.ts` — filtros/ordenação/seleção.
+- `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (drag & drop acessível)
+- Nenhum hash externo — `crypto.subtle` nativo
 
-**Componentes** (`src/components/library/`):
-- `upload-dropzone.tsx`, `upload-queue.tsx`, `track-table.tsx`, `track-row.tsx`, `album-grid.tsx`, `artist-grid.tsx`, `folder-grid.tsx`, `track-edit-sheet.tsx`, `selection-toolbar.tsx`, `library-filters.tsx`, `cover-image.tsx` (lazy), `audio-engine.tsx`.
+## Ordem de implementação
 
-**Hooks**: `src/hooks/use-metadata-parser.ts`, `src/hooks/use-track-upload.ts`, `src/hooks/use-library-query.ts`.
+1. Migration (tabelas + triggers + `content_hash`)
+2. Server functions de playlists + bulk
+3. `selection-store` + checkboxes + `BulkSelectionToolbar`
+4. `use-bulk-upload` + worker de hash + `UploadQueuePanel` global + duplicate resolver
+5. Playlists reais (CRUD UI) + `add-to-playlist-popover`
+6. Drag & drop (multi-select → playlist) + reordenação
+7. Context menu + `BulkEditModal`
+8. Polimento: animações, atalhos, virtualização
 
-**Rotas**:
-- editar `src/routes/_authenticated/library.tsx` (hub com tabs).
-- novo `src/routes/_authenticated/library.upload.tsx`.
-- editar `src/routes/_authenticated/downloads.tsx` (uploads recentes).
-- editar `src/routes/_authenticated.tsx` (montar `<AudioEngine />`).
-
-**Dependências** (`bun add`):
-- `music-metadata-browser`
-- `@tanstack/react-virtual`
-- `react-dropzone`
-
----
-
-## 9. Fora de escopo (confirmando)
-
-Não implementar: compartilhamento social, comentários, feed, marketplace, pagamentos, transcoding server-side (FFmpeg fica só como fallback futuro — não bloqueia esta entrega).
-
----
-
-## Perguntas antes de implementar
-
-1. **Tamanho máx por arquivo**: 50 MB ok, ou prefere outro limite? (FLAC longos podem passar disso.)
-2. **Equalizador na Etapa 5**: implementação completa agora ou stub visual que conecta nos próximos sprints? (Implementação completa adiciona ~1–2 arquivos a mais.)
-3. **Smart queue / Multi-device sync** (Etapa 5): versão básica (continuar álbum + registrar device atual) é suficiente, ou precisa sync realtime entre dispositivos via Supabase Realtime? Sync realtime expande bem o escopo.
+Tudo dentro da estética Focus Audio atual (lime accent, Hanken Grotesk, surfaces escuras, animações sutis).

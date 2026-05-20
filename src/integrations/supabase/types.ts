@@ -41,6 +41,69 @@ export type Database = {
         }
         Relationships: []
       }
+      playlist_tracks: {
+        Row: {
+          added_at: string
+          playlist_id: string
+          position: number
+          track_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          playlist_id: string
+          position: number
+          track_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          playlist_id?: string
+          position?: number
+          track_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playlists: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          duration_total: number
+          id: string
+          is_public: boolean
+          name: string
+          tracks_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_total?: number
+          id?: string
+          is_public?: boolean
+          name: string
+          tracks_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_total?: number
+          id?: string
+          is_public?: boolean
+          name?: string
+          tracks_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -142,11 +205,51 @@ export type Database = {
           },
         ]
       }
+      track_uploads: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          progress: number
+          session_id: string
+          status: string
+          track_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          progress?: number
+          session_id: string
+          status?: string
+          track_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          progress?: number
+          session_id?: string
+          status?: string
+          track_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tracks: {
         Row: {
           album: string | null
           artist: string | null
           bitrate: number | null
+          content_hash: string | null
           cover_url: string | null
           created_at: string
           duration: number | null
@@ -168,6 +271,7 @@ export type Database = {
           album?: string | null
           artist?: string | null
           bitrate?: number | null
+          content_hash?: string | null
           cover_url?: string | null
           created_at?: string
           duration?: number | null
@@ -189,6 +293,7 @@ export type Database = {
           album?: string | null
           artist?: string | null
           bitrate?: number | null
+          content_hash?: string | null
           cover_url?: string | null
           created_at?: string
           duration?: number | null
@@ -205,6 +310,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           year?: number | null
+        }
+        Relationships: []
+      }
+      upload_sessions: {
+        Row: {
+          completed_files: number
+          created_at: string
+          failed_files: number
+          id: string
+          status: string
+          total_files: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_files?: number
+          created_at?: string
+          failed_files?: number
+          id?: string
+          status?: string
+          total_files?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_files?: number
+          created_at?: string
+          failed_files?: number
+          id?: string
+          status?: string
+          total_files?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -240,6 +378,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      recompute_playlist_aggregates: {
+        Args: { _playlist_id: string }
+        Returns: undefined
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
