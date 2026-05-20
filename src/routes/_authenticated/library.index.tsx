@@ -12,7 +12,7 @@ function MS({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
 }
 
-export const Route = createFileRoute("/_authenticated/library")({
+export const Route = createFileRoute("/_authenticated/library/")({
   head: () => ({ meta: [{ title: "Focus Audio — Library" }] }),
   component: LibraryPage,
 });
