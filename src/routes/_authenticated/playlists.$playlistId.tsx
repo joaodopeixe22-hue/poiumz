@@ -63,8 +63,10 @@ function PlaylistDetail() {
 
   const [order, setOrder] = useState<PT[]>([]);
   useEffect(() => {
-    if (data?.tracks) setOrder(data.tracks as unknown as PT[]);
-
+    if (data?.tracks) {
+      const list = data.tracks as unknown;
+      setOrder(list as PT[]);
+    }
   }, [data?.tracks]);
 
   const setCurrent = usePlayerStore((s) => s.setCurrentTrack);
