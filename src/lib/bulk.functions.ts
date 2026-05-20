@@ -112,7 +112,7 @@ export const updateUploadSession = createServerFn({ method: "POST" })
       .select("completed_files, failed_files")
       .eq("id", data.sessionId).eq("user_id", userId).single();
     if (!cur) return { ok: false };
-    const patch: Record<string, unknown> = {};
+    const patch: { completed_files?: number; failed_files?: number; status?: string } = {};
     if (data.completedDelta) patch.completed_files = (cur.completed_files ?? 0) + data.completedDelta;
     if (data.failedDelta) patch.failed_files = (cur.failed_files ?? 0) + data.failedDelta;
     if (data.status) patch.status = data.status;
