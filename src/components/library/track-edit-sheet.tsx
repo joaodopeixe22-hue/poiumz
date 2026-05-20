@@ -25,8 +25,9 @@ export function TrackEditSheet({
   const track = data?.tracks.find((t) => t.id === trackId);
 
   const { data: tagsData } = useQuery({
+  const { data: tagsData } = useQuery({
     queryKey: ["all-tags"],
-    queryFn: () => listTagsFn({}),
+    queryFn: () => listTagsFn(),
     enabled: open,
   });
 
