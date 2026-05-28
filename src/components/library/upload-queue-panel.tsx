@@ -3,12 +3,23 @@ import { useBulkUpload } from "@/hooks/use-bulk-upload";
 import { AnimatePresence, motion } from "framer-motion";
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+  return (
+    <span className={`material-symbols ${className}`} aria-hidden>
+      {name}
+    </span>
+  );
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  queued: "queued", hashing: "hashing", parsing: "parsing", uploading: "uploading",
-  saving: "saving", done: "done", error: "error", skipped: "skipped", cancelled: "cancelled",
+  queued: "queued",
+  hashing: "hashing",
+  parsing: "parsing",
+  uploading: "uploading",
+  saving: "saving",
+  done: "done",
+  error: "error",
+  skipped: "skipped",
+  cancelled: "cancelled",
 };
 
 export function UploadQueuePanel() {
@@ -89,17 +100,24 @@ export function UploadQueuePanel() {
                   <div className="size-7 rounded-md bg-secondary grid place-items-center shrink-0">
                     <MS
                       name={
-                        isDone ? "check_circle"
-                        : isError ? "error"
-                        : isSkipped ? "block"
-                        : isCancelled ? "cancel"
-                        : "music_note"
+                        isDone
+                          ? "check_circle"
+                          : isError
+                            ? "error"
+                            : isSkipped
+                              ? "block"
+                              : isCancelled
+                                ? "cancel"
+                                : "music_note"
                       }
                       className={`text-[16px] ${
-                        isDone ? "text-accent"
-                        : isError ? "text-destructive"
-                        : isSkipped ? "text-muted-foreground"
-                        : "text-foreground/70"
+                        isDone
+                          ? "text-accent"
+                          : isError
+                            ? "text-destructive"
+                            : isSkipped
+                              ? "text-muted-foreground"
+                              : "text-foreground/70"
                       }`}
                     />
                   </div>
@@ -109,9 +127,11 @@ export function UploadQueuePanel() {
                       <div className="h-0.5 flex-1 bg-border rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all duration-300 ${
-                            isError ? "bg-destructive"
-                            : isSkipped ? "bg-muted-foreground"
-                            : "bg-accent"
+                            isError
+                              ? "bg-destructive"
+                              : isSkipped
+                                ? "bg-muted-foreground"
+                                : "bg-accent"
                           }`}
                           style={{ width: `${it.progress}%` }}
                         />

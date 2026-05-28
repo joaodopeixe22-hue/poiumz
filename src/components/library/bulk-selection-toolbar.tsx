@@ -10,7 +10,11 @@ import { listPlaylists, createPlaylist, addTracksToPlaylist } from "@/lib/playli
 import { toast } from "sonner";
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+  return (
+    <span className={`material-symbols ${className}`} aria-hidden>
+      {name}
+    </span>
+  );
 }
 
 export function BulkSelectionToolbar() {
@@ -68,7 +72,11 @@ export function BulkSelectionToolbar() {
       <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 rounded-full bg-card/95 backdrop-blur-xl border border-border shadow-2xl px-2 py-1.5">
         <span className="text-xs font-medium px-3">{count} selected</span>
         <span className="w-px h-5 bg-border mx-0.5" />
-        <ToolbarBtn icon="favorite" label="Favorite" onClick={() => favMut.mutate(Array.from(selected))} />
+        <ToolbarBtn
+          icon="favorite"
+          label="Favorite"
+          onClick={() => favMut.mutate(Array.from(selected))}
+        />
         <AddToPlaylistPopover trackIds={Array.from(selected)} onAdded={clear} />
         <ToolbarBtn icon="edit" label="Edit" onClick={() => setEditOpen(true)} />
         <ToolbarBtn
@@ -97,8 +105,16 @@ export function BulkSelectionToolbar() {
 }
 
 function ToolbarBtn({
-  icon, label, onClick, danger,
-}: { icon: string; label: string; onClick: () => void; danger?: boolean }) {
+  icon,
+  label,
+  onClick,
+  danger,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
   return (
     <button
       onClick={onClick}
@@ -227,8 +243,14 @@ function AddToPlaylistPopover({ trackIds, onAdded }: { trackIds: string[]; onAdd
 }
 
 function BulkEditModal({
-  open, onOpenChange, trackIds,
-}: { open: boolean; onOpenChange: (v: boolean) => void; trackIds: string[] }) {
+  open,
+  onOpenChange,
+  trackIds,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  trackIds: string[];
+}) {
   const [genre, setGenre] = useState("");
   const [addTags, setAddTags] = useState("");
   const updateFn = useServerFn(bulkUpdateTracks);
@@ -241,7 +263,10 @@ function BulkEditModal({
       if (genre.trim()) {
         await updateFn({ data: { ids: trackIds, patch: { genre: genre.trim() } } });
       }
-      const tags = addTags.split(",").map((t) => t.trim()).filter(Boolean);
+      const tags = addTags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
       if (tags.length) {
         await tagsFn({ data: { ids: trackIds, addTags: tags } });
       }
@@ -262,7 +287,9 @@ function BulkEditModal({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[460px] max-w-[92vw] rounded-2xl bg-card border border-border p-6 shadow-2xl">
-          <Dialog.Title className="text-lg font-semibold">Edit {trackIds.length} track(s)</Dialog.Title>
+          <Dialog.Title className="text-lg font-semibold">
+            Edit {trackIds.length} track(s)
+          </Dialog.Title>
           <Dialog.Description className="text-xs text-muted-foreground mt-1">
             Leave a field empty to keep current values.
           </Dialog.Description>
@@ -278,7 +305,9 @@ function BulkEditModal({
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Add tags (comma separated)</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                Add tags (comma separated)
+              </label>
               <input
                 value={addTags}
                 onChange={(e) => setAddTags(e.target.value)}

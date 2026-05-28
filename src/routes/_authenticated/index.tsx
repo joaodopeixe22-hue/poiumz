@@ -11,12 +11,23 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+  return (
+    <span className={`material-symbols ${className}`} aria-hidden>
+      {name}
+    </span>
+  );
 }
 
 function HomePage() {
   const hour = new Date().getHours();
-  const greeting = hour < 5 ? "Late night" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting =
+    hour < 5
+      ? "Late night"
+      : hour < 12
+        ? "Good morning"
+        : hour < 18
+          ? "Good afternoon"
+          : "Good evening";
 
   return (
     <div>
@@ -42,7 +53,8 @@ function HomePage() {
               Binaural Beats & Alpha Waves
             </h2>
             <p className="mt-3 text-sm text-muted-foreground max-w-xl text-pretty">
-              2 hours of uninterrupted ambient frequencies designed to enhance cognitive flow and silence distractions.
+              2 hours of uninterrupted ambient frequencies designed to enhance cognitive flow and
+              silence distractions.
             </p>
             <button className="mt-6 inline-flex items-center gap-2 bg-accent text-accent-foreground rounded-full pl-2 pr-5 py-2 text-sm font-semibold hover:scale-[1.02] transition-transform shadow-lg shadow-accent/20">
               <span className="size-7 rounded-full bg-accent-foreground/10 grid place-items-center">
@@ -51,7 +63,8 @@ function HomePage() {
               Play now
             </button>
           </div>
-          <div className="shrink-0 hidden md:grid size-44 rounded-xl border border-border/60 place-items-center"
+          <div
+            className="shrink-0 hidden md:grid size-44 rounded-xl border border-border/60 place-items-center"
             style={{
               background:
                 "conic-gradient(from 90deg at 50% 50%, oklch(0.86 0.18 130 / 0.4), oklch(0.55 0.16 280 / 0.4), oklch(0.86 0.18 130 / 0.4))",
@@ -96,7 +109,9 @@ function HomePage() {
             <p className="text-xs text-accent font-medium tracking-wide mb-1 uppercase">Curated</p>
             <h2 className="font-display text-2xl">Made for You</h2>
           </div>
-          <a className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">View All</a>
+          <a className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
+            View All
+          </a>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 animate-fade-in-up">
           {curated.map((c, i) => (

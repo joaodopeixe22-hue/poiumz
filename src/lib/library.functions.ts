@@ -4,7 +4,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const ListSchema = z.object({
   search: z.string().max(200).optional(),
-  sort: z.enum(["created_desc", "title_asc", "artist_asc", "duration_asc", "plays_desc"]).default("created_desc"),
+  sort: z
+    .enum(["created_desc", "title_asc", "artist_asc", "duration_asc", "plays_desc"])
+    .default("created_desc"),
   favoritesOnly: z.boolean().optional(),
   genre: z.string().max(80).optional(),
   folderId: z.string().uuid().optional(),
@@ -40,11 +42,20 @@ export const listTracks = createServerFn({ method: "POST" })
     }
 
     switch (data.sort) {
-      case "title_asc": q = q.order("title", { ascending: true }); break;
-      case "artist_asc": q = q.order("artist", { ascending: true, nullsFirst: false }); break;
-      case "duration_asc": q = q.order("duration", { ascending: true, nullsFirst: false }); break;
-      case "plays_desc": q = q.order("play_count", { ascending: false }); break;
-      default: q = q.order("created_at", { ascending: false });
+      case "title_asc":
+        q = q.order("title", { ascending: true });
+        break;
+      case "artist_asc":
+        q = q.order("artist", { ascending: true, nullsFirst: false });
+        break;
+      case "duration_asc":
+        q = q.order("duration", { ascending: true, nullsFirst: false });
+        break;
+      case "plays_desc":
+        q = q.order("play_count", { ascending: false });
+        break;
+      default:
+        q = q.order("created_at", { ascending: false });
     }
 
     const { data: tracks, error } = await q;
@@ -60,11 +71,15 @@ export const getTrackSignedUrl = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: track, error: tErr } = await supabase
-      .from("tracks").select("file_path,user_id").eq("id", data.id).single();
+      .from("tracks")
+      .select("file_path,user_id")
+      .eq("id", data.id)
+      .single();
     if (tErr || !track) throw new Error("Track not found");
     if (track.user_id !== userId) throw new Error("Forbidden");
     const { data: signed, error } = await supabase.storage
-      .from("tracks").createSignedUrl(track.file_path, 3600);
+      .from("tracks")
+      .createSignedUrl(track.file_path, 3600);
     if (error || !signed) throw new Error(error?.message ?? "Failed to sign URL");
     return { url: signed.signedUrl };
   });
@@ -86,7 +101,11 @@ export const updateTrack = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { id, ...patch } = data;
-    const { error } = await supabase.from("tracks").update(patch).eq("id", id).eq("user_id", userId);
+    const { error } = await supabase
+      .from("tracks")
+      .update(patch)
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -97,10 +116,17 @@ export const toggleFavorite = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: row, error: rErr } = await supabase
-      .from("tracks").select("is_favorite").eq("id", data.id).eq("user_id", userId).single();
+      .from("tracks")
+      .select("is_favorite")
+      .eq("id", data.id)
+      .eq("user_id", userId)
+      .single();
     if (rErr || !row) throw new Error("Track not found");
-    const { error } = await supabase.from("tracks")
-      .update({ is_favorite: !row.is_favorite }).eq("id", data.id).eq("user_id", userId);
+    const { error } = await supabase
+      .from("tracks")
+      .update({ is_favorite: !row.is_favorite })
+      .eq("id", data.id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { is_favorite: !row.is_favorite };
   });
@@ -113,7 +139,10 @@ export const deleteTracks = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: rows, error: rErr } = await supabase
-      .from("tracks").select("id,file_path,cover_url").in("id", data.ids).eq("user_id", userId);
+      .from("tracks")
+      .select("id,file_path,cover_url")
+      .in("id", data.ids)
+      .eq("user_id", userId);
     if (rErr) throw new Error(rErr.message);
     if (!rows || rows.length === 0) return { ok: true, deleted: 0 };
 
@@ -129,7 +158,14 @@ export const deleteTracks = createServerFn({ method: "POST" })
       .filter(Boolean) as string[];
     if (coverPaths.length) await supabase.storage.from("covers").remove(coverPaths);
 
-    const { error } = await supabase.from("tracks").delete().in("id", rows.map((r) => r.id)).eq("user_id", userId);
+    const { error } = await supabase
+      .from("tracks")
+      .delete()
+      .in(
+        "id",
+        rows.map((r) => r.id),
+      )
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true, deleted: rows.length };
   });
@@ -139,12 +175,18 @@ export const incrementPlayCount = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => IdSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: row } = await supabase.from("tracks")
-      .select("play_count").eq("id", data.id).eq("user_id", userId).single();
+    const { data: row } = await supabase
+      .from("tracks")
+      .select("play_count")
+      .eq("id", data.id)
+      .eq("user_id", userId)
+      .single();
     const next = (row?.play_count ?? 0) + 1;
-    await supabase.from("tracks")
+    await supabase
+      .from("tracks")
       .update({ play_count: next, last_played_at: new Date().toISOString() })
-      .eq("id", data.id).eq("user_id", userId);
+      .eq("id", data.id)
+      .eq("user_id", userId);
     return { play_count: next };
   });
 
@@ -153,14 +195,20 @@ export const listFolders = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { data, error } = await supabase
-      .from("folders").select("*").eq("user_id", userId).order("created_at", { ascending: false });
+      .from("folders")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return { folders: data ?? [] };
   });
 
 const FolderCreateSchema = z.object({
   name: z.string().min(1).max(60),
-  color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9a-f]{6}$/i)
+    .optional(),
 });
 
 export const createFolder = createServerFn({ method: "POST" })
@@ -169,8 +217,10 @@ export const createFolder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: folder, error } = await supabase
-      .from("folders").insert({ user_id: userId, name: data.name, color: data.color ?? null })
-      .select().single();
+      .from("folders")
+      .insert({ user_id: userId, name: data.name, color: data.color ?? null })
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return { folder };
   });
@@ -180,7 +230,11 @@ export const deleteFolder = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => IdSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase.from("folders").delete().eq("id", data.id).eq("user_id", userId);
+    const { error } = await supabase
+      .from("folders")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -196,9 +250,13 @@ export const addTracksToFolder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const rows = data.trackIds.map((tid) => ({
-      track_id: tid, folder_id: data.folderId, user_id: userId,
+      track_id: tid,
+      folder_id: data.folderId,
+      user_id: userId,
     }));
-    const { error } = await supabase.from("track_folders").upsert(rows, { onConflict: "track_id,folder_id" });
+    const { error } = await supabase
+      .from("track_folders")
+      .upsert(rows, { onConflict: "track_id,folder_id" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -208,7 +266,9 @@ export const listTags = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { data, error } = await supabase
-      .from("track_tags").select("tag,track_id").eq("user_id", userId);
+      .from("track_tags")
+      .select("tag,track_id")
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { tags: data ?? [] };
   });
@@ -225,8 +285,14 @@ export const setTrackTags = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await supabase.from("track_tags").delete().eq("track_id", data.trackId).eq("user_id", userId);
     if (data.tags.length) {
-      const rows = data.tags.map((tag) => ({ track_id: data.trackId, user_id: userId, tag: tag.toLowerCase() }));
-      const { error } = await supabase.from("track_tags").upsert(rows, { onConflict: "track_id,tag" });
+      const rows = data.tags.map((tag) => ({
+        track_id: data.trackId,
+        user_id: userId,
+        tag: tag.toLowerCase(),
+      }));
+      const { error } = await supabase
+        .from("track_tags")
+        .upsert(rows, { onConflict: "track_id,tag" });
       if (error) throw new Error(error.message);
     }
     return { ok: true };

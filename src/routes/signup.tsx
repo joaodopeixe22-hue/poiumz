@@ -73,7 +73,14 @@ function SignupPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <Field label="Display name" value={displayName} onChange={setDisplayName} required />
-        <Field label="Email" type="email" autoComplete="email" value={email} onChange={setEmail} required />
+        <Field
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={setEmail}
+          required
+        />
         <Field
           label="Password"
           type="password"

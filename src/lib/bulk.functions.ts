@@ -38,16 +38,21 @@ export const bulkUpdateTags = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     if (data.removeTags?.length) {
       for (const tag of data.removeTags) {
-        await supabase.from("track_tags")
-          .delete().eq("user_id", userId).eq("tag", tag.toLowerCase())
+        await supabase
+          .from("track_tags")
+          .delete()
+          .eq("user_id", userId)
+          .eq("tag", tag.toLowerCase())
           .in("track_id", data.ids);
       }
     }
     if (data.addTags?.length) {
       const rows = data.ids.flatMap((tid) =>
-        data.addTags!.map((tag) => ({ track_id: tid, user_id: userId, tag: tag.toLowerCase() }))
+        data.addTags!.map((tag) => ({ track_id: tid, user_id: userId, tag: tag.toLowerCase() })),
       );
-      const { error } = await supabase.from("track_tags").upsert(rows, { onConflict: "track_id,tag" });
+      const { error } = await supabase
+        .from("track_tags")
+        .upsert(rows, { onConflict: "track_id,tag" });
       if (error) throw new Error(error.message);
     }
     return { ok: true };
@@ -90,7 +95,8 @@ export const createUploadSession = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("upload_sessions")
       .insert({ user_id: userId, total_files: data.totalFiles })
-      .select().single();
+      .select()
+      .single();
     if (error || !row) throw new Error(error?.message ?? "Failed");
     return { sessionId: row.id };
   });
@@ -110,13 +116,20 @@ export const updateUploadSession = createServerFn({ method: "POST" })
     const { data: cur } = await supabase
       .from("upload_sessions")
       .select("completed_files, failed_files")
-      .eq("id", data.sessionId).eq("user_id", userId).single();
+      .eq("id", data.sessionId)
+      .eq("user_id", userId)
+      .single();
     if (!cur) return { ok: false };
     const patch: { completed_files?: number; failed_files?: number; status?: string } = {};
-    if (data.completedDelta) patch.completed_files = (cur.completed_files ?? 0) + data.completedDelta;
+    if (data.completedDelta)
+      patch.completed_files = (cur.completed_files ?? 0) + data.completedDelta;
     if (data.failedDelta) patch.failed_files = (cur.failed_files ?? 0) + data.failedDelta;
     if (data.status) patch.status = data.status;
     if (Object.keys(patch).length === 0) return { ok: true };
-    await supabase.from("upload_sessions").update(patch).eq("id", data.sessionId).eq("user_id", userId);
+    await supabase
+      .from("upload_sessions")
+      .update(patch)
+      .eq("id", data.sessionId)
+      .eq("user_id", userId);
     return { ok: true };
   });

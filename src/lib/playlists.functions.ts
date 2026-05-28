@@ -23,7 +23,11 @@ export const getPlaylist = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: pl, error: pErr } = await supabase
-      .from("playlists").select("*").eq("id", data.id).eq("user_id", userId).single();
+      .from("playlists")
+      .select("*")
+      .eq("id", data.id)
+      .eq("user_id", userId)
+      .single();
     if (pErr || !pl) throw new Error("Playlist not found");
     const { data: rows, error: rErr } = await supabase
       .from("playlist_tracks")
@@ -49,11 +53,15 @@ export const createPlaylist = createServerFn({ method: "POST" })
     const { data: pl, error } = await supabase
       .from("playlists")
       .insert({ user_id: userId, name: data.name, description: data.description ?? null })
-      .select().single();
+      .select()
+      .single();
     if (error || !pl) throw new Error(error?.message ?? "Failed to create");
     if (data.trackIds?.length) {
       const rows = data.trackIds.map((tid, i) => ({
-        playlist_id: pl.id, track_id: tid, user_id: userId, position: i,
+        playlist_id: pl.id,
+        track_id: tid,
+        user_id: userId,
+        position: i,
       }));
       const { error: ptErr } = await supabase.from("playlist_tracks").insert(rows);
       if (ptErr) throw new Error(ptErr.message);
@@ -75,7 +83,11 @@ export const updatePlaylist = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { id, ...patch } = data;
-    const { error } = await supabase.from("playlists").update(patch).eq("id", id).eq("user_id", userId);
+    const { error } = await supabase
+      .from("playlists")
+      .update(patch)
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -85,8 +97,16 @@ export const deletePlaylist = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => IdSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await supabase.from("playlist_tracks").delete().eq("playlist_id", data.id).eq("user_id", userId);
-    const { error } = await supabase.from("playlists").delete().eq("id", data.id).eq("user_id", userId);
+    await supabase
+      .from("playlist_tracks")
+      .delete()
+      .eq("playlist_id", data.id)
+      .eq("user_id", userId);
+    const { error } = await supabase
+      .from("playlists")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

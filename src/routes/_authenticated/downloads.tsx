@@ -19,7 +19,9 @@ function DownloadsPage() {
         <UploadDropzone />
         <p className="mt-6 text-xs text-muted-foreground">
           Already uploaded?{" "}
-          <Link to="/library" className="text-accent hover:underline">Open library →</Link>
+          <Link to="/library" className="text-accent hover:underline">
+            Open library →
+          </Link>
         </p>
       </div>
     </div>

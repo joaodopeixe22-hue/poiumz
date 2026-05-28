@@ -72,7 +72,9 @@ export const useUploadStore = create<UploadState>((set) => ({
     set((s) => ({ items: s.items.map((it) => (it.id === id ? { ...it, ...patch } : it)) })),
   remove: (id) => set((s) => ({ items: s.items.filter((it) => it.id !== id) })),
   clearDone: () =>
-    set((s) => ({ items: s.items.filter((it) => it.status !== "done" && it.status !== "skipped") })),
+    set((s) => ({
+      items: s.items.filter((it) => it.status !== "done" && it.status !== "skipped"),
+    })),
   clearAll: () => set({ items: [], sessionId: null }),
   setSession: (sessionId) => set({ sessionId }),
   setPaused: (isPaused) => set({ isPaused }),
@@ -87,7 +89,7 @@ export function uploadStats(items: UploadItem[]) {
   const done = items.filter((i) => i.status === "done" || i.status === "skipped").length;
   const failed = items.filter((i) => i.status === "error").length;
   const active = items.filter((i) =>
-    ["hashing", "parsing", "uploading", "saving"].includes(i.status)
+    ["hashing", "parsing", "uploading", "saving"].includes(i.status),
   ).length;
   const pct = Math.round((done / total) * 100);
   return { total, done, failed, active, pct };

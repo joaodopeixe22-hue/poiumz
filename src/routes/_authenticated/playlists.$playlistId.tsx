@@ -1,7 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getPlaylist, removeTracksFromPlaylist, deletePlaylist, reorderPlaylistTracks } from "@/lib/playlists.functions";
+import {
+  getPlaylist,
+  removeTracksFromPlaylist,
+  deletePlaylist,
+  reorderPlaylistTracks,
+} from "@/lib/playlists.functions";
 import { getTrackSignedUrl } from "@/lib/library.functions";
 import { usePlayerStore, type Track } from "@/stores/player-store";
 import { CoverImage } from "@/components/library/cover-image";
@@ -14,19 +19,31 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+  return (
+    <span className={`material-symbols ${className}`} aria-hidden>
+      {name}
+    </span>
+  );
 }
 
 function fmt(s?: number | null) {
   if (!s || !isFinite(s)) return "—";
   const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60).toString().padStart(2, "0");
+  const sec = Math.floor(s % 60)
+    .toString()
+    .padStart(2, "0");
   return `${m}:${sec}`;
 }
 
@@ -41,10 +58,17 @@ export const Route = createFileRoute("/_authenticated/playlists/$playlistId")({
   component: PlaylistDetail,
 });
 
-type PT = { position: number; track: {
-  id: string; title: string; artist: string | null; album: string | null;
-  duration: number | null; cover_url: string | null;
-} | null };
+type PT = {
+  position: number;
+  track: {
+    id: string;
+    title: string;
+    artist: string | null;
+    album: string | null;
+    duration: number | null;
+    cover_url: string | null;
+  } | null;
+};
 
 function PlaylistDetail() {
   const { playlistId } = Route.useParams();
@@ -90,14 +114,17 @@ function PlaylistDetail() {
         src: url,
       });
       play();
-      const rest: Track[] = order.slice(index + 1).filter((r) => r.track).map((r) => ({
-        id: r.track!.id,
-        title: r.track!.title,
-        artist: r.track!.artist ?? "Unknown",
-        album: r.track!.album ?? undefined,
-        duration: r.track!.duration ?? undefined,
-        cover_url: r.track!.cover_url ?? undefined,
-      }));
+      const rest: Track[] = order
+        .slice(index + 1)
+        .filter((r) => r.track)
+        .map((r) => ({
+          id: r.track!.id,
+          title: r.track!.title,
+          artist: r.track!.artist ?? "Unknown",
+          album: r.track!.album ?? undefined,
+          duration: r.track!.duration ?? undefined,
+          cover_url: r.track!.cover_url ?? undefined,
+        }));
       if (rest.length) enqueue(rest);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to play");
@@ -128,7 +155,7 @@ function PlaylistDetail() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const handleDragEnd = (e: DragEndEvent) => {
@@ -174,9 +201,13 @@ function PlaylistDetail() {
             <span className="inline-block text-[10px] text-accent font-semibold tracking-wider uppercase bg-accent/10 px-2.5 py-1 rounded-full">
               Playlist
             </span>
-            <h1 className="font-display text-5xl md:text-6xl mt-3 leading-[1.02] text-balance">{pl.name}</h1>
+            <h1 className="font-display text-5xl md:text-6xl mt-3 leading-[1.02] text-balance">
+              {pl.name}
+            </h1>
             {pl.description && (
-              <p className="mt-3 text-sm text-muted-foreground max-w-2xl text-pretty">{pl.description}</p>
+              <p className="mt-3 text-sm text-muted-foreground max-w-2xl text-pretty">
+                {pl.description}
+              </p>
             )}
             <p className="mt-4 text-xs text-muted-foreground">
               {pl.tracks_count} tracks · {fmtTotal(Number(pl.duration_total) || 0)}
@@ -221,8 +252,15 @@ function PlaylistDetail() {
               </span>
               <span></span>
             </div>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={order.filter((o) => o.track).map((o) => o.track!.id)} strategy={verticalListSortingStrategy}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={order.filter((o) => o.track).map((o) => o.track!.id)}
+                strategy={verticalListSortingStrategy}
+              >
                 <ul>
                   {order.map((t, i) =>
                     t.track ? (
@@ -233,7 +271,7 @@ function PlaylistDetail() {
                         onPlay={() => playFrom(i)}
                         onRemove={() => removeMut.mutate(t.track!.id)}
                       />
-                    ) : null
+                    ) : null,
                   )}
                 </ul>
               </SortableContext>
@@ -246,14 +284,26 @@ function PlaylistDetail() {
 }
 
 function SortableRow({
-  index, track, onPlay, onRemove,
+  index,
+  track,
+  onPlay,
+  onRemove,
 }: {
   index: number;
-  track: { id: string; title: string; artist: string | null; album: string | null; duration: number | null; cover_url: string | null };
+  track: {
+    id: string;
+    title: string;
+    artist: string | null;
+    album: string | null;
+    duration: number | null;
+    cover_url: string | null;
+  };
   onPlay: () => void;
   onRemove: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: track.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: track.id,
+  });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -280,15 +330,24 @@ function SortableRow({
         onClick={onPlay}
         className="size-9 rounded-md overflow-hidden bg-secondary grid place-items-center relative"
       >
-        <CoverImage src={track.cover_url} seed={track.id} className="w-full h-full absolute inset-0" />
-        <MS name="play_arrow" className="text-[18px] opacity-0 group-hover:opacity-100 transition-opacity relative z-10 bg-black/40 rounded-full text-white" />
+        <CoverImage
+          src={track.cover_url}
+          seed={track.id}
+          className="w-full h-full absolute inset-0"
+        />
+        <MS
+          name="play_arrow"
+          className="text-[18px] opacity-0 group-hover:opacity-100 transition-opacity relative z-10 bg-black/40 rounded-full text-white"
+        />
       </button>
       <div className="min-w-0">
         <p className="text-sm truncate">{track.title}</p>
         <p className="text-xs text-muted-foreground truncate">{track.artist ?? "Unknown"}</p>
       </div>
       <p className="text-xs text-muted-foreground truncate hidden md:block">{track.album ?? "—"}</p>
-      <p className="text-xs font-mono text-muted-foreground tabular-nums text-right">{fmt(track.duration)}</p>
+      <p className="text-xs font-mono text-muted-foreground tabular-nums text-right">
+        {fmt(track.duration)}
+      </p>
       <button
         onClick={onRemove}
         className="size-7 grid place-items-center rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"

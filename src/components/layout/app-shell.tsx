@@ -6,7 +6,11 @@ import { usePlayerStore } from "@/stores/player-store";
 import { toast } from "sonner";
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+  return (
+    <span className={`material-symbols ${className}`} aria-hidden>
+      {name}
+    </span>
+  );
 }
 
 const navPrimary = [
@@ -57,7 +61,9 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
           {!collapsed && (
             <div className="min-w-0">
               <p className="text-sm font-semibold leading-tight truncate">Focus Audio</p>
-              <p className="text-[10px] text-accent font-medium tracking-wide truncate">Premium Focus</p>
+              <p className="text-[10px] text-accent font-medium tracking-wide truncate">
+                Premium Focus
+              </p>
             </div>
           )}
         </Link>
@@ -146,7 +152,10 @@ function TopBar() {
         </button>
       </div>
       <div className="flex-1 max-w-xl relative">
-        <MS name="search" className="text-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <MS
+          name="search"
+          className="text-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+        />
         <input
           type="search"
           placeholder="Search tracks, artists, playlists..."
@@ -196,7 +205,9 @@ function GlobalPlayer() {
         </AnimatePresence>
         <div className="min-w-0">
           <p className="text-sm font-semibold truncate">{track?.title ?? "Alpha Waves 432Hz"}</p>
-          <p className="text-xs text-muted-foreground truncate">{track?.artist ?? "Focus Audio Originals"}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {track?.artist ?? "Focus Audio Originals"}
+          </p>
         </div>
         <button className="ml-3 text-muted-foreground hover:text-accent transition-colors shrink-0">
           <MS name="favorite" className="text-[20px]" />
@@ -205,10 +216,17 @@ function GlobalPlayer() {
 
       <div className="flex-1 flex flex-col items-center gap-2 max-w-2xl">
         <div className="flex items-center gap-5">
-          <button className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Shuffle">
+          <button
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Shuffle"
+          >
             <MS name="shuffle" className="text-[20px]" />
           </button>
-          <button onClick={prev} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Previous">
+          <button
+            onClick={prev}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Previous"
+          >
             <MS name="skip_previous" className="text-[26px]" />
           </button>
           <button
@@ -218,10 +236,17 @@ function GlobalPlayer() {
           >
             <MS name={isPlaying ? "pause" : "play_arrow"} className="text-[26px]" />
           </button>
-          <button onClick={next} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Next">
+          <button
+            onClick={next}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Next"
+          >
             <MS name="skip_next" className="text-[26px]" />
           </button>
-          <button className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Repeat">
+          <button
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Repeat"
+          >
             <MS name="repeat" className="text-[20px]" />
           </button>
         </div>
@@ -237,13 +262,22 @@ function GlobalPlayer() {
       </div>
 
       <div className="w-[28%] flex justify-end items-center gap-3 text-muted-foreground">
-        <button className="size-8 grid place-items-center rounded-full hover:text-foreground hover:bg-secondary transition-colors" aria-label="Lyrics">
+        <button
+          className="size-8 grid place-items-center rounded-full hover:text-foreground hover:bg-secondary transition-colors"
+          aria-label="Lyrics"
+        >
           <MS name="mic" className="text-[18px]" />
         </button>
-        <button className="size-8 grid place-items-center rounded-full hover:text-foreground hover:bg-secondary transition-colors" aria-label="Queue">
+        <button
+          className="size-8 grid place-items-center rounded-full hover:text-foreground hover:bg-secondary transition-colors"
+          aria-label="Queue"
+        >
           <MS name="queue_music" className="text-[20px]" />
         </button>
-        <button className="size-8 grid place-items-center rounded-full hover:text-foreground hover:bg-secondary transition-colors" aria-label="Devices">
+        <button
+          className="size-8 grid place-items-center rounded-full hover:text-foreground hover:bg-secondary transition-colors"
+          aria-label="Devices"
+        >
           <MS name="devices" className="text-[18px]" />
         </button>
         <div className="flex items-center gap-2 w-28 ml-1">
@@ -266,6 +300,8 @@ function GlobalPlayer() {
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60).toString().padStart(2, "0");
+  const sec = Math.floor(s % 60)
+    .toString()
+    .padStart(2, "0");
   return `${m}:${sec}`;
 }

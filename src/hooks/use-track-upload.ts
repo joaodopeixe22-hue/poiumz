@@ -5,9 +5,17 @@ import { toast } from "sonner";
 
 const ACCEPTED_EXTS = ["mp3", "flac", "wav", "m4a", "aac"] as const;
 const ACCEPTED_MIME = new Set([
-  "audio/mpeg", "audio/mp3", "audio/flac", "audio/x-flac",
-  "audio/wav", "audio/wave", "audio/x-wav",
-  "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/aac",
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/flac",
+  "audio/x-flac",
+  "audio/wav",
+  "audio/wave",
+  "audio/x-wav",
+  "audio/mp4",
+  "audio/m4a",
+  "audio/x-m4a",
+  "audio/aac",
 ]);
 const MAX_SIZE = 60 * 1024 * 1024; // 60MB
 const MAX_BATCH = 20;
@@ -66,7 +74,10 @@ export function useTrackUpload() {
           const coverPath = `${userId}/${trackId}.jpg`;
           const { error: covErr } = await supabase.storage
             .from("covers")
-            .upload(coverPath, meta.coverBlob, { contentType: meta.coverBlob.type || "image/jpeg", upsert: true });
+            .upload(coverPath, meta.coverBlob, {
+              contentType: meta.coverBlob.type || "image/jpeg",
+              upsert: true,
+            });
           if (!covErr) {
             const { data } = supabase.storage.from("covers").getPublicUrl(coverPath);
             coverUrl = data.publicUrl;
@@ -101,13 +112,15 @@ export function useTrackUpload() {
         update(item.id, { status: "error", error: msg, progress: 0 });
       }
     },
-    [update]
+    [update],
   );
 
   const upload = useCallback(
     async (files: File[]) => {
       if (!files.length) return;
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         toast.error("Sign in required.");
         return;
@@ -117,9 +130,18 @@ export function useTrackUpload() {
         const ext = getExt(f.name);
         const okExt = (ACCEPTED_EXTS as readonly string[]).includes(ext);
         const okMime = !f.type || ACCEPTED_MIME.has(f.type);
-        if (!okExt) { toast.error(`${f.name}: unsupported format`); continue; }
-        if (!okMime) { toast.error(`${f.name}: invalid MIME type`); continue; }
-        if (f.size > MAX_SIZE) { toast.error(`${f.name}: exceeds 60 MB`); continue; }
+        if (!okExt) {
+          toast.error(`${f.name}: unsupported format`);
+          continue;
+        }
+        if (!okMime) {
+          toast.error(`${f.name}: invalid MIME type`);
+          continue;
+        }
+        if (f.size > MAX_SIZE) {
+          toast.error(`${f.name}: exceeds 60 MB`);
+          continue;
+        }
         valid.push(f);
       }
       if (!valid.length) return;
@@ -136,7 +158,7 @@ export function useTrackUpload() {
       });
       await Promise.all(workers);
     },
-    [add, processOne]
+    [add, processOne],
   );
 
   return { upload };
