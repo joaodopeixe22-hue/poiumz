@@ -7,7 +7,9 @@ interface PageHeaderProps {
 export function PageHeader({ eyebrow, title, subtitle }: PageHeaderProps) {
   return (
     <header className="px-10 pt-10 pb-6 animate-fade-in-up">
-      {eyebrow && <p className="text-xs text-accent font-medium tracking-wide mb-2 uppercase">{eyebrow}</p>}
+      {eyebrow && (
+        <p className="text-xs text-accent font-medium tracking-wide mb-2 uppercase">{eyebrow}</p>
+      )}
       <h1 className="font-display text-4xl text-balance">{title}</h1>
       {subtitle && <p className="mt-2 text-sm text-muted-foreground max-w-xl">{subtitle}</p>}
     </header>

@@ -73,7 +73,10 @@ function LoginPage() {
           required
         />
         <div className="flex justify-end">
-          <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            to="/forgot-password"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
             Forgot password?
           </Link>
         </div>
@@ -138,7 +141,10 @@ function Field(props: {
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-4">
-      <path fill="#EA4335" d="M12 10.2v3.95h5.51c-.24 1.42-1.7 4.16-5.51 4.16-3.32 0-6.03-2.75-6.03-6.13S8.68 5.95 12 5.95c1.89 0 3.16.81 3.88 1.5l2.65-2.55C16.94 3.36 14.68 2.4 12 2.4 6.86 2.4 2.7 6.56 2.7 11.7s4.16 9.3 9.3 9.3c5.37 0 8.93-3.77 8.93-9.08 0-.61-.07-1.07-.16-1.53H12z" />
+      <path
+        fill="#EA4335"
+        d="M12 10.2v3.95h5.51c-.24 1.42-1.7 4.16-5.51 4.16-3.32 0-6.03-2.75-6.03-6.13S8.68 5.95 12 5.95c1.89 0 3.16.81 3.88 1.5l2.65-2.55C16.94 3.36 14.68 2.4 12 2.4 6.86 2.4 2.7 6.56 2.7 11.7s4.16 9.3 9.3 9.3c5.37 0 8.93-3.77 8.93-9.08 0-.61-.07-1.07-.16-1.53H12z"
+      />
     </svg>
   );
 }

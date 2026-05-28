@@ -4,7 +4,11 @@ import { useUploadStore } from "@/stores/upload-store";
 import { useRef } from "react";
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+  return (
+    <span className={`material-symbols ${className}`} aria-hidden>
+      {name}
+    </span>
+  );
 }
 
 export function UploadDropzone() {
@@ -31,7 +35,9 @@ export function UploadDropzone() {
       <div
         {...getRootProps()}
         className={`rounded-2xl border-2 border-dashed transition-colors cursor-pointer p-12 text-center ${
-          isDragActive ? "border-accent bg-accent/5" : "border-border hover:border-accent/50 bg-card/40"
+          isDragActive
+            ? "border-accent bg-accent/5"
+            : "border-border hover:border-accent/50 bg-card/40"
         }`}
       >
         <input {...getInputProps()} />

@@ -9,8 +9,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export function TrackEditSheet({
-  trackId, open, onClose,
-}: { trackId?: string; open: boolean; onClose: () => void }) {
+  trackId,
+  open,
+  onClose,
+}: {
+  trackId?: string;
+  open: boolean;
+  onClose: () => void;
+}) {
   const listFn = useServerFn(listTracks);
   const updateFn = useServerFn(updateTrack);
   const tagsFn = useServerFn(setTrackTags);
@@ -25,14 +31,18 @@ export function TrackEditSheet({
   const track = data?.tracks.find((t) => t.id === trackId);
 
   const { data: tagsData } = useQuery({
-
     queryKey: ["all-tags"],
     queryFn: () => listTagsFn(),
     enabled: open,
   });
 
   const [form, setForm] = useState({
-    title: "", artist: "", album: "", genre: "", year: "", track_number: "",
+    title: "",
+    artist: "",
+    album: "",
+    genre: "",
+    year: "",
+    track_number: "",
   });
   const [tags, setTags] = useState<string>("");
 
@@ -65,7 +75,11 @@ export function TrackEditSheet({
           track_number: form.track_number ? parseInt(form.track_number, 10) : null,
         },
       });
-      const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 20);
+      const tagList = tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 20);
       await tagsFn({ data: { trackId: track.id, tags: tagList } });
     },
     onSuccess: () => {
@@ -86,20 +100,55 @@ export function TrackEditSheet({
         </SheetHeader>
         {track && (
           <div className="mt-6 space-y-4">
-            <Field label="Title" value={form.title} onChange={(v) => setForm((f) => ({ ...f, title: v }))} />
-            <Field label="Artist" value={form.artist} onChange={(v) => setForm((f) => ({ ...f, artist: v }))} />
-            <Field label="Album" value={form.album} onChange={(v) => setForm((f) => ({ ...f, album: v }))} />
-            <Field label="Genre" value={form.genre} onChange={(v) => setForm((f) => ({ ...f, genre: v }))} />
+            <Field
+              label="Title"
+              value={form.title}
+              onChange={(v) => setForm((f) => ({ ...f, title: v }))}
+            />
+            <Field
+              label="Artist"
+              value={form.artist}
+              onChange={(v) => setForm((f) => ({ ...f, artist: v }))}
+            />
+            <Field
+              label="Album"
+              value={form.album}
+              onChange={(v) => setForm((f) => ({ ...f, album: v }))}
+            />
+            <Field
+              label="Genre"
+              value={form.genre}
+              onChange={(v) => setForm((f) => ({ ...f, genre: v }))}
+            />
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Year" value={form.year} onChange={(v) => setForm((f) => ({ ...f, year: v }))} />
-              <Field label="Track #" value={form.track_number} onChange={(v) => setForm((f) => ({ ...f, track_number: v }))} />
+              <Field
+                label="Year"
+                value={form.year}
+                onChange={(v) => setForm((f) => ({ ...f, year: v }))}
+              />
+              <Field
+                label="Track #"
+                value={form.track_number}
+                onChange={(v) => setForm((f) => ({ ...f, track_number: v }))}
+              />
             </div>
-            <Field label="Tags (comma-separated)" value={tags} onChange={setTags} placeholder="focus, study, evening" />
+            <Field
+              label="Tags (comma-separated)"
+              value={tags}
+              onChange={setTags}
+              placeholder="focus, study, evening"
+            />
             <div className="flex gap-2 pt-4">
-              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="flex-1">
+              <Button
+                onClick={() => saveMut.mutate()}
+                disabled={saveMut.isPending}
+                className="flex-1"
+              >
                 {saveMut.isPending ? "Saving…" : "Save"}
               </Button>
-              <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
             </div>
           </div>
         )}
@@ -109,8 +158,16 @@ export function TrackEditSheet({
 }
 
 function Field({
-  label, value, onChange, placeholder,
-}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>

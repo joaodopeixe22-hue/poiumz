@@ -36,7 +36,9 @@ export function AudioEngine() {
         play();
       })
       .catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [track, signFn, setCurrent, play]);
 
   // Load + play/pause

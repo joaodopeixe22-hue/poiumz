@@ -70,19 +70,37 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Aethel — Music, considered." },
       {
         name: "description",
-        content: "Aethel is a premium music & radio streaming platform with multi-device sync, smart queues, and atmospheric audio.",
+        content:
+          "Aethel is a premium music & radio streaming platform with multi-device sync, smart queues, and atmospheric audio.",
       },
       { name: "author", content: "Aethel" },
       { name: "theme-color", content: "#1c1a17" },
       { property: "og:title", content: "Aethel — Music, considered." },
-      { property: "og:description", content: "Aura Stream is a modern, multi-device music and online radio streaming platform." },
+      {
+        property: "og:description",
+        content: "Aura Stream is a modern, multi-device music and online radio streaming platform.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Aethel — Music, considered." },
-      { name: "description", content: "Aura Stream is a modern, multi-device music and online radio streaming platform." },
-      { name: "twitter:description", content: "Aura Stream is a modern, multi-device music and online radio streaming platform." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/37f047de-a41e-4d4a-949b-8dea105e0d02/id-preview-9b7cac7f--2f72403f-8763-45b7-8b3a-1f09c5133b55.lovable.app-1779318466913.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/37f047de-a41e-4d4a-949b-8dea105e0d02/id-preview-9b7cac7f--2f72403f-8763-45b7-8b3a-1f09c5133b55.lovable.app-1779318466913.png" },
+      {
+        name: "description",
+        content: "Aura Stream is a modern, multi-device music and online radio streaming platform.",
+      },
+      {
+        name: "twitter:description",
+        content: "Aura Stream is a modern, multi-device music and online radio streaming platform.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/37f047de-a41e-4d4a-949b-8dea105e0d02/id-preview-9b7cac7f--2f72403f-8763-45b7-8b3a-1f09c5133b55.lovable.app-1779318466913.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/37f047de-a41e-4d4a-949b-8dea105e0d02/id-preview-9b7cac7f--2f72403f-8763-45b7-8b3a-1f09c5133b55.lovable.app-1779318466913.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -97,7 +115,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap",
       },
     ],
-
   }),
   shellComponent: RootShell,
   component: RootComponent,

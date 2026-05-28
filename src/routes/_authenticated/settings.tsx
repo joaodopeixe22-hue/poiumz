@@ -48,7 +48,9 @@ function SettingsPage() {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <h2 className="font-mono-caption text-muted-foreground border-b border-border pb-3">{label}</h2>
+      <h2 className="font-mono-caption text-muted-foreground border-b border-border pb-3">
+        {label}
+      </h2>
       <div className="space-y-3">{children}</div>
     </section>
   );

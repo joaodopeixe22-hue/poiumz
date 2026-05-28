@@ -18,7 +18,10 @@ function UploadPage() {
       <div className="px-10 max-w-4xl">
         <UploadDropzone />
         <div className="mt-6">
-          <Link to="/library" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            to="/library"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
             ← Back to library
           </Link>
         </div>

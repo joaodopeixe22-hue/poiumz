@@ -16,17 +16,23 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
         <div className="absolute inset-0 pointer-events-none opacity-70">
           <div
             className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-3xl"
-            style={{ background: "radial-gradient(circle, oklch(0.86 0.18 130 / 0.18), transparent 70%)" }}
+            style={{
+              background: "radial-gradient(circle, oklch(0.86 0.18 130 / 0.18), transparent 70%)",
+            }}
           />
           <div
             className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl"
-            style={{ background: "radial-gradient(circle, oklch(0.60 0.14 220 / 0.18), transparent 70%)" }}
+            style={{
+              background: "radial-gradient(circle, oklch(0.60 0.14 220 / 0.18), transparent 70%)",
+            }}
           />
         </div>
 
         <Link to="/" className="relative flex items-center gap-3 z-10">
           <div className="size-9 rounded-lg bg-accent grid place-items-center">
-            <span className="material-symbols text-[20px] text-accent-foreground" aria-hidden>graphic_eq</span>
+            <span className="material-symbols text-[20px] text-accent-foreground" aria-hidden>
+              graphic_eq
+            </span>
           </div>
           <div>
             <p className="text-sm font-semibold leading-tight">Focus Audio</p>
@@ -37,7 +43,8 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
         <div className="relative z-10 max-w-md">
           <p className="text-xs text-accent font-medium tracking-wide mb-4 uppercase">A note</p>
           <p className="font-display text-3xl xl:text-4xl leading-tight text-balance">
-            Premium audio for deep focus. Curated frequencies, considered design, your sound — uninterrupted.
+            Premium audio for deep focus. Curated frequencies, considered design, your sound —
+            uninterrupted.
           </p>
           <p className="mt-6 text-sm text-muted-foreground">— Focus Audio Studio</p>
         </div>
@@ -52,7 +59,9 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
         <div className="w-full max-w-sm">
           <Link to="/" className="lg:hidden flex items-center gap-3 mb-10">
             <div className="size-8 rounded-lg bg-accent grid place-items-center">
-              <span className="material-symbols text-[18px] text-accent-foreground" aria-hidden>graphic_eq</span>
+              <span className="material-symbols text-[18px] text-accent-foreground" aria-hidden>
+                graphic_eq
+              </span>
             </div>
             <div>
               <p className="text-sm font-semibold leading-tight">Focus Audio</p>

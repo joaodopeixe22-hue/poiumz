@@ -2,16 +2,28 @@ import { useCallback, useRef } from "react";
 import { useUploadStore, type UploadItem } from "@/stores/upload-store";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { findDuplicatesByHash, createUploadSession, updateUploadSession } from "@/lib/bulk.functions";
+import {
+  findDuplicatesByHash,
+  createUploadSession,
+  updateUploadSession,
+} from "@/lib/bulk.functions";
 import { deleteTracks } from "@/lib/library.functions";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const ACCEPTED_EXTS = ["mp3", "flac", "wav", "m4a", "aac"] as const;
 const ACCEPTED_MIME = new Set([
-  "audio/mpeg", "audio/mp3", "audio/flac", "audio/x-flac",
-  "audio/wav", "audio/wave", "audio/x-wav",
-  "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/aac",
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/flac",
+  "audio/x-flac",
+  "audio/wav",
+  "audio/wave",
+  "audio/x-wav",
+  "audio/mp4",
+  "audio/m4a",
+  "audio/x-m4a",
+  "audio/aac",
 ]);
 const MAX_SIZE = 50 * 1024 * 1024;
 const MAX_BATCH = 500;
@@ -81,7 +93,12 @@ export function useBulkUpload() {
             return;
           }
         }
-        update(item.id, { status: "hashing", progress: 4, attempts: item.attempts + 1, startedAt: Date.now() });
+        update(item.id, {
+          status: "hashing",
+          progress: 4,
+          attempts: item.attempts + 1,
+          startedAt: Date.now(),
+        });
         const hash = await sha256Hex(item.file);
         update(item.id, { hash, progress: 10 });
 
@@ -91,7 +108,12 @@ export function useBulkUpload() {
         if (existing) {
           const effectivePolicy = policy === "ask" ? "skip" : policy;
           if (effectivePolicy === "skip") {
-            update(item.id, { status: "skipped", progress: 100, error: `Duplicate of "${existing.title}"`, trackId: existing.id });
+            update(item.id, {
+              status: "skipped",
+              progress: 100,
+              error: `Duplicate of "${existing.title}"`,
+              trackId: existing.id,
+            });
             return;
           }
           if (effectivePolicy === "replace") {
@@ -156,10 +178,15 @@ export function useBulkUpload() {
         updateSessionFn({ data: { sessionId, completedDelta: 1 } }).catch(() => {});
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Upload failed";
-        const attempts = useUploadStore.getState().items.find((x) => x.id === item.id)?.attempts ?? 1;
+        const attempts =
+          useUploadStore.getState().items.find((x) => x.id === item.id)?.attempts ?? 1;
         if (attempts < MAX_ATTEMPTS && !cancelledRef.current.has(item.id)) {
           const backoff = Math.pow(3, attempts) * 1000;
-          update(item.id, { status: "queued", progress: 0, error: `${msg} (retry in ${backoff / 1000}s)` });
+          update(item.id, {
+            status: "queued",
+            progress: 0,
+            error: `${msg} (retry in ${backoff / 1000}s)`,
+          });
           setTimeout(() => {
             const it = useUploadStore.getState().items.find((x) => x.id === item.id);
             if (it && it.status === "queued") processOne(it, userId, sessionId);
@@ -170,13 +197,15 @@ export function useBulkUpload() {
         }
       }
     },
-    [update, dupFn, delFn, updateSessionFn]
+    [update, dupFn, delFn, updateSessionFn],
   );
 
   const upload = useCallback(
     async (files: File[]) => {
       if (!files.length) return;
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         toast.error("Sign in required.");
         return;
@@ -186,9 +215,18 @@ export function useBulkUpload() {
         const ext = getExt(f.name);
         const okExt = (ACCEPTED_EXTS as readonly string[]).includes(ext);
         const okMime = !f.type || ACCEPTED_MIME.has(f.type);
-        if (!okExt) { toast.error(`${f.name}: unsupported format`); continue; }
-        if (!okMime) { toast.error(`${f.name}: invalid MIME type`); continue; }
-        if (f.size > MAX_SIZE) { toast.error(`${f.name}: exceeds 50 MB`); continue; }
+        if (!okExt) {
+          toast.error(`${f.name}: unsupported format`);
+          continue;
+        }
+        if (!okMime) {
+          toast.error(`${f.name}: invalid MIME type`);
+          continue;
+        }
+        if (f.size > MAX_SIZE) {
+          toast.error(`${f.name}: exceeds 50 MB`);
+          continue;
+        }
         valid.push(f);
       }
       if (!valid.length) return;
@@ -219,7 +257,7 @@ export function useBulkUpload() {
       qc.invalidateQueries({ queryKey: ["tracks"] });
       updateSessionFn({ data: { sessionId, status: "done" } }).catch(() => {});
     },
-    [add, processOne, setSession, setMinimized, createSessionFn, updateSessionFn, qc]
+    [add, processOne, setSession, setMinimized, createSessionFn, updateSessionFn, qc],
   );
 
   const cancelItem = useCallback(
@@ -227,7 +265,7 @@ export function useBulkUpload() {
       cancelledRef.current.add(id);
       update(id, { status: "cancelled", error: "Cancelled" });
     },
-    [update]
+    [update],
   );
 
   const retryItem = useCallback(
@@ -236,14 +274,16 @@ export function useBulkUpload() {
       if (!it) return;
       const sessionId = useUploadStore.getState().sessionId;
       if (!sessionId) return;
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       cancelledRef.current.delete(id);
       update(id, { status: "queued", progress: 0, error: undefined, attempts: 0 });
       const fresh = useUploadStore.getState().items.find((x) => x.id === id)!;
       processOne(fresh, session.user.id, sessionId);
     },
-    [update, processOne]
+    [update, processOne],
   );
 
   return { upload, cancelItem, retryItem };

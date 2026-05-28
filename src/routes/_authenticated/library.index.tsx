@@ -5,11 +5,19 @@ import { TrackTable } from "@/components/library/track-table";
 import { TrackEditSheet } from "@/components/library/track-edit-sheet";
 import { useLibraryStore, type SortKey } from "@/stores/library-store";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+  return (
+    <span className={`material-symbols ${className}`} aria-hidden>
+      {name}
+    </span>
+  );
 }
 
 export const Route = createFileRoute("/_authenticated/library/")({
@@ -32,9 +40,13 @@ function LibraryPage() {
     <div className="pb-10">
       <div className="flex items-start justify-between px-10 pt-10 pb-6 gap-6">
         <div>
-          <p className="text-xs text-accent font-medium tracking-wide mb-2 uppercase">Your collection</p>
+          <p className="text-xs text-accent font-medium tracking-wide mb-2 uppercase">
+            Your collection
+          </p>
           <h1 className="font-display text-4xl">Library.</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Every track you uploaded — search, edit, organize.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Every track you uploaded — search, edit, organize.
+          </p>
         </div>
         <Link
           to="/library/upload"
@@ -46,7 +58,10 @@ function LibraryPage() {
 
       <div className="px-10 pb-6 flex items-center gap-3 flex-wrap">
         <div className="flex-1 min-w-[260px] relative">
-          <MS name="search" className="text-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <MS
+            name="search"
+            className="text-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}

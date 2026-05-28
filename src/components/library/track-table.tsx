@@ -16,13 +16,19 @@ import { CoverImage } from "./cover-image";
 import { toast } from "sonner";
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+  return (
+    <span className={`material-symbols ${className}`} aria-hidden>
+      {name}
+    </span>
+  );
 }
 
 function fmtDuration(s?: number | null) {
   if (!s || !isFinite(s)) return "—";
   const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60).toString().padStart(2, "0");
+  const sec = Math.floor(s % 60)
+    .toString()
+    .padStart(2, "0");
   return `${m}:${sec}`;
 }
 
@@ -102,11 +108,16 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
       play();
       if (queueRest && queueRest.length) {
         // signed URLs resolved lazily on next/prev — store basic info now
-        enqueue(queueRest.map((r) => ({
-          id: r.id, title: r.title, artist: r.artist ?? "Unknown",
-          album: r.album ?? undefined, duration: r.duration ?? undefined,
-          cover_url: r.cover_url ?? undefined,
-        })));
+        enqueue(
+          queueRest.map((r) => ({
+            id: r.id,
+            title: r.title,
+            artist: r.artist ?? "Unknown",
+            album: r.album ?? undefined,
+            duration: r.duration ?? undefined,
+            cover_url: r.cover_url ?? undefined,
+          })),
+        );
       }
       if (!playedRef.current.has(t.id)) {
         playedRef.current.add(t.id);
@@ -154,7 +165,9 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
           <input
             type="checkbox"
             checked={allSelected}
-            ref={(el) => { if (el) el.indeterminate = someSelected; }}
+            ref={(el) => {
+              if (el) el.indeterminate = someSelected;
+            }}
             onChange={(e) => (e.target.checked ? selectAll(allIds) : clearSelection())}
             className="size-3.5 accent-accent"
           />
@@ -176,8 +189,12 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
                 <div
                   key={t.id}
                   style={{
-                    position: "absolute", top: 0, left: 0, right: 0,
-                    transform: `translateY(${vi.start}px)`, height: vi.size,
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    transform: `translateY(${vi.start}px)`,
+                    height: vi.size,
                   }}
                   className={`grid grid-cols-[40px_42px_1fr_220px_120px_80px_60px] gap-3 items-center px-4 group hover:bg-secondary/40 transition-colors ${
                     isSel ? "bg-secondary/60" : ""
@@ -188,8 +205,6 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
                     type="checkbox"
                     checked={isSel}
                     onChange={() => toggle(t.id)}
-
-
                     className="size-3.5 accent-accent"
                   />
                   <button
@@ -197,16 +212,27 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
                     className="size-9 rounded-md overflow-hidden bg-secondary grid place-items-center text-muted-foreground hover:text-foreground transition-colors relative"
                     aria-label="Play"
                   >
-                    <CoverImage src={t.cover_url} seed={t.id} className="w-full h-full absolute inset-0" />
-                    <MS name="play_arrow" className="text-[18px] opacity-0 group-hover:opacity-100 transition-opacity relative z-10 bg-black/40 rounded-full" />
+                    <CoverImage
+                      src={t.cover_url}
+                      seed={t.id}
+                      className="w-full h-full absolute inset-0"
+                    />
+                    <MS
+                      name="play_arrow"
+                      className="text-[18px] opacity-0 group-hover:opacity-100 transition-opacity relative z-10 bg-black/40 rounded-full"
+                    />
                   </button>
                   <div className="min-w-0">
                     <p className="text-sm truncate">{t.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{t.artist ?? "Unknown"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {t.artist ?? "Unknown"}
+                    </p>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{t.album ?? "—"}</p>
                   <p className="text-xs text-muted-foreground truncate">{t.genre ?? "—"}</p>
-                  <p className="text-xs font-mono text-muted-foreground tabular-nums text-right">{fmtDuration(t.duration)}</p>
+                  <p className="text-xs font-mono text-muted-foreground tabular-nums text-right">
+                    {fmtDuration(t.duration)}
+                  </p>
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => favMut.mutate(t.id)}
@@ -247,8 +273,14 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
 }
 
 function SelectionToolbar({
-  count, onClear, onDelete,
-}: { count: number; onClear: () => void; onDelete: () => void }) {
+  count,
+  onClear,
+  onDelete,
+}: {
+  count: number;
+  onClear: () => void;
+  onDelete: () => void;
+}) {
   return (
     <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-card border border-border shadow-xl px-3 py-2">
       <span className="text-xs text-muted-foreground px-2">{count} selected</span>

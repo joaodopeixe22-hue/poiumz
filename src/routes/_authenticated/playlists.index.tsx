@@ -8,7 +8,11 @@ import { PageHeader } from "@/components/layout/page-shell";
 import { toast } from "sonner";
 
 function MS({ name, className = "" }: { name: string; className?: string }) {
-  return <span className={`material-symbols ${className}`} aria-hidden>{name}</span>;
+  return (
+    <span className={`material-symbols ${className}`} aria-hidden>
+      {name}
+    </span>
+  );
 }
 
 export const Route = createFileRoute("/_authenticated/playlists/")({
@@ -47,7 +51,9 @@ function PlaylistsIndex() {
             <MS name="queue_music" className="text-[28px] text-muted-foreground" />
           </div>
           <p className="text-sm font-semibold">No playlists yet</p>
-          <p className="text-xs text-muted-foreground mt-1">Create one to start organizing your music.</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Create one to start organizing your music.
+          </p>
         </div>
       ) : (
         <div className="px-10 pb-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -63,7 +69,7 @@ function PlaylistsIndex() {
                 style={{
                   background: p.cover_url
                     ? `url(${p.cover_url}) center/cover`
-                    : `linear-gradient(${135 + i * 25}deg, oklch(0.${35 + (i % 5) * 4} 0.${10 + (i % 4) * 2} ${100 + (i * 40) % 360}), oklch(0.${20 + (i % 4) * 2} 0.${4 + (i % 3)} ${260 + (i * 20) % 360}))`,
+                    : `linear-gradient(${135 + i * 25}deg, oklch(0.${35 + (i % 5) * 4} 0.${10 + (i % 4) * 2} ${100 + ((i * 40) % 360)}), oklch(0.${20 + (i % 4) * 2} 0.${4 + (i % 3)} ${260 + ((i * 20) % 360)}))`,
                 }}
               >
                 {!p.cover_url && (
@@ -87,14 +93,21 @@ function PlaylistsIndex() {
   );
 }
 
-function CreatePlaylistDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+function CreatePlaylistDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const createFn = useServerFn(createPlaylist);
   const qc = useQueryClient();
 
   const mut = useMutation({
-    mutationFn: () => createFn({ data: { name: name.trim(), description: description.trim() || undefined } }),
+    mutationFn: () =>
+      createFn({ data: { name: name.trim(), description: description.trim() || undefined } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["playlists"] });
       toast.success(`Playlist "${name}" created.`);
@@ -123,7 +136,9 @@ function CreatePlaylistDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Description (optional)</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                Description (optional)
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -134,7 +149,9 @@ function CreatePlaylistDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           </div>
           <div className="mt-6 flex gap-2 justify-end">
             <Dialog.Close asChild>
-              <button className="h-9 px-4 rounded-md text-sm text-muted-foreground hover:bg-secondary">Cancel</button>
+              <button className="h-9 px-4 rounded-md text-sm text-muted-foreground hover:bg-secondary">
+                Cancel
+              </button>
             </Dialog.Close>
             <button
               disabled={!name.trim() || mut.isPending}

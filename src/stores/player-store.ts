@@ -113,8 +113,7 @@ export const usePlayerStore = create<PlayerState>()(
         set((s) => ({
           queue: [t, ...s.queue],
         })),
-      removeFromQueue: (index) =>
-        set((s) => ({ queue: s.queue.filter((_, i) => i !== index) })),
+      removeFromQueue: (index) => set((s) => ({ queue: s.queue.filter((_, i) => i !== index) })),
       reorderQueue: (from, to) =>
         set((s) => {
           const next = [...s.queue];
@@ -173,7 +172,9 @@ export const usePlayerStore = create<PlayerState>()(
     }),
     {
       name: "aethel-player",
-      storage: createJSONStorage(() => (typeof window !== "undefined" ? localStorage : (undefined as unknown as Storage))),
+      storage: createJSONStorage(() =>
+        typeof window !== "undefined" ? localStorage : (undefined as unknown as Storage),
+      ),
       partialize: (s) => ({
         volume: s.volume,
         muted: s.muted,
@@ -186,6 +187,6 @@ export const usePlayerStore = create<PlayerState>()(
         history: s.history,
         position: s.position,
       }),
-    }
-  )
+    },
+  ),
 );

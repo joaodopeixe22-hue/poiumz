@@ -1,24 +1,20 @@
-## Corrigir 2 erros de TypeScript
+# Correção de Erros
 
-**1. `src/components/library/track-table.tsx:190`** — `toggleSelect` não existe. Já há `const toggle = useSelectionStore((s) => s.toggle)` no escopo e o JSX já usa `onChange={() => toggle(t.id)}`. O erro indica que ainda existe uma referência residual a `toggleSelect` na linha 190. Remover/substituir essa referência por `toggle(t.id)`.
+## Diagnóstico
 
-**2. `src/routes/_authenticated/playlists.$playlistId.tsx:66`** — O retorno de `getPlaylist` traz `track` como `SelectQueryError` porque o Supabase não infere a relação `playlist_tracks → tracks` (sem FK declarada). Cast em dois passos via `unknown`:
+- `tsc --noEmit`: **0 erros** ✅
+- `eslint`: somente erros de **formatação Prettier** (espaços, quebras de linha, vírgulas) — nenhum bug de lógica ou tipo
 
-```ts
-if (data?.tracks) setOrder(data.tracks as unknown as PT[]);
-```
+## Arquivos afetados
 
-Já está nesse formato, mas o TS ainda reclama porque o cast direto através de `unknown as PT[]` num array já tipado dispara o erro 2352 em modo estrito. Solução: tipar a variável intermediária:
+- `src/routes/_authenticated/playlists.$playlistId.tsx` (~20 avisos de formatação)
+- `src/routes/_authenticated/playlists.index.tsx` (~8 avisos de formatação)
+- possíveis outros arquivos com avisos similares
 
-```ts
-if (data?.tracks) {
-  const list = data.tracks as unknown;
-  setOrder(list as PT[]);
-}
-```
+## Plano
 
-Ou usar `JSON.parse(JSON.stringify(...))` — mas a abordagem com variável intermediária é mais limpa e zero-custo.
+1. Rodar `bunx prettier --write` nos arquivos sinalizados para auto-corrigir 100% dos problemas reportados.
+2. Re-rodar `bunx eslint src --quiet` para confirmar 0 erros restantes.
+3. Re-rodar `bunx tsc --noEmit` para garantir que nada quebrou.
 
-### Resumo dos arquivos
-- `src/components/library/track-table.tsx` — remover referência órfã a `toggleSelect`
-- `src/routes/_authenticated/playlists.$playlistId.tsx` — quebrar o cast em duas etapas
+Nenhuma alteração de lógica, UI ou comportamento — só formatação.
