@@ -17,6 +17,10 @@ type CurrentItem = {
 const SONG_BUCKET = "songs";
 const INSTITUTIONAL_BUCKET = "institutional";
 
+const FADE_IN_SECONDS = 0.6;
+const FADE_OUT_SECONDS = 0.4;
+const TRACK_CHANGE_FADE = 0.35;
+
 export function RadioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const { playback, next } = usePlayback();
@@ -27,6 +31,76 @@ export function RadioPlayer() {
   const [muted, setMuted] = useState(false);
   const [livePos, setLivePos] = useState(0);
   const advancingRef = useRef(false);
+
+  // Web Audio graph: source -> compressor (normalização perceptual) -> gain (fade) -> destination
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const targetVolumeRef = useRef<number>(0.8);
+
+  const targetVolume = () => {
+    const defaultVol = settings?.default_volume ?? 80;
+    return Math.max(0, Math.min(1, defaultVol / 100));
+  };
+
+  const ensureAudioGraph = () => {
+    const a = audioRef.current;
+    if (!a) return null;
+    if (!audioCtxRef.current) {
+      try {
+        const Ctx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!Ctx) return null;
+        const ctx = new Ctx();
+        const source = ctx.createMediaElementSource(a);
+        // Compressor com configuração de "loudness leveling":
+        // ataque rápido, release moderado, ratio alto para domar picos entre faixas
+        // e makeup gain (via post-gain) compensa a redução geral.
+        const compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.value = -20;
+        compressor.knee.value = 24;
+        compressor.ratio.value = 6;
+        compressor.attack.value = 0.005;
+        compressor.release.value = 0.25;
+        const gain = ctx.createGain();
+        gain.gain.value = 0; // começa em silêncio para fade-in
+        source.connect(compressor);
+        compressor.connect(gain);
+        gain.connect(ctx.destination);
+        audioCtxRef.current = ctx;
+        sourceRef.current = source;
+        compressorRef.current = compressor;
+        gainRef.current = gain;
+      } catch {
+        return null;
+      }
+    }
+    return audioCtxRef.current;
+  };
+
+  const fadeTo = (value: number, seconds: number) => {
+    const ctx = audioCtxRef.current;
+    const gain = gainRef.current;
+    if (!ctx || !gain) return;
+    const now = ctx.currentTime;
+    const current = gain.gain.value;
+    try {
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(current, now);
+      // rampa exponencial soa mais natural; precisa de valor > 0
+      const safeTarget = Math.max(0.0001, value);
+      const safeCurrent = Math.max(0.0001, current);
+      gain.gain.setValueAtTime(safeCurrent, now);
+      gain.gain.exponentialRampToValueAtTime(safeTarget, now + seconds);
+      if (value <= 0.0001) {
+        gain.gain.setValueAtTime(0, now + seconds);
+      }
+    } catch {
+      gain.gain.value = value;
+    }
+  };
 
   // Resolve o item atual e gera URL pública
   useEffect(() => {
