@@ -83,6 +83,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const queueRef = useRef<AudioTrack[]>([]);
   const indexRef = useRef(0);
   const modeRef = useRef<PlayerMode>("playlist");
+  const repeatRef = useRef<RepeatMode>("all");
   const shuffleHistRef = useRef<number[]>([]);
 
   // Sync: broadcast channel + echo guard
@@ -92,6 +93,11 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<AudioTrack[]>([]);
   const [index, setIndex] = useState(0);
   const [mode, setModeState] = useState<PlayerMode>("playlist");
+  const [repeat, setRepeatState] = useState<RepeatMode>(() => {
+    if (typeof window === "undefined") return "all";
+    const r = localStorage.getItem("global-player-repeat") as RepeatMode | null;
+    return r === "off" || r === "all" || r === "one" ? r : "all";
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
@@ -100,6 +106,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     const v = Number(localStorage.getItem("global-player-volume"));
     return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.8;
   });
+
+  useEffect(() => {
+    repeatRef.current = repeat;
+  }, [repeat]);
 
   useEffect(() => {
     queueRef.current = queue;
