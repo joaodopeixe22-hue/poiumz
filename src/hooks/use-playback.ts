@@ -6,8 +6,14 @@ export type PlaybackState = {
   is_playing: boolean;
   is_locked: boolean;
   current_song_id: string | null;
+  current_institutional_id: string | null;
   current_playlist_id: string | null;
+  active_playlist_id: string | null;
+  loop_index: number;
+  songs_since_institutional: number;
   position_seconds: number;
+  started_at: string | null;
+  shuffle: boolean;
   volume: number;
   controlled_by: string | null;
   institutional_enabled: boolean;
@@ -51,5 +57,70 @@ export function usePlayback() {
     return { error: error?.message ?? null };
   };
 
-  return { playback, loading, refresh, setInstitutionalEnabled };
+  const setShuffle = async (next: boolean) => {
+    const { error } = await supabase
+      .from("playback_state")
+      .update({ shuffle: next })
+      .eq("id", true);
+    return { error: error?.message ?? null };
+  };
+
+  const setLocked = async (next: boolean) => {
+    const { error } = await supabase
+      .from("playback_state")
+      .update({ is_locked: next })
+      .eq("id", true);
+    return { error: error?.message ?? null };
+  };
+
+  const startPlaylist = async (playlistId: string) => {
+    const { data, error } = await supabase.rpc("start_playback", {
+      p_playlist_id: playlistId,
+    });
+    if (data) setPlayback(data as unknown as PlaybackState);
+    return { error: error?.message ?? null };
+  };
+
+  const pause = async () => {
+    const { data, error } = await supabase.rpc("pause_playback");
+    if (data) setPlayback(data as unknown as PlaybackState);
+    return { error: error?.message ?? null };
+  };
+
+  const resume = async () => {
+    const { data, error } = await supabase.rpc("resume_playback");
+    if (data) setPlayback(data as unknown as PlaybackState);
+    return { error: error?.message ?? null };
+  };
+
+  const next = async (opts?: { expectedSong?: string; expectedInstitutional?: string }) => {
+    const { data, error } = await supabase.rpc("advance_playback", {
+      expected_song: opts?.expectedSong ?? null,
+      expected_institutional: opts?.expectedInstitutional ?? null,
+    });
+    if (data) setPlayback(data as unknown as PlaybackState);
+    return { error: error?.message ?? null };
+  };
+
+  return {
+    playback,
+    loading,
+    refresh,
+    setInstitutionalEnabled,
+    setShuffle,
+    setLocked,
+    startPlaylist,
+    pause,
+    resume,
+    next,
+  };
+}
+
+/** Calcula a posição real (em segundos) considerando o relógio do servidor */
+export function computeLivePosition(pb: PlaybackState | null): number {
+  if (!pb) return 0;
+  if (!pb.is_playing || !pb.started_at) return pb.position_seconds || 0;
+  const startedMs = new Date(pb.started_at).getTime();
+  const elapsed = (Date.now() - startedMs) / 1000;
+  return (pb.position_seconds || 0) + Math.max(0, elapsed);
 }

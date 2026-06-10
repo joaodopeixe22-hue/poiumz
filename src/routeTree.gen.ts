@@ -17,6 +17,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
+import { Route as AuthenticatedDashboardProgramacaoRouteImport } from './routes/_authenticated/dashboard.programacao'
 import { Route as AuthenticatedDashboardMusicasRouteImport } from './routes/_authenticated/dashboard.musicas'
 import { Route as AuthenticatedDashboardInstitucionalRouteImport } from './routes/_authenticated/dashboard.institucional'
 import { Route as AuthenticatedDashboardPlaylistsIndexRouteImport } from './routes/_authenticated/dashboard.playlists.index'
@@ -62,6 +63,12 @@ const AuthenticatedDashboardIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardProgramacaoRoute =
+  AuthenticatedDashboardProgramacaoRouteImport.update({
+    id: '/programacao',
+    path: '/programacao',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardMusicasRoute =
   AuthenticatedDashboardMusicasRouteImport.update({
     id: '/musicas',
@@ -96,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/dashboard/institucional': typeof AuthenticatedDashboardInstitucionalRoute
   '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
+  '/dashboard/programacao': typeof AuthenticatedDashboardProgramacaoRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/playlists/$playlistId': typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
   '/dashboard/playlists/': typeof AuthenticatedDashboardPlaylistsIndexRoute
@@ -108,6 +116,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/dashboard/institucional': typeof AuthenticatedDashboardInstitucionalRoute
   '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
+  '/dashboard/programacao': typeof AuthenticatedDashboardProgramacaoRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/playlists/$playlistId': typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
   '/dashboard/playlists': typeof AuthenticatedDashboardPlaylistsIndexRoute
@@ -123,6 +132,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/dashboard/institucional': typeof AuthenticatedDashboardInstitucionalRoute
   '/_authenticated/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
+  '/_authenticated/dashboard/programacao': typeof AuthenticatedDashboardProgramacaoRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/playlists/$playlistId': typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
   '/_authenticated/dashboard/playlists/': typeof AuthenticatedDashboardPlaylistsIndexRoute
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dashboard/institucional'
     | '/dashboard/musicas'
+    | '/dashboard/programacao'
     | '/dashboard/'
     | '/dashboard/playlists/$playlistId'
     | '/dashboard/playlists/'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard/institucional'
     | '/dashboard/musicas'
+    | '/dashboard/programacao'
     | '/dashboard'
     | '/dashboard/playlists/$playlistId'
     | '/dashboard/playlists'
@@ -164,6 +176,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/dashboard/institucional'
     | '/_authenticated/dashboard/musicas'
+    | '/_authenticated/dashboard/programacao'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/playlists/$playlistId'
     | '/_authenticated/dashboard/playlists/'
@@ -236,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/programacao': {
+      id: '/_authenticated/dashboard/programacao'
+      path: '/programacao'
+      fullPath: '/dashboard/programacao'
+      preLoaderRoute: typeof AuthenticatedDashboardProgramacaoRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/musicas': {
       id: '/_authenticated/dashboard/musicas'
       path: '/musicas'
@@ -270,6 +290,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardInstitucionalRoute: typeof AuthenticatedDashboardInstitucionalRoute
   AuthenticatedDashboardMusicasRoute: typeof AuthenticatedDashboardMusicasRoute
+  AuthenticatedDashboardProgramacaoRoute: typeof AuthenticatedDashboardProgramacaoRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardPlaylistsPlaylistIdRoute: typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
   AuthenticatedDashboardPlaylistsIndexRoute: typeof AuthenticatedDashboardPlaylistsIndexRoute
@@ -280,6 +301,8 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardInstitucionalRoute:
       AuthenticatedDashboardInstitucionalRoute,
     AuthenticatedDashboardMusicasRoute: AuthenticatedDashboardMusicasRoute,
+    AuthenticatedDashboardProgramacaoRoute:
+      AuthenticatedDashboardProgramacaoRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardPlaylistsPlaylistIdRoute:
       AuthenticatedDashboardPlaylistsPlaylistIdRoute,
@@ -315,3 +338,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

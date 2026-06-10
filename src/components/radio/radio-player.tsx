@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Radio } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Radio, Megaphone, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
+import { usePlayback, computeLivePosition } from "@/hooks/use-playback";
 
-type Song = {
+type CurrentItem = {
+  kind: "song" | "institutional";
   id: string;
   titulo: string;
   artista: string | null;
@@ -11,94 +13,137 @@ type Song = {
   storage_path: string;
 };
 
-type PlaybackRow = {
-  id: boolean;
-  is_playing: boolean;
-  is_locked: boolean;
-  current_song_id: string | null;
-  position_seconds: number;
-  volume: number;
-  updated_at: string;
-};
-
-const BUCKET = "songs";
+const SONG_BUCKET = "songs";
+const INSTITUTIONAL_BUCKET = "institutional";
 
 export function RadioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [playback, setPlayback] = useState<PlaybackRow | null>(null);
-  const [song, setSong] = useState<Song | null>(null);
+  const { playback, next } = usePlayback();
+  const [current, setCurrent] = useState<CurrentItem | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [localPlaying, setLocalPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [livePos, setLivePos] = useState(0);
+  const advancingRef = useRef(false);
 
-  // Carrega estado inicial e assina realtime
+  // Resolve o item atual e gera URL pública
   useEffect(() => {
-    let mounted = true;
-    supabase
-      .from("playback_state")
-      .select("*")
-      .eq("id", true)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (mounted && data) setPlayback(data as PlaybackRow);
-      });
-
-    const channel = supabase
-      .channel("playback-state")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "playback_state" },
-        (payload) => {
-          setPlayback(payload.new as PlaybackRow);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      mounted = false;
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Quando muda a música, busca metadados + URL
-  useEffect(() => {
-    if (!playback?.current_song_id) {
-      setSong(null);
-      setAudioUrl(null);
-      return;
-    }
     let cancelled = false;
-    supabase
-      .from("songs")
-      .select("id, titulo, artista, duracao_segundos, storage_path")
-      .eq("id", playback.current_song_id)
-      .maybeSingle()
-      .then(({ data }) => {
+    const load = async () => {
+      if (playback?.current_institutional_id) {
+        const { data } = await supabase
+          .from("institutional_contents")
+          .select("id, titulo, tipo, duracao_segundos, storage_path")
+          .eq("id", playback.current_institutional_id)
+          .maybeSingle();
         if (cancelled || !data) return;
-        setSong(data as Song);
-        const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(data.storage_path);
+        const { data: pub } = supabase.storage
+          .from(INSTITUTIONAL_BUCKET)
+          .getPublicUrl(data.storage_path);
+        setCurrent({
+          kind: "institutional",
+          id: data.id,
+          titulo: data.titulo,
+          artista: data.tipo === "vinheta" ? "Vinheta institucional" : "Aviso",
+          duracao_segundos: data.duracao_segundos,
+          storage_path: data.storage_path,
+        });
         setAudioUrl(pub.publicUrl);
-      });
+      } else if (playback?.current_song_id) {
+        const { data } = await supabase
+          .from("songs")
+          .select("id, titulo, artista, duracao_segundos, storage_path")
+          .eq("id", playback.current_song_id)
+          .maybeSingle();
+        if (cancelled || !data) return;
+        const { data: pub } = supabase.storage
+          .from(SONG_BUCKET)
+          .getPublicUrl(data.storage_path);
+        setCurrent({
+          kind: "song",
+          id: data.id,
+          titulo: data.titulo,
+          artista: data.artista,
+          duracao_segundos: data.duracao_segundos,
+          storage_path: data.storage_path,
+        });
+        setAudioUrl(pub.publicUrl);
+      } else {
+        setCurrent(null);
+        setAudioUrl(null);
+      }
+    };
+    load();
     return () => {
       cancelled = true;
     };
-  }, [playback?.current_song_id]);
+  }, [playback?.current_song_id, playback?.current_institutional_id]);
 
-  const onTogglePlay = async () => {
-    const audio = audioRef.current;
-    if (!audio || !audioUrl) return;
-    if (audio.paused) {
+  // Quando muda o item OU started_at, sincroniza o elemento <audio>
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a || !audioUrl) return;
+    const targetSrc = audioUrl;
+    if (a.src !== targetSrc) {
+      a.src = targetSrc;
+    }
+    const pos = computeLivePosition(playback);
+    // tolera pequena diferença para não "engasgar"
+    if (Math.abs(a.currentTime - pos) > 1.5) {
       try {
-        await audio.play();
-        setLocalPlaying(true);
+        a.currentTime = pos;
       } catch {
-        // navegador bloqueou autoplay — usuário precisa clicar
+        // alguns navegadores precisam de loadedmetadata
       }
+    }
+    if (playback?.is_playing) {
+      a.play()
+        .then(() => setLocalPlaying(true))
+        .catch(() => {
+          // bloqueio de autoplay — usuário precisa clicar uma vez
+          setLocalPlaying(false);
+        });
     } else {
-      audio.pause();
+      a.pause();
       setLocalPlaying(false);
+    }
+  }, [audioUrl, playback?.is_playing, playback?.started_at, playback]);
+
+  // Tick local para barra de progresso + auto-avanço
+  useEffect(() => {
+    const id = setInterval(() => {
+      const pos = computeLivePosition(playback);
+      setLivePos(pos);
+      const dur = current?.duracao_segundos ?? null;
+      if (
+        playback?.is_playing &&
+        dur &&
+        pos >= dur - 0.3 &&
+        !advancingRef.current
+      ) {
+        advancingRef.current = true;
+        next({
+          expectedSong: playback.current_song_id ?? undefined,
+          expectedInstitutional: playback.current_institutional_id ?? undefined,
+        }).finally(() => {
+          setTimeout(() => {
+            advancingRef.current = false;
+          }, 1500);
+        });
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [playback, current?.duracao_segundos, next]);
+
+  const handleManualPlay = async () => {
+    const a = audioRef.current;
+    if (!a) return;
+    try {
+      a.currentTime = computeLivePosition(playback);
+      await a.play();
+      setLocalPlaying(true);
+    } catch {
+      // ignore
     }
   };
 
@@ -109,7 +154,9 @@ export function RadioPlayer() {
     setMuted(a.muted);
   };
 
-  const isOnAir = !!playback?.is_playing && !!song;
+  const isOnAir = !!playback?.is_playing && !!current;
+  const dur = current?.duracao_segundos ?? 0;
+  const progressPct = dur ? Math.min(100, (livePos / dur) * 100) : 0;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
@@ -124,7 +171,12 @@ export function RadioPlayer() {
               Rádio Corporativa
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {playback?.is_locked && (
+              <span className="flex items-center gap-1 text-xs font-mono uppercase tracking-widest text-yellow-500">
+                <Lock className="size-3" /> travada
+              </span>
+            )}
             <span
               className={`size-2 rounded-full ${
                 isOnAir ? "bg-red-500 animate-pulse" : "bg-muted-foreground/40"
@@ -139,24 +191,36 @@ export function RadioPlayer() {
 
         {/* Música atual */}
         <div className="mb-10">
-          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-            Tocando agora
-          </p>
+          <div className="flex items-center gap-2 mb-3">
+            {current?.kind === "institutional" ? (
+              <Megaphone className="size-3.5 text-yellow-500" />
+            ) : null}
+            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+              {current?.kind === "institutional" ? "Mensagem institucional" : "Tocando agora"}
+            </p>
+          </div>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-2">
-            {song?.titulo ?? "Aguardando programação"}
+            {current?.titulo ?? "Aguardando programação"}
           </h1>
           <p className="text-base md:text-lg text-muted-foreground">
-            {song?.artista ?? "—"}
+            {current?.artista ?? "—"}
           </p>
         </div>
 
         {/* Controles */}
         <div className="flex items-center gap-6">
           <button
-            onClick={onTogglePlay}
-            disabled={!audioUrl}
+            onClick={handleManualPlay}
+            disabled={!audioUrl || !playback?.is_playing}
             className="size-16 md:size-20 rounded-full bg-primary text-primary-foreground grid place-items-center hover:scale-105 transition-transform shadow-xl shadow-primary/30 disabled:opacity-40 disabled:cursor-not-allowed"
-            aria-label={localPlaying ? "Pausar" : "Tocar"}
+            aria-label="Tocar"
+            title={
+              !playback?.is_playing
+                ? "Aguardando o operador iniciar a transmissão"
+                : localPlaying
+                  ? "No ar"
+                  : "Tocar"
+            }
           >
             {localPlaying ? (
               <Pause className="size-7" />
@@ -167,15 +231,15 @@ export function RadioPlayer() {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-2 font-mono text-xs text-muted-foreground tabular-nums">
-              <span>{formatTime(position)}</span>
-              <span>{formatTime(duration || song?.duracao_segundos)}</span>
+              <span>{formatTime(livePos)}</span>
+              <span>{formatTime(dur)}</span>
             </div>
             <div className="h-1.5 bg-border rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary transition-all"
-                style={{
-                  width: duration ? `${(position / duration) * 100}%` : "0%",
-                }}
+                className={`h-full transition-all ${
+                  current?.kind === "institutional" ? "bg-yellow-500" : "bg-primary"
+                }`}
+                style={{ width: `${progressPct}%` }}
               />
             </div>
           </div>
@@ -189,16 +253,20 @@ export function RadioPlayer() {
           </button>
         </div>
 
-        {audioUrl && (
-          <audio
-            ref={audioRef}
-            src={audioUrl}
-            preload="metadata"
-            onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
-            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-            onEnded={() => setLocalPlaying(false)}
-          />
-        )}
+        <audio
+          ref={audioRef}
+          preload="auto"
+          onLoadedMetadata={() => {
+            const a = audioRef.current;
+            if (!a) return;
+            const pos = computeLivePosition(playback);
+            try {
+              if (Math.abs(a.currentTime - pos) > 1) a.currentTime = pos;
+            } catch {
+              // ignore
+            }
+          }}
+        />
       </div>
     </div>
   );

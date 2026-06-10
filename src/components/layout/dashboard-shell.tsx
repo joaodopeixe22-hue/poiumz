@@ -29,7 +29,7 @@ const nav: NavItemDef[] = [
   { to: "/dashboard/musicas", label: "Músicas", icon: Music },
   { to: "/dashboard/playlists", label: "Playlists", icon: ListMusic },
   { to: "/dashboard/institucional", label: "Institucional", icon: Megaphone },
-  { to: "/dashboard/programacao", label: "Programação", icon: Radio, soon: true },
+  { to: "/dashboard/programacao", label: "Programação", icon: Radio },
   { to: "/dashboard/usuarios", label: "Usuários", icon: Users, soon: true, adminOnly: true },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings, soon: true },
 ];
