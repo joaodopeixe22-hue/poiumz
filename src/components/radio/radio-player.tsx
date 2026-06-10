@@ -3,6 +3,7 @@ import { Play, Pause, Volume2, VolumeX, Radio, Megaphone, Lock } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { usePlayback, computeLivePosition } from "@/hooks/use-playback";
+import { useRadioSettings } from "@/hooks/use-radio-settings";
 
 type CurrentItem = {
   kind: "song" | "institutional";
