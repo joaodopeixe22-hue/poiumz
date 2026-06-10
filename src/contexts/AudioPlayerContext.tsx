@@ -806,6 +806,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       stop,
       jumpToTrack,
       removeFromQueue,
+      reorderQueue,
       clearHistory,
       getUpcomingTracks,
     }),
