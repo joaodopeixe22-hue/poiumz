@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
 export type AudioTrack = {
@@ -19,10 +20,13 @@ export type AudioTrack = {
   url?: string;
 };
 
+export type PlayerMode = "playlist" | "shuffle" | "radio";
+
 type AudioPlayerContextValue = {
   currentTrack: AudioTrack | null;
   queue: AudioTrack[];
   index: number;
+  mode: PlayerMode;
   isPlaying: boolean;
   duration: number;
   position: number;
@@ -34,6 +38,7 @@ type AudioPlayerContextValue = {
   prev: () => Promise<void>;
   seek: (sec: number) => void;
   setVolume: (v: number) => void;
+  setMode: (m: PlayerMode) => void;
   stop: () => void;
 };
 
@@ -60,13 +65,28 @@ async function resolveTrackUrl(track: AudioTrack): Promise<string> {
   return data.signedUrl;
 }
 
+type RemoteEvent =
+  | { type: "play_queue"; tracks: AudioTrack[]; index: number; mode: PlayerMode }
+  | { type: "toggle"; play: boolean }
+  | { type: "seek"; position: number }
+  | { type: "set_mode"; mode: PlayerMode }
+  | { type: "stop" }
+  | { type: "jump"; index: number };
+
 export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const queueRef = useRef<AudioTrack[]>([]);
   const indexRef = useRef(0);
+  const modeRef = useRef<PlayerMode>("playlist");
+  const shuffleHistRef = useRef<number[]>([]);
+
+  // Sync: broadcast channel + echo guard
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const echoRef = useRef(false);
 
   const [queue, setQueue] = useState<AudioTrack[]>([]);
   const [index, setIndex] = useState(0);
+  const [mode, setModeState] = useState<PlayerMode>("playlist");
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
@@ -82,6 +102,14 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     indexRef.current = index;
   }, [index]);
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+
+  const broadcast = useCallback((evt: RemoteEvent) => {
+    if (echoRef.current) return;
+    channelRef.current?.send({ type: "broadcast", event: "sync", payload: evt });
+  }, []);
 
   const loadAndPlay = useCallback(async (track: AudioTrack) => {
     const a = audioRef.current;
@@ -98,7 +126,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Cria o único elemento de áudio e registra listeners uma única vez
+  // Único <audio>; listeners únicos
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (audioRef.current) return;
@@ -112,14 +140,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     const onEnded = () => {
-      const q = queueRef.current;
-      const nextIdx = indexRef.current + 1;
-      if (nextIdx >= q.length) {
-        setIsPlaying(false);
-        return;
-      }
-      setIndex(nextIdx);
-      void loadAndPlay(q[nextIdx]);
+      // Delega para o handler de "next" respeitando o modo
+      void handleEnded();
     };
     const onError = () => {
       setIsPlaying(false);
@@ -150,6 +172,102 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Helpers internos para navegação por modo
+  const pickShuffleIndex = useCallback(() => {
+    const q = queueRef.current;
+    if (q.length <= 1) return indexRef.current;
+    let r = indexRef.current;
+    let guard = 0;
+    while (r === indexRef.current && guard++ < 8) {
+      r = Math.floor(Math.random() * q.length);
+    }
+    return r;
+  }, []);
+
+  const goToIndex = useCallback(
+    async (i: number) => {
+      const q = queueRef.current;
+      if (i < 0 || i >= q.length) return;
+      setIndex(i);
+      indexRef.current = i;
+      await loadAndPlay(q[i]);
+      broadcast({ type: "jump", index: i });
+    },
+    [loadAndPlay, broadcast],
+  );
+
+  // next / prev / ended respeitando o modo
+  const advanceNext = useCallback(async () => {
+    const m = modeRef.current;
+    if (m === "radio") {
+      const { error } = await supabase.rpc("advance_playback", {});
+      if (error) toast.error(error.message);
+      return;
+    }
+    if (m === "shuffle") {
+      const cur = indexRef.current;
+      const ni = pickShuffleIndex();
+      shuffleHistRef.current.push(cur);
+      await goToIndex(ni);
+      return;
+    }
+    const q = queueRef.current;
+    const ni = indexRef.current + 1;
+    if (ni >= q.length) return;
+    await goToIndex(ni);
+  }, [goToIndex, pickShuffleIndex]);
+
+  const advancePrev = useCallback(async () => {
+    const m = modeRef.current;
+    if (m === "radio") {
+      const a = audioRef.current;
+      if (a) {
+        a.currentTime = 0;
+        setPosition(0);
+      }
+      return;
+    }
+    if (m === "shuffle") {
+      const hist = shuffleHistRef.current;
+      if (hist.length > 0) {
+        const pi = hist.pop()!;
+        await goToIndex(pi);
+        return;
+      }
+      const a = audioRef.current;
+      if (a) {
+        a.currentTime = 0;
+        setPosition(0);
+      }
+      return;
+    }
+    const pi = indexRef.current - 1;
+    if (pi < 0) {
+      const a = audioRef.current;
+      if (a) {
+        a.currentTime = 0;
+        setPosition(0);
+      }
+      return;
+    }
+    await goToIndex(pi);
+  }, [goToIndex]);
+
+  const handleEnded = useCallback(async () => {
+    const m = modeRef.current;
+    if (m === "radio") return; // rádio avança via realtime do playback_state
+    if (m === "shuffle") {
+      await advanceNext();
+      return;
+    }
+    const q = queueRef.current;
+    if (indexRef.current + 1 >= q.length) {
+      setIsPlaying(false);
+      return;
+    }
+    await advanceNext();
+  }, [advanceNext]);
+
   const playQueue = useCallback(
     async (tracks: AudioTrack[], startIndex = 0) => {
       if (tracks.length === 0) return;
@@ -158,42 +276,33 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setIndex(i);
       queueRef.current = tracks;
       indexRef.current = i;
+      shuffleHistRef.current = [];
       await loadAndPlay(tracks[i]);
+      broadcast({ type: "play_queue", tracks, index: i, mode: modeRef.current });
     },
-    [loadAndPlay],
+    [loadAndPlay, broadcast],
   );
 
   const playTrack = useCallback(
     async (track: AudioTrack) => {
+      // tocar uma faixa avulsa força o modo playlist
+      if (modeRef.current === "radio") {
+        modeRef.current = "playlist";
+        setModeState("playlist");
+        broadcast({ type: "set_mode", mode: "playlist" });
+      }
       await playQueue([track], 0);
     },
-    [playQueue],
+    [playQueue, broadcast],
   );
 
   const next = useCallback(async () => {
-    const q = queueRef.current;
-    const nextIdx = indexRef.current + 1;
-    if (nextIdx >= q.length) return;
-    setIndex(nextIdx);
-    indexRef.current = nextIdx;
-    await loadAndPlay(q[nextIdx]);
-  }, [loadAndPlay]);
+    await advanceNext();
+  }, [advanceNext]);
 
   const prev = useCallback(async () => {
-    const q = queueRef.current;
-    const prevIdx = indexRef.current - 1;
-    if (prevIdx < 0) {
-      const a = audioRef.current;
-      if (a) {
-        a.currentTime = 0;
-        setPosition(0);
-      }
-      return;
-    }
-    setIndex(prevIdx);
-    indexRef.current = prevIdx;
-    await loadAndPlay(q[prevIdx]);
-  }, [loadAndPlay]);
+    await advancePrev();
+  }, [advancePrev]);
 
   const toggle = useCallback(async () => {
     const a = audioRef.current;
@@ -201,24 +310,30 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     if (a.paused) {
       try {
         await a.play();
+        broadcast({ type: "toggle", play: true });
       } catch {
         /* ignore */
       }
     } else {
       a.pause();
+      broadcast({ type: "toggle", play: false });
     }
-  }, []);
+  }, [broadcast]);
 
-  const seek = useCallback((sec: number) => {
-    const a = audioRef.current;
-    if (!a) return;
-    try {
-      a.currentTime = Math.max(0, sec);
-      setPosition(a.currentTime);
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const seek = useCallback(
+    (sec: number) => {
+      const a = audioRef.current;
+      if (!a) return;
+      try {
+        a.currentTime = Math.max(0, sec);
+        setPosition(a.currentTime);
+        broadcast({ type: "seek", position: a.currentTime });
+      } catch {
+        /* ignore */
+      }
+    },
+    [broadcast],
+  );
 
   const setVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
@@ -242,7 +357,158 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setDuration(0);
     queueRef.current = [];
     indexRef.current = 0;
-  }, []);
+    shuffleHistRef.current = [];
+    broadcast({ type: "stop" });
+  }, [broadcast]);
+
+  const setMode = useCallback(
+    (m: PlayerMode) => {
+      modeRef.current = m;
+      setModeState(m);
+      shuffleHistRef.current = [];
+      broadcast({ type: "set_mode", mode: m });
+    },
+    [broadcast],
+  );
+
+  // Modo rádio: liga ao playback_state global e segue a programação
+  useEffect(() => {
+    if (mode !== "radio") return;
+    let cancelled = false;
+
+    const syncFromPlayback = async () => {
+      const { data: pb } = await supabase
+        .from("playback_state")
+        .select("current_song_id")
+        .eq("id", true)
+        .maybeSingle();
+      if (cancelled || !pb?.current_song_id) return;
+      const { data: song } = await supabase
+        .from("songs")
+        .select("id, titulo, artista, duracao_segundos, storage_path")
+        .eq("id", pb.current_song_id)
+        .maybeSingle();
+      if (cancelled || !song) return;
+      const track: AudioTrack = {
+        id: song.id,
+        titulo: song.titulo,
+        artista: song.artista,
+        duracao_segundos: song.duracao_segundos,
+        storage_path: song.storage_path,
+      };
+      // só recarrega se mudou a faixa
+      if (queueRef.current[0]?.id === track.id) return;
+      setQueue([track]);
+      setIndex(0);
+      queueRef.current = [track];
+      indexRef.current = 0;
+      await loadAndPlay(track);
+    };
+
+    void syncFromPlayback();
+    const ch = supabase
+      .channel(`global-player-radio-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "playback_state" },
+        () => void syncFromPlayback(),
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(ch);
+    };
+  }, [mode, loadAndPlay]);
+
+  // Sincronia entre dispositivos do mesmo usuário (broadcast)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (cancelled || !data.user) return;
+      const ch = supabase.channel(`global-player:${data.user.id}`, {
+        config: { broadcast: { self: false } },
+      });
+      ch.on("broadcast", { event: "sync" }, ({ payload }) => {
+        const evt = payload as RemoteEvent;
+        echoRef.current = true;
+        void (async () => {
+          try {
+            switch (evt.type) {
+              case "set_mode":
+                modeRef.current = evt.mode;
+                setModeState(evt.mode);
+                shuffleHistRef.current = [];
+                break;
+              case "play_queue": {
+                modeRef.current = evt.mode;
+                setModeState(evt.mode);
+                setQueue(evt.tracks);
+                setIndex(evt.index);
+                queueRef.current = evt.tracks;
+                indexRef.current = evt.index;
+                shuffleHistRef.current = [];
+                await loadAndPlay(evt.tracks[evt.index]);
+                break;
+              }
+              case "jump": {
+                const q = queueRef.current;
+                if (evt.index >= 0 && evt.index < q.length) {
+                  setIndex(evt.index);
+                  indexRef.current = evt.index;
+                  await loadAndPlay(q[evt.index]);
+                }
+                break;
+              }
+              case "toggle": {
+                const a = audioRef.current;
+                if (!a) break;
+                if (evt.play && a.paused) await a.play().catch(() => {});
+                else if (!evt.play && !a.paused) a.pause();
+                break;
+              }
+              case "seek": {
+                const a = audioRef.current;
+                if (!a) break;
+                a.currentTime = Math.max(0, evt.position);
+                setPosition(a.currentTime);
+                break;
+              }
+              case "stop": {
+                const a = audioRef.current;
+                if (a) {
+                  a.pause();
+                  a.src = "";
+                }
+                setIsPlaying(false);
+                setQueue([]);
+                setIndex(0);
+                setPosition(0);
+                setDuration(0);
+                queueRef.current = [];
+                indexRef.current = 0;
+                shuffleHistRef.current = [];
+                break;
+              }
+            }
+          } finally {
+            setTimeout(() => {
+              echoRef.current = false;
+            }, 80);
+          }
+        })();
+      });
+      ch.subscribe();
+      channelRef.current = ch;
+    })();
+    return () => {
+      cancelled = true;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [loadAndPlay]);
 
   const currentTrack = queue[index] ?? null;
 
@@ -251,6 +517,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       currentTrack,
       queue,
       index,
+      mode,
       isPlaying,
       duration,
       position,
@@ -262,12 +529,14 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       prev,
       seek,
       setVolume,
+      setMode,
       stop,
     }),
     [
       currentTrack,
       queue,
       index,
+      mode,
       isPlaying,
       duration,
       position,
@@ -279,6 +548,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       prev,
       seek,
       setVolume,
+      setMode,
       stop,
     ],
   );
