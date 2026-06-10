@@ -15,14 +15,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/use-profile";
 
-const nav = [
+type NavItemDef = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  soon?: boolean;
+  adminOnly?: boolean;
+};
+
+const nav: NavItemDef[] = [
   { to: "/dashboard", label: "Painel", icon: LayoutDashboard },
   { to: "/dashboard/musicas", label: "Músicas", icon: Music, soon: true },
   { to: "/dashboard/playlists", label: "Playlists", icon: ListMusic, soon: true },
   { to: "/dashboard/programacao", label: "Programação", icon: Radio, soon: true },
   { to: "/dashboard/usuarios", label: "Usuários", icon: Users, soon: true, adminOnly: true },
   { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings, soon: true },
-] as const;
+];
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
