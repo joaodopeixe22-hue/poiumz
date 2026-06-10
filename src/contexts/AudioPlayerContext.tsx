@@ -28,6 +28,7 @@ type AudioPlayerContextValue = {
   queue: AudioTrack[];
   index: number;
   mode: PlayerMode;
+  repeat: RepeatMode;
   isPlaying: boolean;
   duration: number;
   position: number;
@@ -40,6 +41,8 @@ type AudioPlayerContextValue = {
   seek: (sec: number) => void;
   setVolume: (v: number) => void;
   setMode: (m: PlayerMode) => void;
+  setRepeat: (r: RepeatMode) => void;
+  cycleRepeat: () => void;
   stop: () => void;
 };
 
