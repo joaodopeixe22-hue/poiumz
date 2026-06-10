@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/layout/page-shell";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Aethel — Settings" }] }),
+  head: () => ({ meta: [{ title: "Aethel — Configurações" }] }),
   component: SettingsPage,
 });
 
@@ -27,18 +27,22 @@ function SettingsPage() {
 
   return (
     <div>
-      <PageHeader eyebrow="Your account" title="Settings." />
+      <PageHeader eyebrow="Sua conta" title="Configurações." />
       <div className="px-12 pb-12 max-w-3xl space-y-10">
-        <Section label="Profile">
-          <Row k="Display name" v={profile?.display_name ?? "—"} />
-          <Row k="Username" v={profile?.username ?? "—"} />
+        <Section label="Perfil">
+          <Row k="Nome de exibição" v={profile?.display_name ?? "—"} />
+          <Row k="Nome de usuário" v={profile?.username ?? "—"} />
           <Row k="Email" v={user?.email ?? "—"} />
         </Section>
-        <Section label="Devices">
-          <p className="text-sm text-muted-foreground">Multi-device sync arrives na Etapa 5.</p>
+        <Section label="Dispositivos">
+          <p className="text-sm text-muted-foreground">
+            Sincronização entre múltiplos dispositivos chega na Etapa 5.
+          </p>
         </Section>
-        <Section label="Audio">
-          <p className="text-sm text-muted-foreground">Equalizador e perfis de som na Etapa 6.</p>
+        <Section label="Áudio">
+          <p className="text-sm text-muted-foreground">
+            Equalizador e perfis de som na Etapa 6.
+          </p>
         </Section>
       </div>
     </div>

@@ -3,8 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
-      { title: "Focus Audio — Home" },
-      { name: "description", content: "Your personalized audio space for deep focus." },
+      { title: "Focus Audio — Início" },
+      { name: "description", content: "Seu espaço de áudio personalizado para foco profundo." },
     ],
   }),
   component: HomePage,
@@ -22,21 +22,20 @@ function HomePage() {
   const hour = new Date().getHours();
   const greeting =
     hour < 5
-      ? "Late night"
+      ? "Boa madrugada"
       : hour < 12
-        ? "Good morning"
+        ? "Bom dia"
         : hour < 18
-          ? "Good afternoon"
-          : "Good evening";
+          ? "Boa tarde"
+          : "Boa noite";
 
   return (
     <div>
       <header className="px-10 pt-10 pb-6 animate-fade-in-up">
         <h1 className="font-display text-4xl">{greeting}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Your personalized audio space.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Seu espaço sonoro personalizado.</p>
       </header>
 
-      {/* Hero */}
       <section className="px-10">
         <div
           className="relative rounded-2xl overflow-hidden border border-border p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-10 animate-fade-in-up"
@@ -47,20 +46,20 @@ function HomePage() {
         >
           <div className="flex-1 min-w-0">
             <span className="inline-flex items-center gap-1.5 text-[10px] text-accent font-semibold tracking-wider uppercase bg-accent/10 px-2.5 py-1 rounded-full">
-              <MS name="bolt" className="text-[12px]" /> Deep Focus
+              <MS name="bolt" className="text-[12px]" /> Foco Profundo
             </span>
             <h2 className="font-display text-4xl md:text-5xl mt-4 leading-tight text-balance">
-              Binaural Beats & Alpha Waves
+              Batidas Binaurais & Ondas Alfa
             </h2>
             <p className="mt-3 text-sm text-muted-foreground max-w-xl text-pretty">
-              2 hours of uninterrupted ambient frequencies designed to enhance cognitive flow and
-              silence distractions.
+              2 horas de frequências ambientes ininterruptas, criadas para potencializar o fluxo
+              cognitivo e silenciar distrações.
             </p>
             <button className="mt-6 inline-flex items-center gap-2 bg-accent text-accent-foreground rounded-full pl-2 pr-5 py-2 text-sm font-semibold hover:scale-[1.02] transition-transform shadow-lg shadow-accent/20">
               <span className="size-7 rounded-full bg-accent-foreground/10 grid place-items-center">
                 <MS name="play_arrow" className="text-[20px]" />
               </span>
-              Play now
+              Tocar agora
             </button>
           </div>
           <div
@@ -75,7 +74,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Quick row */}
       <section className="px-10 mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {quickRow.map((q, i) => (
           <div
@@ -95,22 +93,26 @@ function HomePage() {
               <p className="text-sm font-semibold truncate">{q.title}</p>
               <p className="text-xs text-muted-foreground truncate">{q.subtitle}</p>
             </div>
-            <button className="size-9 rounded-full bg-accent text-accent-foreground grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              aria-label="Tocar"
+              className="size-9 rounded-full bg-accent text-accent-foreground grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
               <MS name="play_arrow" className="text-[20px]" />
             </button>
           </div>
         ))}
       </section>
 
-      {/* Made for You */}
       <section className="px-10 mt-12 pb-10">
         <div className="flex justify-between items-end mb-5">
           <div>
-            <p className="text-xs text-accent font-medium tracking-wide mb-1 uppercase">Curated</p>
-            <h2 className="font-display text-2xl">Made for You</h2>
+            <p className="text-xs text-accent font-medium tracking-wide mb-1 uppercase">
+              Curadoria
+            </p>
+            <h2 className="font-display text-2xl">Feito para você</h2>
           </div>
           <a className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-            View All
+            Ver tudo
           </a>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 animate-fade-in-up">
@@ -123,7 +125,10 @@ function HomePage() {
                 }}
               >
                 <MS name="album" className="text-[44px] text-foreground/40" />
-                <button className="absolute bottom-3 right-3 size-11 rounded-full bg-accent text-accent-foreground grid place-items-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-lg shadow-accent/30">
+                <button
+                  aria-label="Tocar"
+                  className="absolute bottom-3 right-3 size-11 rounded-full bg-accent text-accent-foreground grid place-items-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-lg shadow-accent/30"
+                >
                   <MS name="play_arrow" className="text-[24px]" />
                 </button>
               </div>
@@ -138,14 +143,14 @@ function HomePage() {
 }
 
 const quickRow = [
-  { title: "Structural Silence", subtitle: "Minimal Techno" },
-  { title: "Night Drive", subtitle: "Synthwave Focus" },
-  { title: "Morning Ritual", subtitle: "Neo-Classical" },
+  { title: "Silêncio Estrutural", subtitle: "Techno Minimalista" },
+  { title: "Direção Noturna", subtitle: "Foco Synthwave" },
+  { title: "Ritual Matinal", subtitle: "Neoclássico" },
 ];
 
 const curated = [
-  { title: "Morning Ambient", subtitle: "Start soft, stay focused." },
-  { title: "Flow State", subtitle: "Electronic beats for deep work." },
-  { title: "Study Sonata", subtitle: "Classical focus mix." },
-  { title: "Cinematic Soundscapes", subtitle: "Epic background textures." },
+  { title: "Ambiente Matinal", subtitle: "Comece suave, mantenha o foco." },
+  { title: "Estado de Fluxo", subtitle: "Batidas eletrônicas para trabalho profundo." },
+  { title: "Sonata para Estudo", subtitle: "Mix clássico para concentração." },
+  { title: "Paisagens Cinematográficas", subtitle: "Texturas épicas de fundo." },
 ];

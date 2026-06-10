@@ -11,15 +11,15 @@ function MS({ name, className = "" }: { name: string; className?: string }) {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  queued: "queued",
-  hashing: "hashing",
-  parsing: "parsing",
-  uploading: "uploading",
-  saving: "saving",
-  done: "done",
-  error: "error",
-  skipped: "skipped",
-  cancelled: "cancelled",
+  queued: "na fila",
+  hashing: "calculando hash",
+  parsing: "analisando",
+  uploading: "enviando",
+  saving: "salvando",
+  done: "concluído",
+  error: "erro",
+  skipped: "ignorado",
+  cancelled: "cancelado",
 };
 
 export function UploadQueuePanel() {
@@ -49,17 +49,17 @@ export function UploadQueuePanel() {
         <div className="px-4 py-3 border-b border-border flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold">
-              {allFinished ? "Upload complete" : isPaused ? "Paused" : "Uploading"}
+              {allFinished ? "Envio concluído" : isPaused ? "Pausado" : "Enviando"}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              {stats.done}/{stats.total} done · {stats.failed} failed
+              {stats.done}/{stats.total} concluídos · {stats.failed} com falha
             </p>
           </div>
           {!allFinished && (
             <button
               onClick={() => setPaused(!isPaused)}
               className="size-7 grid place-items-center rounded-full hover:bg-secondary transition-colors text-muted-foreground"
-              aria-label={isPaused ? "Resume" : "Pause"}
+              aria-label={isPaused ? "Retomar" : "Pausar"}
             >
               <MS name={isPaused ? "play_arrow" : "pause"} className="text-[18px]" />
             </button>
@@ -67,14 +67,14 @@ export function UploadQueuePanel() {
           <button
             onClick={() => setMinimized(!isMinimized)}
             className="size-7 grid place-items-center rounded-full hover:bg-secondary transition-colors text-muted-foreground"
-            aria-label="Minimize"
+            aria-label="Minimizar"
           >
             <MS name={isMinimized ? "expand_less" : "expand_more"} className="text-[18px]" />
           </button>
           <button
             onClick={() => (allFinished ? clearAll() : clearDone())}
             className="size-7 grid place-items-center rounded-full hover:bg-secondary transition-colors text-muted-foreground"
-            aria-label="Clear"
+            aria-label="Limpar"
           >
             <MS name="close" className="text-[18px]" />
           </button>
@@ -126,17 +126,13 @@ export function UploadQueuePanel() {
                     <div className="flex items-center gap-2 mt-1">
                       <div className="h-0.5 flex-1 bg-border rounded-full overflow-hidden">
                         <div
-                          className={`h-full transition-all duration-300 ${
-                            isError
-                              ? "bg-destructive"
-                              : isSkipped
-                                ? "bg-muted-foreground"
-                                : "bg-accent"
+                          className={`h-full transition-all duration-200 ${
+                            isError ? "bg-destructive" : "bg-accent"
                           }`}
                           style={{ width: `${it.progress}%` }}
                         />
                       </div>
-                      <span className="text-[10px] font-mono text-muted-foreground tabular-nums w-16 text-right">
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
                         {STATUS_LABEL[it.status] ?? it.status}
                       </span>
                     </div>
@@ -147,15 +143,16 @@ export function UploadQueuePanel() {
                   {isError ? (
                     <button
                       onClick={() => retryItem(it.id)}
-                      className="text-[10px] text-accent hover:underline shrink-0"
+                      className="size-6 grid place-items-center rounded-full text-accent hover:bg-accent/15 transition-colors"
+                      aria-label="Tentar novamente"
                     >
-                      Retry
+                      <MS name="refresh" className="text-[14px]" />
                     </button>
                   ) : active ? (
                     <button
                       onClick={() => cancelItem(it.id)}
                       className="size-6 grid place-items-center rounded-full text-muted-foreground hover:bg-secondary transition-colors"
-                      aria-label="Cancel"
+                      aria-label="Cancelar"
                     >
                       <MS name="close" className="text-[14px]" />
                     </button>
@@ -163,7 +160,7 @@ export function UploadQueuePanel() {
                     <button
                       onClick={() => remove(it.id)}
                       className="size-6 grid place-items-center rounded-full text-muted-foreground hover:bg-secondary transition-colors"
-                      aria-label="Remove"
+                      aria-label="Remover"
                     >
                       <MS name="close" className="text-[14px]" />
                     </button>

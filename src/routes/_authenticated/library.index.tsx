@@ -21,7 +21,7 @@ function MS({ name, className = "" }: { name: string; className?: string }) {
 }
 
 export const Route = createFileRoute("/_authenticated/library/")({
-  head: () => ({ meta: [{ title: "Focus Audio — Library" }] }),
+  head: () => ({ meta: [{ title: "Focus Audio — Biblioteca" }] }),
   component: LibraryPage,
 });
 
@@ -41,18 +41,18 @@ function LibraryPage() {
       <div className="flex items-start justify-between px-10 pt-10 pb-6 gap-6">
         <div>
           <p className="text-xs text-accent font-medium tracking-wide mb-2 uppercase">
-            Your collection
+            Sua coleção
           </p>
-          <h1 className="font-display text-4xl">Library.</h1>
+          <h1 className="font-display text-4xl">Biblioteca.</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Every track you uploaded — search, edit, organize.
+            Cada faixa que você enviou — busque, edite, organize.
           </p>
         </div>
         <Link
           to="/library/upload"
           className="flex items-center gap-2 h-10 px-5 rounded-full bg-accent text-accent-foreground text-sm font-medium hover:scale-[1.02] transition-transform shadow-lg shadow-accent/20"
         >
-          <MS name="upload" className="text-[18px]" /> Upload
+          <MS name="upload" className="text-[18px]" /> Enviar
         </Link>
       </div>
 
@@ -65,7 +65,7 @@ function LibraryPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title, artist, album…"
+            placeholder="Buscar título, artista, álbum…"
             className="w-full h-10 pl-10 pr-4 rounded-full bg-secondary/70 border border-transparent focus:border-border focus:bg-secondary text-sm placeholder:text-muted-foreground outline-none transition-colors"
           />
         </div>
@@ -77,18 +77,18 @@ function LibraryPage() {
               : "border-border text-muted-foreground hover:text-foreground"
           }`}
         >
-          <MS name="favorite" className="text-[16px]" /> Favorites
+          <MS name="favorite" className="text-[16px]" /> Favoritos
         </button>
         <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
           <SelectTrigger className="h-10 w-44 rounded-full bg-secondary/70 border-transparent">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="created_desc">Recently added</SelectItem>
-            <SelectItem value="title_asc">Title (A–Z)</SelectItem>
-            <SelectItem value="artist_asc">Artist (A–Z)</SelectItem>
-            <SelectItem value="duration_asc">Duration</SelectItem>
-            <SelectItem value="plays_desc">Most played</SelectItem>
+            <SelectItem value="created_desc">Adicionadas recentemente</SelectItem>
+            <SelectItem value="title_asc">Título (A–Z)</SelectItem>
+            <SelectItem value="artist_asc">Artista (A–Z)</SelectItem>
+            <SelectItem value="duration_asc">Duração</SelectItem>
+            <SelectItem value="plays_desc">Mais tocadas</SelectItem>
           </SelectContent>
         </Select>
       </div>

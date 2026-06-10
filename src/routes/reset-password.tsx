@@ -17,7 +17,7 @@ function ResetPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
-      toast.error("Password must be at least 8 characters.");
+      toast.error("A senha deve ter no mínimo 8 caracteres.");
       return;
     }
     setLoading(true);
@@ -27,19 +27,19 @@ function ResetPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Password updated.");
+    toast.success("Senha atualizada.");
     navigate({ to: "/" });
   };
 
   return (
     <AuthShell
-      eyebrow="New password"
-      title="Choose a new password."
-      subtitle="Use at least 8 characters. We'll log you in right after."
+      eyebrow="Nova senha"
+      title="Escolha uma nova senha."
+      subtitle="Use ao menos 8 caracteres. Você será conectado em seguida."
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <label className="block space-y-2">
-          <span className="font-mono-caption text-muted-foreground">New password</span>
+          <span className="font-mono-caption text-muted-foreground">Nova senha</span>
           <input
             type="password"
             required
@@ -54,7 +54,7 @@ function ResetPage() {
           className="w-full h-11 rounded-sm bg-accent text-accent-foreground font-medium text-sm hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading && <Loader2 className="size-4 animate-spin" />}
-          Update password
+          Atualizar senha
         </button>
       </form>
     </AuthShell>
