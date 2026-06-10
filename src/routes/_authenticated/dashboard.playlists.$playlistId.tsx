@@ -223,11 +223,22 @@ function PlaylistDetailPage() {
                   className="border-t border-border hover:bg-secondary/30 transition-colors"
                 >
                   <td className="py-3 px-4 text-muted-foreground font-mono tabular-nums">
-                    {idx + 1}
+                    <button
+                      onClick={() => playRowToggle(idx)}
+                      className="size-7 rounded-full grid place-items-center bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
+                      aria-label="Tocar"
+                    >
+                      {player.current?.id === it.song?.id && player.isPlaying ? (
+                        <Pause className="size-3" />
+                      ) : (
+                        <Play className="size-3" />
+                      )}
+                    </button>
                   </td>
                   <td className="py-3 px-4 font-medium truncate max-w-xs">
                     {it.song?.titulo ?? "—"}
                   </td>
+
                   <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">
                     {it.song?.artista ?? "—"}
                   </td>
