@@ -433,19 +433,26 @@ export function RadioPlayer() {
             } catch {
               /* ignore */
             }
-            console.log("[radio-player] loadedmetadata, duration=", a.duration);
+            logRadio("loaded_metadata", { duration: a.duration });
           }}
           onCanPlay={() => setBuffering(false)}
-          onWaiting={() => setBuffering(true)}
+          onWaiting={() => {
+            setBuffering(true);
+            logRadio("buffering", {});
+          }}
           onPlaying={() => {
             setBuffering(false);
             setLocalPlaying(true);
           }}
           onPause={() => setLocalPlaying(false)}
           onEnded={() => setLocalPlaying(false)}
-          onError={(e) => {
+          onError={() => {
             const a = audioRef.current;
-            console.error("[radio-player] audio error", a?.error?.code, a?.error?.message, e);
+            logRadio("audio_error", {
+              code: a?.error?.code ?? null,
+              message: a?.error?.message ?? null,
+              src: a?.src ?? null,
+            });
             setLoadError(
               a?.error
                 ? `Erro de áudio (código ${a.error.code})`
