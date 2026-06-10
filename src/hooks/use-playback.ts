@@ -10,6 +10,10 @@ export type PlaybackState = {
   current_playlist_id: string | null;
   active_playlist_id: string | null;
   loop_index: number;
+  loop_playlist: boolean;
+  resume_song_after_institutional: boolean;
+  interrupted_song_id: string | null;
+  interrupted_song_position: number;
   songs_since_institutional: number;
   position_seconds: number;
   started_at: string | null;
@@ -73,6 +77,22 @@ export function usePlayback() {
     return { error: error?.message ?? null };
   };
 
+  const setLoopPlaylist = async (next: boolean) => {
+    const { error } = await supabase
+      .from("playback_state")
+      .update({ loop_playlist: next } as never)
+      .eq("id", true);
+    return { error: error?.message ?? null };
+  };
+
+  const setResumeAfterInstitutional = async (next: boolean) => {
+    const { error } = await supabase
+      .from("playback_state")
+      .update({ resume_song_after_institutional: next } as never)
+      .eq("id", true);
+    return { error: error?.message ?? null };
+  };
+
   const startPlaylist = async (playlistId: string) => {
     const { data, error } = await supabase.rpc("start_playback", {
       p_playlist_id: playlistId,
@@ -109,6 +129,8 @@ export function usePlayback() {
     setInstitutionalEnabled,
     setShuffle,
     setLocked,
+    setLoopPlaylist,
+    setResumeAfterInstitutional,
     startPlaylist,
     pause,
     resume,

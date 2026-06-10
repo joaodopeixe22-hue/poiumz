@@ -10,7 +10,10 @@ import {
   Lock,
   Unlock,
   Megaphone,
+  Repeat,
+  RotateCcw,
 } from "lucide-react";
+import { PriorityQueue } from "@/components/radio/priority-queue";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -42,6 +45,8 @@ function ProgramacaoPage() {
     setShuffle,
     setLocked,
     setInstitutionalEnabled,
+    setLoopPlaylist,
+    setResumeAfterInstitutional,
   } = usePlayback();
   const { playlists } = usePlaylists();
   const [currentLabel, setCurrentLabel] = useState<{
@@ -141,6 +146,16 @@ function ProgramacaoPage() {
 
   const handleInstitutional = async (v: boolean) => {
     const { error } = await setInstitutionalEnabled(v);
+    if (error) toast.error(error);
+  };
+
+  const handleLoopPlaylist = async (v: boolean) => {
+    const { error } = await setLoopPlaylist(v);
+    if (error) toast.error(error);
+  };
+
+  const handleResumeAfterInstitutional = async (v: boolean) => {
+    const { error } = await setResumeAfterInstitutional(v);
     if (error) toast.error(error);
   };
 
@@ -289,6 +304,9 @@ function ProgramacaoPage() {
         </p>
       </div>
 
+      {/* Fila prioritária */}
+      <PriorityQueue disabled={lockedForMe} />
+
       {/* Opções */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <OptionRow
@@ -297,6 +315,22 @@ function ProgramacaoPage() {
           description="Embaralha a ordem das músicas da playlist."
           checked={!!playback?.shuffle}
           onCheckedChange={handleShuffle}
+          disabled={lockedForMe}
+        />
+        <OptionRow
+          icon={Repeat}
+          title="Loop da playlist"
+          description="Ao chegar no fim, recomeça do primeiro item. Se desligado, a transmissão pausa no fim."
+          checked={playback?.loop_playlist ?? true}
+          onCheckedChange={handleLoopPlaylist}
+          disabled={lockedForMe}
+        />
+        <OptionRow
+          icon={RotateCcw}
+          title="Retomar após vinheta"
+          description="Quando uma vinheta termina, a música volta do mesmo segundo em vez de reiniciar."
+          checked={!!playback?.resume_song_after_institutional}
+          onCheckedChange={handleResumeAfterInstitutional}
           disabled={lockedForMe}
         />
         <OptionRow

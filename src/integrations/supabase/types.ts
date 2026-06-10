@@ -65,10 +65,14 @@ export type Database = {
           current_song_id: string | null
           id: boolean
           institutional_enabled: boolean
+          interrupted_song_id: string | null
+          interrupted_song_position: number
           is_locked: boolean
           is_playing: boolean
           loop_index: number
+          loop_playlist: boolean
           position_seconds: number
+          resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
           started_at: string | null
@@ -83,10 +87,14 @@ export type Database = {
           current_song_id?: string | null
           id?: boolean
           institutional_enabled?: boolean
+          interrupted_song_id?: string | null
+          interrupted_song_position?: number
           is_locked?: boolean
           is_playing?: boolean
           loop_index?: number
+          loop_playlist?: boolean
           position_seconds?: number
+          resume_song_after_institutional?: boolean
           shuffle?: boolean
           songs_since_institutional?: number
           started_at?: string | null
@@ -101,10 +109,14 @@ export type Database = {
           current_song_id?: string | null
           id?: boolean
           institutional_enabled?: boolean
+          interrupted_song_id?: string | null
+          interrupted_song_position?: number
           is_locked?: boolean
           is_playing?: boolean
           loop_index?: number
+          loop_playlist?: boolean
           position_seconds?: number
+          resume_song_after_institutional?: boolean
           shuffle?: boolean
           songs_since_institutional?: number
           started_at?: string | null
@@ -129,6 +141,13 @@ export type Database = {
           {
             foreignKeyName: "playback_state_current_song_id_fkey"
             columns: ["current_song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playback_state_interrupted_song_id_fkey"
+            columns: ["interrupted_song_id"]
             isOneToOne: false
             referencedRelation: "songs"
             referencedColumns: ["id"]
@@ -319,10 +338,14 @@ export type Database = {
           current_song_id: string | null
           id: boolean
           institutional_enabled: boolean
+          interrupted_song_id: string | null
+          interrupted_song_position: number
           is_locked: boolean
           is_playing: boolean
           loop_index: number
+          loop_playlist: boolean
           position_seconds: number
+          resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
           started_at: string | null
@@ -339,6 +362,7 @@ export type Database = {
       can_user_upload: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_approved_member: { Args: never; Returns: boolean }
+      next_queue_position: { Args: never; Returns: number }
       pause_playback: {
         Args: never
         Returns: {
@@ -349,10 +373,14 @@ export type Database = {
           current_song_id: string | null
           id: boolean
           institutional_enabled: boolean
+          interrupted_song_id: string | null
+          interrupted_song_position: number
           is_locked: boolean
           is_playing: boolean
           loop_index: number
+          loop_playlist: boolean
           position_seconds: number
+          resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
           started_at: string | null
@@ -366,6 +394,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reorder_queue: {
+        Args: { p_item_id: string; p_new_position: number }
+        Returns: undefined
+      }
       resume_playback: {
         Args: never
         Returns: {
@@ -376,10 +408,14 @@ export type Database = {
           current_song_id: string | null
           id: boolean
           institutional_enabled: boolean
+          interrupted_song_id: string | null
+          interrupted_song_position: number
           is_locked: boolean
           is_playing: boolean
           loop_index: number
+          loop_playlist: boolean
           position_seconds: number
+          resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
           started_at: string | null
@@ -405,10 +441,14 @@ export type Database = {
           current_song_id: string | null
           id: boolean
           institutional_enabled: boolean
+          interrupted_song_id: string | null
+          interrupted_song_position: number
           is_locked: boolean
           is_playing: boolean
           loop_index: number
+          loop_playlist: boolean
           position_seconds: number
+          resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
           started_at: string | null
