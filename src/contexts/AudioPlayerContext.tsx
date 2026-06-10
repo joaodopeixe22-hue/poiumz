@@ -81,6 +81,9 @@ type AudioPlayerContextValue = {
   clearManualQueue: () => void;
   clearHistory: () => void;
   getUpcomingTracks: (limit?: number) => AudioTrack[];
+  smartMix: SmartMixSettings;
+  setSmartMix: (s: Partial<SmartMixSettings>) => void;
+  isCrossfading: boolean;
 };
 
 export const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
