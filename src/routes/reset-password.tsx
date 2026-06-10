@@ -3,13 +3,13 @@ import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthCard, Field } from "@/components/auth/auth-card";
 
 export const Route = createFileRoute("/reset-password")({
-  component: ResetPage,
+  component: ResetPasswordPage,
 });
 
-function ResetPage() {
+function ResetPasswordPage() {
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ function ResetPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
-      toast.error("A senha deve ter no mínimo 8 caracteres.");
+      toast.error("A senha deve ter pelo menos 8 caracteres.");
       return;
     }
     setLoading(true);
@@ -28,35 +28,30 @@ function ResetPage() {
       return;
     }
     toast.success("Senha atualizada.");
-    navigate({ to: "/" });
+    navigate({ to: "/dashboard" });
   };
 
   return (
-    <AuthShell
-      eyebrow="Nova senha"
-      title="Escolha uma nova senha."
-      subtitle="Use ao menos 8 caracteres. Você será conectado em seguida."
-    >
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <label className="block space-y-2">
-          <span className="font-mono-caption text-muted-foreground">Nova senha</span>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full h-11 px-3 rounded-sm bg-input/40 border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-        </label>
+    <AuthCard title="Definir nova senha" subtitle="Escolha uma senha forte para sua conta.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field
+          label="Nova senha"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={setPassword}
+          required
+          placeholder="Mínimo 8 caracteres"
+        />
         <button
           type="submit"
           disabled={loading}
-          className="w-full h-11 rounded-sm bg-accent text-accent-foreground font-medium text-sm hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full h-11 rounded-md bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading && <Loader2 className="size-4 animate-spin" />}
           Atualizar senha
         </button>
       </form>
-    </AuthShell>
+    </AuthCard>
   );
 }
