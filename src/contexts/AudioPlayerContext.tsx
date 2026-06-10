@@ -335,11 +335,43 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [preloadTrack]);
 
+  const getActiveAudio = useCallback(
+    () => (activeKeyRef.current === "A" ? audioARef.current : audioBRef.current),
+    [],
+  );
+  const getInactiveAudio = useCallback(
+    () => (activeKeyRef.current === "A" ? audioBRef.current : audioARef.current),
+    [],
+  );
+
+  const abortCrossfade = useCallback(() => {
+    if (crossfadeTimerRef.current !== null) {
+      window.clearInterval(crossfadeTimerRef.current);
+      crossfadeTimerRef.current = null;
+    }
+    if (!inCrossfadeRef.current) return;
+    inCrossfadeRef.current = false;
+    setIsCrossfading(false);
+    const inactive = getInactiveAudio();
+    if (inactive) {
+      try {
+        inactive.pause();
+        inactive.src = "";
+      } catch {
+        /* ignore */
+      }
+    }
+    const active = getActiveAudio();
+    if (active) active.volume = volume;
+  }, [getActiveAudio, getInactiveAudio, volume]);
+
   const loadAndPlay = useCallback(
     async (track: AudioTrack) => {
-      const a = audioRef.current;
+      abortCrossfade();
+      const a = getActiveAudio();
       if (!a) return;
       try {
+        a.volume = volume;
         const url = await resolveTrackUrl(track);
         a.src = url;
         a.currentTime = 0;
@@ -353,51 +385,197 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         toast.error(e instanceof Error ? e.message : "Não foi possível reproduzir");
       }
     },
-    [pushHistory, pruneAndPreload],
+    [abortCrossfade, getActiveAudio, pushHistory, pruneAndPreload, volume],
   );
 
+  // Start a Smart Mix crossfade into the track at `nextIndex`.
+  // The currently-active element fades out while the inactive element
+  // simultaneously fades in with the next track loaded; on completion
+  // we swap which element is active and bump the index.
+  const startCrossfade = useCallback(
+    async (nextIndex: number) => {
+      if (inCrossfadeRef.current) return;
+      const active = getActiveAudio();
+      const inactive = getInactiveAudio();
+      const q = queueRef.current;
+      const nextTrack = q[nextIndex];
+      if (!active || !inactive || !nextTrack) return;
+      const dur = smartMixRef.current.durationSec;
+      if (dur <= 0) return;
 
-  // Único <audio>; listeners únicos
+      inCrossfadeRef.current = true;
+      setIsCrossfading(true);
+      try {
+        const url = await resolveTrackUrl(nextTrack);
+        inactive.src = url;
+        inactive.currentTime = 0;
+        inactive.volume = 0;
+        await inactive.play();
+      } catch (e) {
+        console.warn("[smart-mix] crossfade prep failed; falling back", e);
+        inCrossfadeRef.current = false;
+        setIsCrossfading(false);
+        return;
+      }
+
+      const startVol = volume;
+      const startAt = performance.now();
+      const tick = () => {
+        if (!inCrossfadeRef.current) return;
+        const elapsed = (performance.now() - startAt) / 1000;
+        const t = Math.min(1, elapsed / dur);
+        const g = equalPowerGains(t);
+        try {
+          active.volume = startVol * g.out;
+          inactive.volume = startVol * g.in;
+        } catch {
+          /* ignore */
+        }
+        if (t >= 1) {
+          if (crossfadeTimerRef.current !== null) {
+            window.clearInterval(crossfadeTimerRef.current);
+            crossfadeTimerRef.current = null;
+          }
+          // Finalize swap
+          try {
+            active.pause();
+            active.src = "";
+            active.volume = startVol;
+          } catch {
+            /* ignore */
+          }
+          inactive.volume = startVol;
+          activeKeyRef.current = activeKeyRef.current === "A" ? "B" : "A";
+          audioRef.current = inactive;
+          setIndex(nextIndex);
+          indexRef.current = nextIndex;
+          setPosition(inactive.currentTime);
+          setDuration(Number.isFinite(inactive.duration) ? inactive.duration : 0);
+          pushHistory(nextTrack);
+          inCrossfadeRef.current = false;
+          setIsCrossfading(false);
+          void pruneAndPreload();
+        }
+      };
+      crossfadeTimerRef.current = window.setInterval(tick, 50);
+    },
+    [getActiveAudio, getInactiveAudio, pushHistory, pruneAndPreload, volume],
+  );
+
+  // Dual <audio>; listeners on both, gated by "active" element.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (audioRef.current) return;
+    if (audioARef.current) return;
     const a = new Audio();
+    const b = new Audio();
     a.preload = "auto";
+    b.preload = "auto";
     a.volume = volume;
+    b.volume = volume;
+    audioARef.current = a;
+    audioBRef.current = b;
     audioRef.current = a;
 
-    const onTime = () => setPosition(a.currentTime);
-    const onDur = () => setDuration(Number.isFinite(a.duration) ? a.duration : 0);
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => {
-      // Delega para o handler de "next" respeitando o modo
-      void handleEnded();
-    };
-    const onError = () => {
-      setIsPlaying(false);
-      console.error("[global-player] audio error", a.error?.code, a.src);
-      toast.error("Falha ao carregar o áudio.");
+    const isActive = (el: HTMLAudioElement) => el === getActiveAudio();
+
+    const tryCrossfade = (el: HTMLAudioElement) => {
+      if (!isActive(el)) return;
+      if (inCrossfadeRef.current) return;
+      if (modeRef.current === "radio") return;
+      const settings = smartMixRef.current;
+      if (!settings.enabled) return;
+      const dur = el.duration;
+      if (!Number.isFinite(dur) || dur <= 0) return;
+      const remaining = dur - el.currentTime;
+      if (remaining > settings.durationSec + 0.15) return;
+      if (remaining <= 0) return;
+      // Determine next index respecting repeat
+      const q = queueRef.current;
+      const cur = indexRef.current;
+      let nextI = cur + 1;
+      if (nextI >= q.length) {
+        if (repeatRef.current === "all" && q.length > 0) nextI = 0;
+        else return;
+      }
+      if (repeatRef.current === "one") return; // never crossfade into self
+      const curTrack = q[cur];
+      const nextTrack = q[nextI];
+      if (!curTrack || !nextTrack) return;
+      if (
+        !shouldCrossfade(curTrack.kind, nextTrack.kind, settings, {
+          nextIsManual: !!nextTrack.manuallyQueued,
+        })
+      ) {
+        return;
+      }
+      void startCrossfade(nextI);
     };
 
-    a.addEventListener("timeupdate", onTime);
-    a.addEventListener("durationchange", onDur);
-    a.addEventListener("loadedmetadata", onDur);
-    a.addEventListener("ended", onEnded);
-    a.addEventListener("play", onPlay);
-    a.addEventListener("pause", onPause);
-    a.addEventListener("error", onError);
+    const bind = (el: HTMLAudioElement) => {
+      const onTime = () => {
+        if (!isActive(el)) return;
+        setPosition(el.currentTime);
+        tryCrossfade(el);
+      };
+      const onDur = () => {
+        if (!isActive(el)) return;
+        setDuration(Number.isFinite(el.duration) ? el.duration : 0);
+      };
+      const onPlay = () => {
+        if (!isActive(el)) return;
+        setIsPlaying(true);
+      };
+      const onPause = () => {
+        if (!isActive(el)) return;
+        // Don't flip isPlaying off mid-crossfade for the outgoing element
+        if (inCrossfadeRef.current) return;
+        setIsPlaying(false);
+      };
+      const onEnded = () => {
+        if (!isActive(el)) return;
+        if (inCrossfadeRef.current) return; // crossfade handles the swap itself
+        void handleEnded();
+      };
+      const onError = () => {
+        if (!isActive(el)) return;
+        setIsPlaying(false);
+        console.error("[global-player] audio error", el.error?.code, el.src);
+        toast.error("Falha ao carregar o áudio.");
+      };
+      el.addEventListener("timeupdate", onTime);
+      el.addEventListener("durationchange", onDur);
+      el.addEventListener("loadedmetadata", onDur);
+      el.addEventListener("ended", onEnded);
+      el.addEventListener("play", onPlay);
+      el.addEventListener("pause", onPause);
+      el.addEventListener("error", onError);
+      return () => {
+        el.removeEventListener("timeupdate", onTime);
+        el.removeEventListener("durationchange", onDur);
+        el.removeEventListener("loadedmetadata", onDur);
+        el.removeEventListener("ended", onEnded);
+        el.removeEventListener("play", onPlay);
+        el.removeEventListener("pause", onPause);
+        el.removeEventListener("error", onError);
+      };
+    };
+
+    const unbindA = bind(a);
+    const unbindB = bind(b);
 
     return () => {
-      a.removeEventListener("timeupdate", onTime);
-      a.removeEventListener("durationchange", onDur);
-      a.removeEventListener("loadedmetadata", onDur);
-      a.removeEventListener("ended", onEnded);
-      a.removeEventListener("play", onPlay);
-      a.removeEventListener("pause", onPause);
-      a.removeEventListener("error", onError);
+      unbindA();
+      unbindB();
+      if (crossfadeTimerRef.current !== null) {
+        window.clearInterval(crossfadeTimerRef.current);
+        crossfadeTimerRef.current = null;
+      }
       a.pause();
+      b.pause();
       a.src = "";
+      b.src = "";
+      audioARef.current = null;
+      audioBRef.current = null;
       audioRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
