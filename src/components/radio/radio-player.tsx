@@ -85,13 +85,11 @@ export function RadioPlayer() {
     const gain = gainRef.current;
     if (!ctx || !gain) return;
     const now = ctx.currentTime;
-    const current = gain.gain.value;
+    const currentVal = gain.gain.value;
     try {
       gain.gain.cancelScheduledValues(now);
-      gain.gain.setValueAtTime(current, now);
-      // rampa exponencial soa mais natural; precisa de valor > 0
       const safeTarget = Math.max(0.0001, value);
-      const safeCurrent = Math.max(0.0001, current);
+      const safeCurrent = Math.max(0.0001, currentVal);
       gain.gain.setValueAtTime(safeCurrent, now);
       gain.gain.exponentialRampToValueAtTime(safeTarget, now + seconds);
       if (value <= 0.0001) {
