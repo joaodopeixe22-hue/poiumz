@@ -322,6 +322,21 @@ export function GlobalPlayerBar() {
           </div>
 
           <div className="flex items-center gap-1">
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setQueueOpen(true)}
+                    className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                    aria-label="Fila de reprodução"
+                  >
+                    <ListVideo className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Ver fila completa</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             <button
               onClick={cycleRepeat}
               className={`size-8 rounded-md grid place-items-center transition-colors ${
