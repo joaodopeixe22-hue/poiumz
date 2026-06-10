@@ -603,12 +603,23 @@ export function GlobalPlayerBar() {
             )}
 
             <section className="px-4 py-3 border-t">
-              <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-                Próximas músicas{" "}
-                <span className="normal-case tracking-normal text-muted-foreground/70">
-                  ({upcoming.length})
-                </span>
-              </h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Próximas músicas{" "}
+                  <span className="normal-case tracking-normal text-muted-foreground/70">
+                    ({upcoming.length})
+                  </span>
+                </h3>
+                {upcoming.some((t) => t.manuallyQueued) && (
+                  <button
+                    onClick={clearManualQueue}
+                    className="text-[10px] text-muted-foreground hover:text-foreground"
+                    title="Remover apenas as faixas adicionadas manualmente"
+                  >
+                    Limpar manuais
+                  </button>
+                )}
+              </div>
               {upcoming.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-4 text-center">
                   Não há músicas na fila.
