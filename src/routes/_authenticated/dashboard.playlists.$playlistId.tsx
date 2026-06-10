@@ -1,6 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, Search, Music } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  Search,
+  Music,
+  Play,
+  Pause,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +23,7 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 import { useSongs } from "@/hooks/use-songs";
 import { usePlaylist } from "@/hooks/use-playlists";
+import { usePreviewPlayer, type PreviewTrack } from "@/hooks/use-preview-player";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { toast } from "sonner";
@@ -28,8 +39,39 @@ function PlaylistDetailPage() {
   const { songs } = useSongs();
   const [addOpen, setAddOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const player = usePreviewPlayer();
 
   const canEdit = profile?.status === "aprovado";
+
+  const playlistTracks: PreviewTrack[] = useMemo(
+    () =>
+      items
+        .filter((it) => it.song)
+        .map((it) => ({
+          id: it.song!.id,
+          titulo: it.song!.titulo,
+          artista: it.song!.artista,
+          duracao_segundos: it.song!.duracao_segundos,
+          storage_path: it.song!.storage_path,
+        })),
+    [items],
+  );
+
+  const playFromIndex = (i: number) => {
+    if (playlistTracks.length === 0) return;
+    player.playQueue(playlistTracks, i);
+  };
+
+  const playRowToggle = (i: number) => {
+    const t = playlistTracks[i];
+    if (!t) return;
+    if (player.current?.id === t.id) {
+      player.toggle();
+    } else {
+      playFromIndex(i);
+    }
+  };
+
 
   const existingIds = useMemo(() => new Set(items.map((i) => i.song_id)), [items]);
   const available = useMemo(() => {
@@ -125,19 +167,32 @@ function PlaylistDetailPage() {
             {formatTime(totalDuration)}
           </p>
         </div>
-        {canEdit && (
-          <Button
-            onClick={() => {
-              setQuery("");
-              setAddOpen(true);
-            }}
-            className="gap-2"
-          >
-            <Plus className="size-4" />
-            Adicionar músicas
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <Button
+              variant="secondary"
+              onClick={() => playFromIndex(0)}
+              className="gap-2"
+            >
+              <Play className="size-4" />
+              Tocar playlist
+            </Button>
+          )}
+          {canEdit && (
+            <Button
+              onClick={() => {
+                setQuery("");
+                setAddOpen(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="size-4" />
+              Adicionar músicas
+            </Button>
+          )}
+        </div>
       </div>
+
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         {items.length === 0 ? (
@@ -168,11 +223,22 @@ function PlaylistDetailPage() {
                   className="border-t border-border hover:bg-secondary/30 transition-colors"
                 >
                   <td className="py-3 px-4 text-muted-foreground font-mono tabular-nums">
-                    {idx + 1}
+                    <button
+                      onClick={() => playRowToggle(idx)}
+                      className="size-7 rounded-full grid place-items-center bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
+                      aria-label="Tocar"
+                    >
+                      {player.current?.id === it.song?.id && player.isPlaying ? (
+                        <Pause className="size-3" />
+                      ) : (
+                        <Play className="size-3" />
+                      )}
+                    </button>
                   </td>
                   <td className="py-3 px-4 font-medium truncate max-w-xs">
                     {it.song?.titulo ?? "—"}
                   </td>
+
                   <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">
                     {it.song?.artista ?? "—"}
                   </td>

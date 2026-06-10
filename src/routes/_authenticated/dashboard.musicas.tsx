@@ -92,22 +92,23 @@ function MusicasPage() {
   };
 
   const togglePlay = async (song: Song) => {
-    if (playingId === song.id) {
-      audioRef.current?.pause();
-      setPlayingId(null);
+    if (player.current?.id === song.id && player.isPlaying) {
+      await player.toggle();
       return;
     }
-    try {
-      const url = getSongPublicUrl(song.storage_path);
-      if (!audioRef.current) audioRef.current = new Audio();
-      audioRef.current.src = url;
-      audioRef.current.onended = () => setPlayingId(null);
-      await audioRef.current.play();
-      setPlayingId(song.id);
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível reproduzir");
+    if (player.current?.id === song.id && !player.isPlaying) {
+      await player.toggle();
+      return;
     }
+    await player.playTrack({
+      id: song.id,
+      titulo: song.titulo,
+      artista: song.artista,
+      duracao_segundos: song.duracao_segundos,
+      storage_path: song.storage_path,
+    });
   };
+
 
   const confirmDelete = async () => {
     if (!deleting) return;
@@ -301,18 +302,25 @@ function MusicasPage() {
                       </td>
                     )}
                     <td className="py-3 px-4">
-                      <button
-                        onClick={() => togglePlay(song)}
-                        className="size-8 rounded-full grid place-items-center bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
-                        aria-label={playingId === song.id ? "Pausar" : "Reproduzir"}
-                      >
-                        {playingId === song.id ? (
-                          <Pause className="size-3.5" />
-                        ) : (
-                          <Play className="size-3.5" />
-                        )}
-                      </button>
+                      {(() => {
+                        const isThis = player.current?.id === song.id;
+                        const showPause = isThis && player.isPlaying;
+                        return (
+                          <button
+                            onClick={() => togglePlay(song)}
+                            className="size-8 rounded-full grid place-items-center bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
+                            aria-label={showPause ? "Pausar" : "Reproduzir"}
+                          >
+                            {showPause ? (
+                              <Pause className="size-3.5" />
+                            ) : (
+                              <Play className="size-3.5" />
+                            )}
+                          </button>
+                        );
+                      })()}
                     </td>
+
                     <td className="py-3 px-4 font-medium max-w-xs">
                       <div className="flex items-center gap-2">
                         <span className="truncate">{song.titulo}</span>
