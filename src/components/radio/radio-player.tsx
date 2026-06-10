@@ -36,6 +36,25 @@ export function RadioPlayer() {
     return Math.max(0, Math.min(1, defaultVol / 100));
   };
 
+  // Diagnóstico: emite snapshot do playback_state recebido sempre que muda
+  useEffect(() => {
+    logRadio("playback_state_received", {
+      is_playing: playback?.is_playing ?? null,
+      current_song_id: playback?.current_song_id ?? null,
+      current_institutional_id: playback?.current_institutional_id ?? null,
+      started_at: playback?.started_at ?? null,
+      position_seconds: playback?.position_seconds ?? null,
+      is_locked: playback?.is_locked ?? null,
+    });
+  }, [
+    playback?.is_playing,
+    playback?.current_song_id,
+    playback?.current_institutional_id,
+    playback?.started_at,
+    playback?.position_seconds,
+    playback?.is_locked,
+  ]);
+
   // Resolve o item atual e gera URL
   useEffect(() => {
     let cancelled = false;
@@ -49,14 +68,25 @@ export function RadioPlayer() {
           .maybeSingle();
         if (cancelled) return;
         if (error || !data) {
-          console.warn("[radio-player] institutional não encontrado", error);
+          logRadio("url_resolution_failed", {
+            kind: "institutional",
+            id: playback.current_institutional_id,
+            error: error?.message ?? "not found",
+          });
           setLoadError("Conteúdo não encontrado");
           return;
         }
         const { data: pub } = supabase.storage
           .from(INSTITUTIONAL_BUCKET)
           .getPublicUrl(data.storage_path);
-        console.log("[radio-player] institutional URL", data.storage_path, "→", pub.publicUrl);
+        logRadio("url_resolved", {
+          kind: "institutional",
+          id: data.id,
+          bucket: INSTITUTIONAL_BUCKET,
+          storage_path: data.storage_path,
+          url: pub.publicUrl,
+          method: "public",
+        });
         setCurrent({
           kind: "institutional",
           id: data.id,
@@ -74,35 +104,59 @@ export function RadioPlayer() {
           .maybeSingle();
         if (cancelled) return;
         if (error || !data) {
-          console.warn("[radio-player] song não encontrada", error);
+          logRadio("url_resolution_failed", {
+            kind: "song",
+            id: playback.current_song_id,
+            error: error?.message ?? "not found",
+          });
           setLoadError("Faixa não encontrada");
           return;
         }
-        // Bucket "songs" é público — getPublicUrl evita o overhead/expiração de signed URLs
-        // e simplifica a reprodução. Caso o bucket seja privado, isto retorna 404 e cai
-        // no fallback de signed URL.
         const { data: pub } = supabase.storage
           .from(SONG_BUCKET)
           .getPublicUrl(data.storage_path);
         let url = pub.publicUrl;
+        let method: "public" | "signed" = "public";
+        let headStatus: number | null = null;
         try {
           const head = await fetch(url, { method: "HEAD" });
+          headStatus = head.status;
           if (!head.ok) throw new Error(`HTTP ${head.status}`);
         } catch (e) {
-          console.warn("[radio-player] publicUrl inacessível, tentando signed URL", e);
+          logRadio("url_resolution_failed", {
+            kind: "song",
+            id: data.id,
+            stage: "head",
+            head_status: headStatus,
+            error: (e as Error)?.message,
+          });
           const { data: signed, error: signErr } = await supabase.storage
             .from(SONG_BUCKET)
             .createSignedUrl(data.storage_path, 3600);
           if (cancelled) return;
           if (signErr || !signed?.signedUrl) {
-            console.error("[radio-player] signed url falhou:", signErr?.message);
+            logRadio("url_resolution_failed", {
+              kind: "song",
+              id: data.id,
+              stage: "signed",
+              error: signErr?.message,
+            });
             setAudioUrl(null);
             setLoadError("Não foi possível obter a URL do áudio");
             return;
           }
           url = signed.signedUrl;
+          method = "signed";
         }
-        console.log("[radio-player] song URL", data.storage_path, "→", url);
+        logRadio("url_resolved", {
+          kind: "song",
+          id: data.id,
+          bucket: SONG_BUCKET,
+          storage_path: data.storage_path,
+          url,
+          method,
+          head_status: headStatus,
+        });
         setCurrent({
           kind: "song",
           id: data.id,
