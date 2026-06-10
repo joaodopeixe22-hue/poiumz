@@ -79,12 +79,10 @@ export function PriorityQueue({ disabled }: { disabled?: boolean }) {
   );
 
   const addToQueue = async (songId: string) => {
-    const { data: pos } = await supabase.rpc(
-      "next_queue_position" as never,
-    );
+    const { data: pos } = await supabase.rpc("next_queue_position" as never);
     const { error } = await supabase.from("queue").insert({
       song_id: songId,
-      posicao: (pos as number) ?? 1,
+      posicao: (pos as unknown as number) ?? 1,
     });
     if (error) toast.error(error.message);
     else {
