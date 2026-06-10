@@ -62,6 +62,10 @@ export function GlobalPlayerBar() {
     duration,
     position,
     volume,
+    history,
+    preloadedIds,
+    preloadCount,
+    setPreloadCount,
     toggle,
     next,
     prev,
@@ -70,11 +74,25 @@ export function GlobalPlayerBar() {
     setMode,
     cycleRepeat,
     stop,
+    jumpToTrack,
+    removeFromQueue,
+    clearHistory,
+    getUpcomingTracks,
   } = useAudioPlayer();
   const [muted, setMuted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [pipActive, setPipActive] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
   const lastVolumeRef = useRef(volume);
+
+  const upcoming = useMemo(
+    () => getUpcomingTracks(20),
+    // Recompute when queue/index/repeat change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queue, index, repeat, getUpcomingTracks],
+  );
+  const nextTrack = upcoming[0] ?? null;
+
 
   const pipSupported =
     typeof window !== "undefined" && "documentPictureInPicture" in window;
