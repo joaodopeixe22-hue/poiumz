@@ -194,6 +194,10 @@ function PlaylistDetailPage() {
         </div>
       </div>
 
+      <PlaylistSmartMixCard playlistId={playlistId} />
+
+
+
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         {items.length === 0 ? (
