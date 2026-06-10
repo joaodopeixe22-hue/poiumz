@@ -149,6 +149,16 @@ function ProgramacaoPage() {
     if (error) toast.error(error);
   };
 
+  const handleLoopPlaylist = async (v: boolean) => {
+    const { error } = await setLoopPlaylist(v);
+    if (error) toast.error(error);
+  };
+
+  const handleResumeAfterInstitutional = async (v: boolean) => {
+    const { error } = await setResumeAfterInstitutional(v);
+    if (error) toast.error(error);
+  };
+
   if (!canControl) {
     return (
       <div className="p-6 md:p-10">
