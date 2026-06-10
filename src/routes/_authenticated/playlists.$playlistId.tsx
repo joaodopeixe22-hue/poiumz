@@ -50,7 +50,7 @@ function fmt(s?: number | null) {
 function fmtTotal(s: number) {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
-  return h ? `${h} hr ${m} min` : `${m} min`;
+  return h ? `${h} h ${m} min` : `${m} min`;
 }
 
 export const Route = createFileRoute("/_authenticated/playlists/$playlistId")({
@@ -107,7 +107,7 @@ function PlaylistDetail() {
       setCurrent({
         id: item.track.id,
         title: item.track.title,
-        artist: item.track.artist ?? "Unknown",
+        artist: item.track.artist ?? "Desconhecido",
         album: item.track.album ?? undefined,
         duration: item.track.duration ?? undefined,
         cover_url: item.track.cover_url ?? undefined,
@@ -120,14 +120,14 @@ function PlaylistDetail() {
         .map((r) => ({
           id: r.track!.id,
           title: r.track!.title,
-          artist: r.track!.artist ?? "Unknown",
+          artist: r.track!.artist ?? "Desconhecido",
           album: r.track!.album ?? undefined,
           duration: r.track!.duration ?? undefined,
           cover_url: r.track!.cover_url ?? undefined,
         }));
       if (rest.length) enqueue(rest);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to play");
+      toast.error(e instanceof Error ? e.message : "Falha ao reproduzir");
     }
   };
 
@@ -143,7 +143,7 @@ function PlaylistDetail() {
     mutationFn: () => deleteFn({ data: { id: playlistId } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["playlists"] });
-      toast.success("Playlist deleted.");
+      toast.success("Playlist excluída.");
       navigate({ to: "/playlists" });
     },
   });
@@ -169,8 +169,8 @@ function PlaylistDetail() {
     reorderMut.mutate(next.map((x) => x.track!.id));
   };
 
-  if (isLoading) return <div className="p-10 text-sm text-muted-foreground">Loading…</div>;
-  if (!data) return <div className="p-10 text-sm">Playlist not found.</div>;
+  if (isLoading) return <div className="p-10 text-sm text-muted-foreground">Carregando…</div>;
+  if (!data) return <div className="p-10 text-sm">Playlist não encontrada.</div>;
 
   const pl = data.playlist;
 
@@ -210,7 +210,8 @@ function PlaylistDetail() {
               </p>
             )}
             <p className="mt-4 text-xs text-muted-foreground">
-              {pl.tracks_count} tracks · {fmtTotal(Number(pl.duration_total) || 0)}
+              {pl.tracks_count} {pl.tracks_count === 1 ? "faixa" : "faixas"} ·{" "}
+              {fmtTotal(Number(pl.duration_total) || 0)}
             </p>
           </div>
         </div>
@@ -225,10 +226,10 @@ function PlaylistDetail() {
           </button>
           <button
             onClick={() => {
-              if (confirm(`Delete playlist "${pl.name}"?`)) deleteMut.mutate();
+              if (confirm(`Excluir a playlist "${pl.name}"?`)) deleteMut.mutate();
             }}
             className="size-11 rounded-full border border-border text-muted-foreground hover:text-destructive hover:border-destructive grid place-items-center transition-colors"
-            aria-label="Delete playlist"
+            aria-label="Excluir playlist"
           >
             <MS name="delete" className="text-[20px]" />
           </button>
@@ -238,15 +239,15 @@ function PlaylistDetail() {
       <section className="px-10 pb-12">
         {order.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
-            No tracks yet. Select tracks in your library and add them here.
+            Sem faixas ainda. Selecione faixas na sua biblioteca e adicione aqui.
           </div>
         ) : (
           <>
             <div className="grid grid-cols-[2rem_2.5rem_1fr_1fr_3rem_2rem] gap-4 px-4 py-3 text-[10px] text-muted-foreground uppercase tracking-wider border-b border-border">
               <span className="text-center">#</span>
               <span></span>
-              <span>Title</span>
-              <span className="hidden md:block">Album</span>
+              <span>Título</span>
+              <span className="hidden md:block">Álbum</span>
               <span className="text-right">
                 <MS name="schedule" className="text-[14px] inline-block" />
               </span>
@@ -320,7 +321,7 @@ function SortableRow({
           {...attributes}
           {...listeners}
           className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="Drag to reorder"
+          aria-label="Arraste para reordenar"
         >
           <MS name="drag_indicator" className="text-[16px] text-muted-foreground" />
         </button>
@@ -342,7 +343,7 @@ function SortableRow({
       </button>
       <div className="min-w-0">
         <p className="text-sm truncate">{track.title}</p>
-        <p className="text-xs text-muted-foreground truncate">{track.artist ?? "Unknown"}</p>
+        <p className="text-xs text-muted-foreground truncate">{track.artist ?? "Desconhecido"}</p>
       </div>
       <p className="text-xs text-muted-foreground truncate hidden md:block">{track.album ?? "—"}</p>
       <p className="text-xs font-mono text-muted-foreground tabular-nums text-right">
@@ -351,7 +352,7 @@ function SortableRow({
       <button
         onClick={onRemove}
         className="size-7 grid place-items-center rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-        aria-label="Remove"
+        aria-label="Remover"
       >
         <MS name="close" className="text-[16px]" />
       </button>
