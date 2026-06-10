@@ -266,6 +266,22 @@ export function GlobalPlayerBar() {
           </div>
 
           <div className="flex items-center gap-1">
+            <button
+              onClick={cycleMode}
+              className={`hidden sm:flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium border transition-colors ${
+                mode === "playlist"
+                  ? "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  : "border-primary/40 text-primary bg-primary/10 hover:bg-primary/15"
+              }`}
+              aria-label={`Modo: ${modeMeta[mode].label}. Clique para alternar`}
+              title={`Modo: ${modeMeta[mode].label} (clique para alternar)`}
+            >
+              {(() => {
+                const I = modeMeta[mode].Icon;
+                return <I className="size-3.5" />;
+              })()}
+              <span>{modeMeta[mode].label}</span>
+            </button>
             <div className="hidden md:flex items-center gap-2 mr-1">
               <button
                 onClick={toggleMute}
