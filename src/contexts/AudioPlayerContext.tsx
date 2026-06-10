@@ -215,6 +215,20 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     modeRef.current = mode;
   }, [mode]);
 
+  // Load persisted Smart Mix settings on mount
+  useEffect(() => {
+    const s = loadSmartMixSettings();
+    smartMixRef.current = s;
+    setSmartMixState(s);
+  }, []);
+
+  const setSmartMix = useCallback((partial: Partial<SmartMixSettings>) => {
+    const next = normalizeSettings({ ...smartMixRef.current, ...partial });
+    smartMixRef.current = next;
+    setSmartMixState(next);
+    saveSmartMixSettings(next);
+  }, []);
+
   // Persist queue/index/mode/history (debounced via microtask grouping)
   useEffect(() => {
     if (typeof window === "undefined") return;
