@@ -10,6 +10,13 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import {
+  insertAfterCurrent,
+  insertAsNext,
+  insertMultipleAfterCurrent,
+  appendToQueue,
+  clearManual,
+} from "@/lib/playback-queue";
 
 export type AudioTrack = {
   id: string;
@@ -18,6 +25,8 @@ export type AudioTrack = {
   duracao_segundos: number | null;
   storage_path?: string;
   url?: string;
+  sourcePlaylistId?: string | null;
+  manuallyQueued?: boolean;
 };
 
 export type PlayerMode = "playlist" | "shuffle" | "radio";
@@ -52,7 +61,13 @@ type AudioPlayerContextValue = {
   stop: () => void;
   jumpToTrack: (index: number) => Promise<void>;
   removeFromQueue: (index: number) => void;
+  removeFromQueueById: (id: string) => void;
   reorderQueue: (from: number, to: number) => void;
+  moveQueueItem: (from: number, to: number) => void;
+  addToQueue: (track: AudioTrack) => void;
+  addNext: (track: AudioTrack) => void;
+  addMultipleToQueue: (tracks: AudioTrack[]) => void;
+  clearManualQueue: () => void;
   clearHistory: () => void;
   getUpcomingTracks: (limit?: number) => AudioTrack[];
 };
@@ -101,9 +116,35 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const echoRef = useRef(false);
 
-  const [queue, setQueue] = useState<AudioTrack[]>([]);
-  const [index, setIndex] = useState(0);
-  const [mode, setModeState] = useState<PlayerMode>("playlist");
+  // Restore persisted queue/index/mode/history from localStorage
+  const persisted = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem("global-player-state");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        queue?: AudioTrack[];
+        index?: number;
+        mode?: PlayerMode;
+        history?: HistoryItem[];
+      };
+      return parsed;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const [queue, setQueue] = useState<AudioTrack[]>(
+    () => (Array.isArray(persisted?.queue) ? (persisted!.queue as AudioTrack[]) : []),
+  );
+  const [index, setIndex] = useState(
+    () => (typeof persisted?.index === "number" ? persisted!.index : 0),
+  );
+  const [mode, setModeState] = useState<PlayerMode>(
+    () => (persisted?.mode === "playlist" || persisted?.mode === "shuffle" || persisted?.mode === "radio"
+      ? persisted.mode
+      : "playlist"),
+  );
   const [repeat, setRepeatState] = useState<RepeatMode>(() => {
     if (typeof window === "undefined") return "all";
     const r = localStorage.getItem("global-player-repeat") as RepeatMode | null;
@@ -118,7 +159,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.8;
   });
 
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>(
+    () => (Array.isArray(persisted?.history) ? (persisted!.history as HistoryItem[]) : []),
+  );
   const [preloadCount, setPreloadCountState] = useState<PreloadCount>(() => {
     if (typeof window === "undefined") return 3;
     const n = Number(localStorage.getItem("global-player-preload-count"));
@@ -145,6 +188,25 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  // Persist queue/index/mode/history (debounced via microtask grouping)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (mode === "radio") return; // radio is driven by server playback_state
+    const id = window.setTimeout(() => {
+      try {
+        localStorage.setItem(
+          "global-player-state",
+          JSON.stringify({ queue, index, mode, history }),
+        );
+      } catch {
+        /* quota or serialization issue — ignore */
+      }
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [queue, index, mode, history]);
+
+
 
 
   const broadcast = useCallback((evt: RemoteEvent) => {
@@ -606,9 +668,85 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     [pruneAndPreload],
   );
 
+  const applyQueueState = useCallback(
+    (state: { queue: AudioTrack[]; index: number }) => {
+      setQueue(state.queue);
+      setIndex(state.index);
+      queueRef.current = state.queue;
+      indexRef.current = state.index;
+      void pruneAndPreload();
+    },
+    [pruneAndPreload],
+  );
+
+  const addNext = useCallback(
+    (track: AudioTrack) => {
+      const next = insertAsNext(
+        { queue: queueRef.current, index: indexRef.current },
+        track,
+      );
+      applyQueueState(next);
+    },
+    [applyQueueState],
+  );
+
+  const addToQueue = useCallback(
+    (track: AudioTrack) => {
+      const next = appendToQueue(
+        { queue: queueRef.current, index: indexRef.current },
+        track,
+      );
+      applyQueueState(next);
+    },
+    [applyQueueState],
+  );
+
+  const addMultipleToQueue = useCallback(
+    (tracks: AudioTrack[]) => {
+      const next = insertMultipleAfterCurrent(
+        { queue: queueRef.current, index: indexRef.current },
+        tracks,
+      );
+      applyQueueState(next);
+    },
+    [applyQueueState],
+  );
+
+  const removeFromQueueById = useCallback(
+    (id: string) => {
+      const q = queueRef.current;
+      const at = q.findIndex((t) => t.id === id);
+      if (at === -1 || at === indexRef.current) return;
+      const next = q.slice(0, at).concat(q.slice(at + 1));
+      const newIndex = at < indexRef.current ? indexRef.current - 1 : indexRef.current;
+      applyQueueState({ queue: next, index: newIndex });
+    },
+    [applyQueueState],
+  );
+
+  const clearManualQueue = useCallback(() => {
+    const next = clearManual({
+      queue: queueRef.current,
+      index: indexRef.current,
+    });
+    applyQueueState(next);
+  }, [applyQueueState]);
+
+  const moveQueueItem = useCallback(
+    (from: number, to: number) => {
+      // delegated to reorderQueue logic (reorderQueue lives above)
+      // but defined here so the public API matches the spec.
+      reorderQueue(from, to);
+    },
+    // reorderQueue declared above
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   const clearHistory = useCallback(() => {
     setHistory([]);
   }, []);
+
 
   const getUpcomingTracks = useCallback(
     (limit = 20): AudioTrack[] => {
@@ -806,7 +944,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       stop,
       jumpToTrack,
       removeFromQueue,
+      removeFromQueueById,
       reorderQueue,
+      moveQueueItem,
+      addToQueue,
+      addNext,
+      addMultipleToQueue,
+      clearManualQueue,
       clearHistory,
       getUpcomingTracks,
     }),
@@ -837,7 +981,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       stop,
       jumpToTrack,
       removeFromQueue,
+      removeFromQueueById,
       reorderQueue,
+      moveQueueItem,
+      addToQueue,
+      addNext,
+      addMultipleToQueue,
+      clearManualQueue,
       clearHistory,
       getUpcomingTracks,
     ],

@@ -23,6 +23,7 @@ import { formatTime, formatRelative } from "@/lib/format";
 import { UploadDialog } from "@/components/musicas/upload-dialog";
 import { EditSongSheet } from "@/components/musicas/edit-song-sheet";
 import { toast } from "sonner";
+import { TrackContextMenu } from "@/components/player/TrackContextMenu";
 
 export const Route = createFileRoute("/_authenticated/dashboard/musicas")({
   component: MusicasPage,
@@ -340,7 +341,16 @@ function MusicasPage() {
                       {formatRelative(song.created_at)}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-end gap-1 items-center">
+                        <TrackContextMenu
+                          track={{
+                            id: song.id,
+                            titulo: song.titulo,
+                            artista: song.artista,
+                            duracao_segundos: song.duracao_segundos,
+                            storage_path: song.storage_path,
+                          }}
+                        />
                         {isAdmin && (
                           <button
                             onClick={() => setEditing(song)}
