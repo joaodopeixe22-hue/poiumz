@@ -10,6 +10,10 @@ export type PlaybackState = {
   current_playlist_id: string | null;
   active_playlist_id: string | null;
   loop_index: number;
+  loop_playlist: boolean;
+  resume_song_after_institutional: boolean;
+  interrupted_song_id: string | null;
+  interrupted_song_position: number;
   songs_since_institutional: number;
   position_seconds: number;
   started_at: string | null;
