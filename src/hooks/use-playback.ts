@@ -129,6 +129,8 @@ export function usePlayback() {
     setInstitutionalEnabled,
     setShuffle,
     setLocked,
+    setLoopPlaylist,
+    setResumeAfterInstitutional,
     startPlaylist,
     pause,
     resume,
