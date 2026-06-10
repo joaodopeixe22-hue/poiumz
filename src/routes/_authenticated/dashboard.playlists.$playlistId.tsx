@@ -228,7 +228,7 @@ function PlaylistDetailPage() {
                       className="size-7 rounded-full grid place-items-center bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
                       aria-label="Tocar"
                     >
-                      {player.current?.id === it.song?.id && player.isPlaying ? (
+                      {player.currentTrack?.id === it.song?.id && player.isPlaying ? (
                         <Pause className="size-3" />
                       ) : (
                         <Play className="size-3" />
