@@ -39,8 +39,39 @@ function PlaylistDetailPage() {
   const { songs } = useSongs();
   const [addOpen, setAddOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const player = usePreviewPlayer();
 
   const canEdit = profile?.status === "aprovado";
+
+  const playlistTracks: PreviewTrack[] = useMemo(
+    () =>
+      items
+        .filter((it) => it.song)
+        .map((it) => ({
+          id: it.song!.id,
+          titulo: it.song!.titulo,
+          artista: it.song!.artista,
+          duracao_segundos: it.song!.duracao_segundos,
+          storage_path: it.song!.storage_path,
+        })),
+    [items],
+  );
+
+  const playFromIndex = (i: number) => {
+    if (playlistTracks.length === 0) return;
+    player.playQueue(playlistTracks, i);
+  };
+
+  const playRowToggle = (i: number) => {
+    const t = playlistTracks[i];
+    if (!t) return;
+    if (player.current?.id === t.id) {
+      player.toggle();
+    } else {
+      playFromIndex(i);
+    }
+  };
+
 
   const existingIds = useMemo(() => new Set(items.map((i) => i.song_id)), [items]);
   const available = useMemo(() => {
