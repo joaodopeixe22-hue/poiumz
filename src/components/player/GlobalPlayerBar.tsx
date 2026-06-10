@@ -1,11 +1,11 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, X } from "lucide-react";
-import { usePreviewPlayer } from "@/hooks/use-preview-player";
-import { formatTime } from "@/lib/format";
 import { useState } from "react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, X } from "lucide-react";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { formatTime } from "@/lib/format";
 
-export function MiniPlayer() {
+export function GlobalPlayerBar() {
   const {
-    current,
+    currentTrack,
     queue,
     index,
     isPlaying,
@@ -18,10 +18,10 @@ export function MiniPlayer() {
     seek,
     setVolume,
     stop,
-  } = usePreviewPlayer();
+  } = useAudioPlayer();
   const [muted, setMuted] = useState(false);
 
-  if (!current) return null;
+  if (!currentTrack) return null;
 
   const pct = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
   const hasPrev = index > 0;
@@ -47,16 +47,14 @@ export function MiniPlayer() {
   return (
     <div className="sticky bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-xl">
       <div className="px-4 md:px-6 py-3 flex items-center gap-4">
-        {/* Info da faixa */}
         <div className="min-w-0 flex-1 max-w-xs">
-          <p className="text-sm font-medium truncate">{current.titulo}</p>
+          <p className="text-sm font-medium truncate">{currentTrack.titulo}</p>
           <p className="text-xs text-muted-foreground truncate">
-            {current.artista ?? "—"}
+            {currentTrack.artista ?? "—"}
             {queue.length > 1 && ` · ${index + 1}/${queue.length}`}
           </p>
         </div>
 
-        {/* Controles + progresso */}
         <div className="flex-1 flex flex-col items-center gap-1.5 max-w-2xl">
           <div className="flex items-center gap-2">
             <button
@@ -72,7 +70,11 @@ export function MiniPlayer() {
               className="size-10 rounded-full grid place-items-center bg-primary text-primary-foreground hover:scale-105 transition-transform shadow"
               aria-label={isPlaying ? "Pausar" : "Tocar"}
             >
-              {isPlaying ? <Pause className="size-4" /> : <Play className="size-4 translate-x-0.5" />}
+              {isPlaying ? (
+                <Pause className="size-4" />
+              ) : (
+                <Play className="size-4 translate-x-0.5" />
+              )}
             </button>
             <button
               onClick={next}
@@ -102,14 +104,17 @@ export function MiniPlayer() {
           </div>
         </div>
 
-        {/* Volume + fechar */}
         <div className="hidden md:flex items-center gap-2">
           <button
             onClick={toggleMute}
             className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             aria-label={muted ? "Tirar mudo" : "Mutar"}
           >
-            {muted || volume === 0 ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+            {muted || volume === 0 ? (
+              <VolumeX className="size-4" />
+            ) : (
+              <Volume2 className="size-4" />
+            )}
           </button>
           <input
             type="range"

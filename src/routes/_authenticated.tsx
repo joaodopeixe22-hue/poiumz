@@ -1,8 +1,8 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { PreviewPlayerProvider } from "@/hooks/use-preview-player";
-import { MiniPlayer } from "@/components/audio/mini-player";
+import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
+import { GlobalPlayerBar } from "@/components/player/GlobalPlayerBar";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
@@ -12,15 +12,15 @@ export const Route = createFileRoute("/_authenticated")({
     }
   },
   component: () => (
-    <PreviewPlayerProvider>
+    <AudioPlayerProvider>
       <DashboardShell>
         <div className="flex flex-col min-h-full">
           <div className="flex-1">
             <Outlet />
           </div>
-          <MiniPlayer />
+          <GlobalPlayerBar />
         </div>
       </DashboardShell>
-    </PreviewPlayerProvider>
+    </AudioPlayerProvider>
   ),
 });

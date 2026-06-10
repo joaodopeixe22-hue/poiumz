@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useProfile } from "@/hooks/use-profile";
 import { useSongs, useSongsInPlaylists, type Song } from "@/hooks/use-songs";
-import { usePreviewPlayer } from "@/hooks/use-preview-player";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime, formatRelative } from "@/lib/format";
 import { UploadDialog } from "@/components/musicas/upload-dialog";
@@ -42,7 +42,7 @@ function MusicasPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkRunning, setBulkRunning] = useState(false);
-  const player = usePreviewPlayer();
+  const player = useAudioPlayer();
 
   const canUpload = !!profile?.can_upload || profile?.role === "admin";
   const isAdmin = profile?.role === "admin";
@@ -92,11 +92,7 @@ function MusicasPage() {
   };
 
   const togglePlay = async (song: Song) => {
-    if (player.current?.id === song.id && player.isPlaying) {
-      await player.toggle();
-      return;
-    }
-    if (player.current?.id === song.id && !player.isPlaying) {
+    if (player.currentTrack?.id === song.id) {
       await player.toggle();
       return;
     }
@@ -303,7 +299,7 @@ function MusicasPage() {
                     )}
                     <td className="py-3 px-4">
                       {(() => {
-                        const isThis = player.current?.id === song.id;
+                        const isThis = player.currentTrack?.id === song.id;
                         const showPause = isThis && player.isPlaying;
                         return (
                           <button

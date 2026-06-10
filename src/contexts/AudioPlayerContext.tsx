@@ -1,7 +1,6 @@
 import {
   createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -11,24 +10,25 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type PreviewTrack = {
+export type AudioTrack = {
   id: string;
   titulo: string;
   artista: string | null;
   duracao_segundos: number | null;
-  storage_path: string;
+  storage_path?: string;
+  url?: string;
 };
 
-type Ctx = {
-  current: PreviewTrack | null;
-  queue: PreviewTrack[];
+type AudioPlayerContextValue = {
+  currentTrack: AudioTrack | null;
+  queue: AudioTrack[];
   index: number;
   isPlaying: boolean;
   duration: number;
   position: number;
   volume: number;
-  playTrack: (track: PreviewTrack) => Promise<void>;
-  playQueue: (tracks: PreviewTrack[], startIndex?: number) => Promise<void>;
+  playTrack: (track: AudioTrack) => Promise<void>;
+  playQueue: (tracks: AudioTrack[], startIndex?: number) => Promise<void>;
   toggle: () => Promise<void>;
   next: () => Promise<void>;
   prev: () => Promise<void>;
@@ -37,42 +37,68 @@ type Ctx = {
   stop: () => void;
 };
 
-const PreviewPlayerContext = createContext<Ctx | null>(null);
+export const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
 
-/** Cache simples de signed URLs para evitar pedidos duplicados */
 const urlCache = new Map<string, { url: string; expiresAt: number }>();
 
-export async function getSongSignedUrl(storagePath: string): Promise<string> {
+async function resolveTrackUrl(track: AudioTrack): Promise<string> {
+  if (track.url) return track.url;
+  if (!track.storage_path) throw new Error("Faixa sem storage_path nem url");
   const now = Date.now();
-  const cached = urlCache.get(storagePath);
+  const cached = urlCache.get(track.storage_path);
   if (cached && cached.expiresAt > now + 30_000) return cached.url;
   const { data, error } = await supabase.storage
     .from("songs")
-    .createSignedUrl(storagePath, 3600);
+    .createSignedUrl(track.storage_path, 3600);
   if (error || !data?.signedUrl) {
     throw new Error(error?.message ?? "Não foi possível obter a URL do áudio");
   }
-  urlCache.set(storagePath, { url: data.signedUrl, expiresAt: now + 3500_000 });
-  // Log útil para diagnóstico
-  // eslint-disable-next-line no-console
-  console.log("[preview-player] signed URL:", storagePath, "→", data.signedUrl);
+  urlCache.set(track.storage_path, {
+    url: data.signedUrl,
+    expiresAt: now + 3500_000,
+  });
   return data.signedUrl;
 }
 
-export function PreviewPlayerProvider({ children }: { children: ReactNode }) {
+export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [queue, setQueue] = useState<PreviewTrack[]>([]);
+  const queueRef = useRef<AudioTrack[]>([]);
+  const indexRef = useRef(0);
+
+  const [queue, setQueue] = useState<AudioTrack[]>([]);
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [volume, setVolumeState] = useState(() => {
     if (typeof window === "undefined") return 0.8;
-    const v = Number(localStorage.getItem("preview-volume"));
+    const v = Number(localStorage.getItem("global-player-volume"));
     return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.8;
   });
 
-  // Cria o único elemento de áudio (client-only)
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
+
+  const loadAndPlay = useCallback(async (track: AudioTrack) => {
+    const a = audioRef.current;
+    if (!a) return;
+    try {
+      const url = await resolveTrackUrl(track);
+      a.src = url;
+      a.currentTime = 0;
+      setPosition(0);
+      await a.play();
+    } catch (e: unknown) {
+      setIsPlaying(false);
+      toast.error(e instanceof Error ? e.message : "Não foi possível reproduzir");
+    }
+  }, []);
+
+  // Cria o único elemento de áudio e registra listeners uma única vez
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (audioRef.current) return;
@@ -83,16 +109,21 @@ export function PreviewPlayerProvider({ children }: { children: ReactNode }) {
 
     const onTime = () => setPosition(a.currentTime);
     const onDur = () => setDuration(Number.isFinite(a.duration) ? a.duration : 0);
-    const onEnded = () => {
-      // avança automaticamente
-      goNext();
-    };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
+    const onEnded = () => {
+      const q = queueRef.current;
+      const nextIdx = indexRef.current + 1;
+      if (nextIdx >= q.length) {
+        setIsPlaying(false);
+        return;
+      }
+      setIndex(nextIdx);
+      void loadAndPlay(q[nextIdx]);
+    };
     const onError = () => {
       setIsPlaying(false);
-      const code = a.error?.code;
-      console.error("[preview-player] audio error", code, a.src);
+      console.error("[global-player] audio error", a.error?.code, a.src);
       toast.error("Falha ao carregar o áudio.");
     };
 
@@ -114,71 +145,55 @@ export function PreviewPlayerProvider({ children }: { children: ReactNode }) {
       a.removeEventListener("error", onError);
       a.pause();
       a.src = "";
+      audioRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadAndPlay = useCallback(async (track: PreviewTrack) => {
-    const a = audioRef.current;
-    if (!a) return;
-    try {
-      const url = await getSongSignedUrl(track.storage_path);
-      a.src = url;
-      a.currentTime = 0;
-      setPosition(0);
-      await a.play();
-    } catch (e: unknown) {
-      setIsPlaying(false);
-      toast.error(e instanceof Error ? e.message : "Não foi possível reproduzir");
-    }
-  }, []);
-
   const playQueue = useCallback(
-    async (tracks: PreviewTrack[], startIndex = 0) => {
+    async (tracks: AudioTrack[], startIndex = 0) => {
       if (tracks.length === 0) return;
       const i = Math.min(Math.max(0, startIndex), tracks.length - 1);
       setQueue(tracks);
       setIndex(i);
+      queueRef.current = tracks;
+      indexRef.current = i;
       await loadAndPlay(tracks[i]);
     },
     [loadAndPlay],
   );
 
   const playTrack = useCallback(
-    async (track: PreviewTrack) => {
+    async (track: AudioTrack) => {
       await playQueue([track], 0);
     },
     [playQueue],
   );
 
-  const goNext = useCallback(async () => {
-    setIndex((i) => {
-      const next = i + 1;
-      if (next >= queue.length) {
-        audioRef.current?.pause();
-        setIsPlaying(false);
-        return i;
-      }
-      loadAndPlay(queue[next]);
-      return next;
-    });
-  }, [queue, loadAndPlay]);
+  const next = useCallback(async () => {
+    const q = queueRef.current;
+    const nextIdx = indexRef.current + 1;
+    if (nextIdx >= q.length) return;
+    setIndex(nextIdx);
+    indexRef.current = nextIdx;
+    await loadAndPlay(q[nextIdx]);
+  }, [loadAndPlay]);
 
-  const goPrev = useCallback(async () => {
-    setIndex((i) => {
-      const prev = i - 1;
-      if (prev < 0) {
-        const a = audioRef.current;
-        if (a) {
-          a.currentTime = 0;
-          setPosition(0);
-        }
-        return i;
+  const prev = useCallback(async () => {
+    const q = queueRef.current;
+    const prevIdx = indexRef.current - 1;
+    if (prevIdx < 0) {
+      const a = audioRef.current;
+      if (a) {
+        a.currentTime = 0;
+        setPosition(0);
       }
-      loadAndPlay(queue[prev]);
-      return prev;
-    });
-  }, [queue, loadAndPlay]);
+      return;
+    }
+    setIndex(prevIdx);
+    indexRef.current = prevIdx;
+    await loadAndPlay(q[prevIdx]);
+  }, [loadAndPlay]);
 
   const toggle = useCallback(async () => {
     const a = audioRef.current;
@@ -210,7 +225,7 @@ export function PreviewPlayerProvider({ children }: { children: ReactNode }) {
     setVolumeState(clamped);
     if (audioRef.current) audioRef.current.volume = clamped;
     if (typeof window !== "undefined") {
-      localStorage.setItem("preview-volume", String(clamped));
+      localStorage.setItem("global-player-volume", String(clamped));
     }
   }, []);
 
@@ -225,13 +240,15 @@ export function PreviewPlayerProvider({ children }: { children: ReactNode }) {
     setIndex(0);
     setPosition(0);
     setDuration(0);
+    queueRef.current = [];
+    indexRef.current = 0;
   }, []);
 
-  const current = queue[index] ?? null;
+  const currentTrack = queue[index] ?? null;
 
-  const value = useMemo<Ctx>(
+  const value = useMemo<AudioPlayerContextValue>(
     () => ({
-      current,
+      currentTrack,
       queue,
       index,
       isPlaying,
@@ -241,14 +258,14 @@ export function PreviewPlayerProvider({ children }: { children: ReactNode }) {
       playTrack,
       playQueue,
       toggle,
-      next: goNext,
-      prev: goPrev,
+      next,
+      prev,
       seek,
       setVolume,
       stop,
     }),
     [
-      current,
+      currentTrack,
       queue,
       index,
       isPlaying,
@@ -258,8 +275,8 @@ export function PreviewPlayerProvider({ children }: { children: ReactNode }) {
       playTrack,
       playQueue,
       toggle,
-      goNext,
-      goPrev,
+      next,
+      prev,
       seek,
       setVolume,
       stop,
@@ -267,12 +284,6 @@ export function PreviewPlayerProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <PreviewPlayerContext.Provider value={value}>{children}</PreviewPlayerContext.Provider>
+    <AudioPlayerContext.Provider value={value}>{children}</AudioPlayerContext.Provider>
   );
-}
-
-export function usePreviewPlayer() {
-  const ctx = useContext(PreviewPlayerContext);
-  if (!ctx) throw new Error("usePreviewPlayer deve estar dentro de PreviewPlayerProvider");
-  return ctx;
 }

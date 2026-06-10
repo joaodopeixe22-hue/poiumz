@@ -23,7 +23,7 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 import { useSongs } from "@/hooks/use-songs";
 import { usePlaylist } from "@/hooks/use-playlists";
-import { usePreviewPlayer, type PreviewTrack } from "@/hooks/use-preview-player";
+import { useAudioPlayer, type AudioTrack } from "@/hooks/useAudioPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { toast } from "sonner";
@@ -39,11 +39,11 @@ function PlaylistDetailPage() {
   const { songs } = useSongs();
   const [addOpen, setAddOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const player = usePreviewPlayer();
+  const player = useAudioPlayer();
 
   const canEdit = profile?.status === "aprovado";
 
-  const playlistTracks: PreviewTrack[] = useMemo(
+  const playlistTracks: AudioTrack[] = useMemo(
     () =>
       items
         .filter((it) => it.song)
@@ -65,7 +65,7 @@ function PlaylistDetailPage() {
   const playRowToggle = (i: number) => {
     const t = playlistTracks[i];
     if (!t) return;
-    if (player.current?.id === t.id) {
+    if (player.currentTrack?.id === t.id) {
       player.toggle();
     } else {
       playFromIndex(i);
@@ -228,7 +228,7 @@ function PlaylistDetailPage() {
                       className="size-7 rounded-full grid place-items-center bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
                       aria-label="Tocar"
                     >
-                      {player.current?.id === it.song?.id && player.isPlaying ? (
+                      {player.currentTrack?.id === it.song?.id && player.isPlaying ? (
                         <Pause className="size-3" />
                       ) : (
                         <Play className="size-3" />
