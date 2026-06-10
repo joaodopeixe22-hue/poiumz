@@ -428,6 +428,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     if (!inCrossfadeRef.current) return;
     inCrossfadeRef.current = false;
     setIsCrossfading(false);
+    setCrossfadeProgress(0);
     const inactive = getInactiveAudio();
     if (inactive) {
       try {
