@@ -36,6 +36,7 @@ export function GlobalPlayerBar() {
     currentTrack,
     queue,
     index,
+    mode,
     isPlaying,
     duration,
     position,
@@ -45,6 +46,7 @@ export function GlobalPlayerBar() {
     prev,
     seek,
     setVolume,
+    setMode,
     stop,
   } = useAudioPlayer();
   const [muted, setMuted] = useState(false);
