@@ -31,7 +31,7 @@ const nav: NavItemDef[] = [
   { to: "/dashboard/institucional", label: "Institucional", icon: Megaphone },
   { to: "/dashboard/programacao", label: "Programação", icon: Radio },
   { to: "/dashboard/usuarios", label: "Usuários", icon: Users, adminOnly: true },
-  { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings, soon: true },
+  { to: "/dashboard/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
 ];
 
 export function DashboardShell({ children }: { children: ReactNode }) {
