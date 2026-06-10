@@ -12,8 +12,12 @@ import {
   Minimize2,
   PictureInPicture2,
   Music2,
+  Shuffle,
+  Radio,
+  ListMusic,
 } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import type { PlayerMode } from "@/contexts/AudioPlayerContext";
 import { formatTime } from "@/lib/format";
 
 type DocumentPiP = {
@@ -32,6 +36,7 @@ export function GlobalPlayerBar() {
     currentTrack,
     queue,
     index,
+    mode,
     isPlaying,
     duration,
     position,
@@ -41,6 +46,7 @@ export function GlobalPlayerBar() {
     prev,
     seek,
     setVolume,
+    setMode,
     stop,
   } = useAudioPlayer();
   const [muted, setMuted] = useState(false);
@@ -99,8 +105,21 @@ export function GlobalPlayerBar() {
   if (!currentTrack) return null;
 
   const pct = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
-  const hasPrev = index > 0;
-  const hasNext = index < queue.length - 1;
+  const hasPrev = mode === "playlist" ? index > 0 : true;
+  const hasNext =
+    mode === "playlist" ? index < queue.length - 1 : mode === "shuffle" ? queue.length > 1 : true;
+
+  const cycleMode = () => {
+    const order: PlayerMode[] = ["playlist", "shuffle", "radio"];
+    const i = order.indexOf(mode);
+    setMode(order[(i + 1) % order.length]);
+  };
+
+  const modeMeta: Record<PlayerMode, { label: string; Icon: typeof Shuffle }> = {
+    playlist: { label: "Playlist", Icon: ListMusic },
+    shuffle: { label: "Aleatório", Icon: Shuffle },
+    radio: { label: "Rádio", Icon: Radio },
+  };
 
   const onSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!duration) return;
@@ -247,6 +266,22 @@ export function GlobalPlayerBar() {
           </div>
 
           <div className="flex items-center gap-1">
+            <button
+              onClick={cycleMode}
+              className={`hidden sm:flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium border transition-colors ${
+                mode === "playlist"
+                  ? "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  : "border-primary/40 text-primary bg-primary/10 hover:bg-primary/15"
+              }`}
+              aria-label={`Modo: ${modeMeta[mode].label}. Clique para alternar`}
+              title={`Modo: ${modeMeta[mode].label} (clique para alternar)`}
+            >
+              {(() => {
+                const I = modeMeta[mode].Icon;
+                return <I className="size-3.5" />;
+              })()}
+              <span>{modeMeta[mode].label}</span>
+            </button>
             <div className="hidden md:flex items-center gap-2 mr-1">
               <button
                 onClick={toggleMute}
