@@ -4,7 +4,7 @@ import { Music, ListMusic, Users, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
+export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardPage,
 });
 
