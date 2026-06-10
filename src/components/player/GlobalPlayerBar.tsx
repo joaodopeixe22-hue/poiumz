@@ -12,8 +12,12 @@ import {
   Minimize2,
   PictureInPicture2,
   Music2,
+  Shuffle,
+  Radio,
+  ListMusic,
 } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import type { PlayerMode } from "@/contexts/AudioPlayerContext";
 import { formatTime } from "@/lib/format";
 
 type DocumentPiP = {
