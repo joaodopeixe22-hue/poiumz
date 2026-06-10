@@ -352,3 +352,101 @@ function PlaylistDetailPage() {
     </div>
   );
 }
+
+function PlaylistSmartMixCard({ playlistId }: { playlistId: string }) {
+  const { smartMix, getPlaylistSmartMix, setPlaylistSmartMix } = useAudioPlayer();
+  // Force re-render after writes (overrides are stored outside React state)
+  const [, bump] = useState(0);
+  const override = getPlaylistSmartMix(playlistId);
+  const hasOverride = override !== null;
+  const enabled = override?.enabled ?? smartMix.enabled;
+  const duration = override?.durationSec ?? smartMix.durationSec;
+  const refresh = () => bump((n) => n + 1);
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 md:p-5">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <h2 className="text-sm font-semibold tracking-tight">
+            Smart Mix desta playlist
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Configurações específicas para esta playlist. Sem override, valem as
+            configurações globais.
+          </p>
+        </div>
+        <label className="inline-flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+          <input
+            type="checkbox"
+            checked={hasOverride}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setPlaylistSmartMix(playlistId, {
+                  enabled: smartMix.enabled,
+                  durationSec: smartMix.durationSec,
+                });
+              } else {
+                setPlaylistSmartMix(playlistId, null);
+              }
+              refresh();
+            }}
+            className="accent-primary"
+          />
+          Usar configuração própria
+        </label>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label
+          className={`flex items-center gap-2 text-xs ${
+            hasOverride ? "text-foreground" : "text-muted-foreground opacity-60"
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={enabled}
+            disabled={!hasOverride}
+            onChange={(e) => {
+              setPlaylistSmartMix(playlistId, { enabled: e.target.checked });
+              refresh();
+            }}
+            className="accent-primary"
+          />
+          Crossfade ativado
+        </label>
+        <label
+          className={`flex items-center gap-2 text-xs ${
+            hasOverride && enabled
+              ? "text-foreground"
+              : "text-muted-foreground opacity-60"
+          }`}
+        >
+          <span className="shrink-0">Duração</span>
+          <input
+            type="range"
+            min={1}
+            max={12}
+            step={1}
+            value={duration}
+            disabled={!hasOverride || !enabled}
+            onChange={(e) => {
+              setPlaylistSmartMix(playlistId, {
+                durationSec: Number(e.target.value),
+              });
+              refresh();
+            }}
+            className="flex-1 accent-primary disabled:opacity-40"
+            aria-label="Duração do crossfade desta playlist"
+          />
+          <span className="tabular-nums w-8 text-right">{duration}s</span>
+        </label>
+      </div>
+      {!hasOverride && (
+        <p className="text-[11px] text-muted-foreground mt-3">
+          Atualmente seguindo o global:{" "}
+          <strong>{smartMix.enabled ? "ativado" : "desativado"}</strong> ·{" "}
+          {smartMix.durationSec}s
+        </p>
+      )}
+    </div>
+  );
+}
