@@ -22,6 +22,8 @@ export type AudioTrack = {
 
 export type PlayerMode = "playlist" | "shuffle" | "radio";
 export type RepeatMode = "off" | "all" | "one";
+export type PreloadCount = 2 | 3 | 4 | 5;
+export type HistoryItem = AudioTrack & { playedAt: number };
 
 type AudioPlayerContextValue = {
   currentTrack: AudioTrack | null;
@@ -33,6 +35,10 @@ type AudioPlayerContextValue = {
   duration: number;
   position: number;
   volume: number;
+  history: HistoryItem[];
+  preloadedIds: Set<string>;
+  preloadCount: PreloadCount;
+  setPreloadCount: (n: PreloadCount) => void;
   playTrack: (track: AudioTrack) => Promise<void>;
   playQueue: (tracks: AudioTrack[], startIndex?: number) => Promise<void>;
   toggle: () => Promise<void>;
@@ -44,6 +50,10 @@ type AudioPlayerContextValue = {
   setRepeat: (r: RepeatMode) => void;
   cycleRepeat: () => void;
   stop: () => void;
+  jumpToTrack: (index: number) => Promise<void>;
+  removeFromQueue: (index: number) => void;
+  clearHistory: () => void;
+  getUpcomingTracks: (limit?: number) => AudioTrack[];
 };
 
 export const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
