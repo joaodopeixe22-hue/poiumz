@@ -42,8 +42,7 @@ export function useSongs() {
   return { songs, loading, refresh };
 }
 
-export async function getSongSignedUrl(path: string, expires = 60) {
-  const { data, error } = await supabase.storage.from("songs").createSignedUrl(path, expires);
-  if (error) throw error;
-  return data.signedUrl;
+export function getSongPublicUrl(path: string) {
+  const { data } = supabase.storage.from("songs").getPublicUrl(path);
+  return data.publicUrl;
 }
