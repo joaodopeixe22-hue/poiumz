@@ -32,7 +32,7 @@ export function BulkSelectionToolbar() {
       clear();
       qc.invalidateQueries({ queryKey: ["tracks"] });
       qc.invalidateQueries({ queryKey: ["playlists"] });
-      toast.success(`${r.deleted} removed.`);
+      toast.success(`${r.deleted} removida(s).`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -41,7 +41,7 @@ export function BulkSelectionToolbar() {
     mutationFn: (ids: string[]) => bulkFn({ data: { ids, patch: { is_favorite: true } } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tracks"] });
-      toast.success("Added to favorites.");
+      toast.success("Adicionadas aos favoritos.");
     },
   });
 
@@ -52,7 +52,7 @@ export function BulkSelectionToolbar() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") clear();
       if (e.key === "Delete" || (e.key === "Backspace" && (e.metaKey || e.ctrlKey))) {
-        if (confirm(`Delete ${count} track(s)?`)) delMut.mutate(Array.from(selected));
+        if (confirm(`Excluir ${count} faixa(s)?`)) delMut.mutate(Array.from(selected));
       }
       if (e.key === "f" && !e.metaKey && !e.ctrlKey) {
         const tgt = e.target as HTMLElement;
@@ -70,21 +70,23 @@ export function BulkSelectionToolbar() {
   return (
     <>
       <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 rounded-full bg-card/95 backdrop-blur-xl border border-border shadow-2xl px-2 py-1.5">
-        <span className="text-xs font-medium px-3">{count} selected</span>
+        <span className="text-xs font-medium px-3">{count} selecionada(s)</span>
         <span className="w-px h-5 bg-border mx-0.5" />
         <ToolbarBtn
           icon="favorite"
-          label="Favorite"
+          label="Favoritar"
           onClick={() => favMut.mutate(Array.from(selected))}
         />
         <AddToPlaylistPopover trackIds={Array.from(selected)} onAdded={clear} />
-        <ToolbarBtn icon="edit" label="Edit" onClick={() => setEditOpen(true)} />
+        <ToolbarBtn icon="edit" label="Editar" onClick={() => setEditOpen(true)} />
         <ToolbarBtn
           icon="delete"
-          label="Delete"
+          label="Excluir"
           danger
           onClick={() => {
-            if (confirm(`Delete ${count} track(s)? This cannot be undone.`)) {
+            if (
+              confirm(`Excluir ${count} faixa(s)? Esta ação não pode ser desfeita.`)
+            ) {
               delMut.mutate(Array.from(selected));
             }
           }}
@@ -93,7 +95,7 @@ export function BulkSelectionToolbar() {
         <button
           onClick={clear}
           className="size-7 grid place-items-center rounded-full text-muted-foreground hover:bg-secondary transition-colors"
-          aria-label="Clear"
+          aria-label="Limpar"
         >
           <MS name="close" className="text-[16px]" />
         </button>
@@ -148,7 +150,9 @@ function AddToPlaylistPopover({ trackIds, onAdded }: { trackIds: string[]; onAdd
   const addMut = useMutation({
     mutationFn: (playlistId: string) => addFn({ data: { playlistId, trackIds, mode: "append" } }),
     onSuccess: (r) => {
-      toast.success(`+${r.added} added${r.skipped ? `, ${r.skipped} already present` : ""}.`);
+      toast.success(
+        `+${r.added} adicionada(s)${r.skipped ? `, ${r.skipped} já presente(s)` : ""}.`,
+      );
       qc.invalidateQueries({ queryKey: ["playlists"] });
       qc.invalidateQueries({ queryKey: ["playlist"] });
       setOpen(false);
@@ -160,7 +164,7 @@ function AddToPlaylistPopover({ trackIds, onAdded }: { trackIds: string[]; onAdd
   const createMut = useMutation({
     mutationFn: () => createFn({ data: { name: newName.trim(), trackIds } }),
     onSuccess: () => {
-      toast.success(`Playlist "${newName}" created.`);
+      toast.success(`Playlist "${newName}" criada.`);
       qc.invalidateQueries({ queryKey: ["playlists"] });
       setOpen(false);
       setCreating(false);
@@ -190,7 +194,7 @@ function AddToPlaylistPopover({ trackIds, onAdded }: { trackIds: string[]; onAdd
                 autoFocus
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="New playlist name"
+                placeholder="Nome da nova playlist"
                 className="w-full h-9 px-3 rounded-md bg-secondary text-sm outline-none border border-transparent focus:border-accent"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && newName.trim()) createMut.mutate();
@@ -202,14 +206,14 @@ function AddToPlaylistPopover({ trackIds, onAdded }: { trackIds: string[]; onAdd
                   onClick={() => setCreating(false)}
                   className="flex-1 h-8 rounded-md text-xs text-muted-foreground hover:bg-secondary"
                 >
-                  Cancel
+                  Cancelar
                 </button>
                 <button
                   disabled={!newName.trim() || createMut.isPending}
                   onClick={() => createMut.mutate()}
                   className="flex-1 h-8 rounded-md text-xs bg-accent text-accent-foreground hover:opacity-90 disabled:opacity-50"
                 >
-                  Create
+                  Criar
                 </button>
               </div>
             </div>
@@ -220,7 +224,7 @@ function AddToPlaylistPopover({ trackIds, onAdded }: { trackIds: string[]; onAdd
                 className="w-full flex items-center gap-2 px-2.5 h-8 rounded-md text-xs hover:bg-secondary transition-colors"
               >
                 <MS name="add" className="text-[16px] text-accent" />
-                <span>New playlist…</span>
+                <span>Nova playlist…</span>
               </button>
               {(data?.playlists ?? []).length > 0 && <div className="h-px bg-border my-1" />}
               {(data?.playlists ?? []).map((p) => (
@@ -272,7 +276,7 @@ function BulkEditModal({
       }
     },
     onSuccess: () => {
-      toast.success(`${trackIds.length} track(s) updated.`);
+      toast.success(`${trackIds.length} faixa(s) atualizada(s).`);
       qc.invalidateQueries({ queryKey: ["tracks"] });
       onOpenChange(false);
       clear();
@@ -288,30 +292,30 @@ function BulkEditModal({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[460px] max-w-[92vw] rounded-2xl bg-card border border-border p-6 shadow-2xl">
           <Dialog.Title className="text-lg font-semibold">
-            Edit {trackIds.length} track(s)
+            Editar {trackIds.length} faixa(s)
           </Dialog.Title>
           <Dialog.Description className="text-xs text-muted-foreground mt-1">
-            Leave a field empty to keep current values.
+            Deixe um campo vazio para manter os valores atuais.
           </Dialog.Description>
 
           <div className="mt-5 space-y-4">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Genre</label>
+              <label className="text-xs font-medium text-muted-foreground">Gênero</label>
               <input
                 value={genre}
                 onChange={(e) => setGenre(e.target.value)}
-                placeholder="e.g. Ambient"
+                placeholder="ex.: Ambiente"
                 className="mt-1.5 w-full h-10 px-3 rounded-md bg-secondary text-sm outline-none border border-transparent focus:border-accent"
               />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Add tags (comma separated)
+                Adicionar tags (separadas por vírgula)
               </label>
               <input
                 value={addTags}
                 onChange={(e) => setAddTags(e.target.value)}
-                placeholder="focus, instrumental"
+                placeholder="foco, instrumental"
                 className="mt-1.5 w-full h-10 px-3 rounded-md bg-secondary text-sm outline-none border border-transparent focus:border-accent"
               />
             </div>
@@ -320,7 +324,7 @@ function BulkEditModal({
           <div className="mt-6 flex gap-2 justify-end">
             <Dialog.Close asChild>
               <button className="h-9 px-4 rounded-md text-sm text-muted-foreground hover:bg-secondary">
-                Cancel
+                Cancelar
               </button>
             </Dialog.Close>
             <button
@@ -328,7 +332,7 @@ function BulkEditModal({
               onClick={() => mut.mutate()}
               className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50"
             >
-              {mut.isPending ? "Saving…" : "Apply"}
+              {mut.isPending ? "Salvando…" : "Aplicar"}
             </button>
           </div>
         </Dialog.Content>
