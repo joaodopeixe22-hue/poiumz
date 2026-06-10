@@ -1,9 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { AppShell } from "@/components/layout/app-shell";
-import { AudioEngine } from "@/components/library/audio-engine";
-import { UploadQueuePanel } from "@/components/library/upload-queue-panel";
-import { BulkSelectionToolbar } from "@/components/library/bulk-selection-toolbar";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
@@ -13,11 +10,8 @@ export const Route = createFileRoute("/_authenticated")({
     }
   },
   component: () => (
-    <AppShell>
+    <DashboardShell>
       <Outlet />
-      <AudioEngine />
-      <BulkSelectionToolbar />
-      <UploadQueuePanel />
-    </AppShell>
+    </DashboardShell>
   ),
 });

@@ -3,13 +3,13 @@ import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthCard, Field } from "@/components/auth/auth-card";
 
 export const Route = createFileRoute("/forgot-password")({
-  component: ForgotPage,
+  component: ForgotPasswordPage,
 });
 
-function ForgotPage() {
+function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -26,45 +26,43 @@ function ForgotPage() {
       return;
     }
     setSent(true);
+    toast.success("E-mail de recuperação enviado.");
   };
 
   return (
-    <AuthShell
-      eyebrow="Recuperar acesso"
-      title={sent ? "Confira sua caixa de entrada." : "Redefina sua senha."}
+    <AuthCard
+      title="Recuperar senha"
       subtitle={
         sent
-          ? "Enviamos um link. Abra-o neste dispositivo para escolher uma nova senha."
-          : "Informe seu email e enviaremos as instruções para escolher uma nova senha."
+          ? "Confira sua caixa de entrada e siga o link para definir uma nova senha."
+          : "Enviaremos um link de redefinição para o seu e-mail."
+      }
+      footer={
+        <Link to="/login" className="text-primary hover:underline font-medium">
+          Voltar para login
+        </Link>
       }
     >
       {!sent && (
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <label className="block space-y-2">
-            <span className="font-mono-caption text-muted-foreground">Email</span>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full h-11 px-3 rounded-sm bg-input/40 border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field
+            label="E-mail"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={setEmail}
+            required
+          />
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-11 rounded-sm bg-accent text-accent-foreground font-medium text-sm hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full h-11 rounded-md bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="size-4 animate-spin" />}
-            Enviar link de redefinição
+            Enviar link
           </button>
         </form>
       )}
-      <p className="mt-8 text-center text-sm text-muted-foreground">
-        <Link to="/login" className="text-accent hover:underline">
-          Voltar para entrar
-        </Link>
-      </p>
-    </AuthShell>
+    </AuthCard>
   );
 }

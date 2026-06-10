@@ -1,0 +1,17 @@
+{
+  "name": "Rádio Corporativa RD Saúde",
+  "short_name": "Rádio RD",
+  "description": "Plataforma de rádio corporativa da RD Saúde",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
