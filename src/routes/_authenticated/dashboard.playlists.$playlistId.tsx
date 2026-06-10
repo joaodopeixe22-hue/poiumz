@@ -246,33 +246,47 @@ function PlaylistDetailPage() {
                     {formatTime(it.song?.duracao_segundos)}
                   </td>
                   <td className="py-3 px-4 text-right">
-                    {canEdit && (
-                      <div className="flex justify-end gap-1">
-                        <button
-                          onClick={() => move(idx, -1)}
-                          disabled={idx === 0}
-                          className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                          aria-label="Mover para cima"
-                        >
-                          <ChevronUp className="size-3.5" />
-                        </button>
-                        <button
-                          onClick={() => move(idx, 1)}
-                          disabled={idx === items.length - 1}
-                          className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                          aria-label="Mover para baixo"
-                        >
-                          <ChevronDown className="size-3.5" />
-                        </button>
-                        <button
-                          onClick={() => removeItem(it.id)}
-                          className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                          aria-label="Remover"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex justify-end gap-1 items-center">
+                      {it.song && (
+                        <TrackContextMenu
+                          track={{
+                            id: it.song.id,
+                            titulo: it.song.titulo,
+                            artista: it.song.artista,
+                            duracao_segundos: it.song.duracao_segundos,
+                            storage_path: it.song.storage_path,
+                          }}
+                          sourcePlaylistId={playlistId}
+                        />
+                      )}
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => move(idx, -1)}
+                            disabled={idx === 0}
+                            className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                            aria-label="Mover para cima"
+                          >
+                            <ChevronUp className="size-3.5" />
+                          </button>
+                          <button
+                            onClick={() => move(idx, 1)}
+                            disabled={idx === items.length - 1}
+                            className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                            aria-label="Mover para baixo"
+                          >
+                            <ChevronDown className="size-3.5" />
+                          </button>
+                          <button
+                            onClick={() => removeItem(it.id)}
+                            className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                            aria-label="Remover"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
