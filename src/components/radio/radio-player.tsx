@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { usePlayback, computeLivePosition } from "@/hooks/use-playback";
 import { useRadioSettings } from "@/hooks/use-radio-settings";
+import { logRadio } from "@/lib/radio-diagnostics";
 
 type CurrentItem = {
   kind: "song" | "institutional";
