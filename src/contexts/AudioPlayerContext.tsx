@@ -474,13 +474,18 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       const active = getActiveAudio();
       const inactive = getInactiveAudio();
       const q = queueRef.current;
+      const curTrack = q[indexRef.current];
       const nextTrack = q[nextIndex];
       if (!active || !inactive || !nextTrack) return;
-      const dur = smartMixRef.current.durationSec;
+      // Effective duration is the per-playlist override (when the current
+      // track belongs to a playlist) or the global setting.
+      const eff = resolveEffectiveSmartMix(curTrack?.sourcePlaylistId ?? null);
+      const dur = eff.durationSec;
       if (dur <= 0) return;
 
       inCrossfadeRef.current = true;
       setIsCrossfading(true);
+      setCrossfadeProgress(0);
       try {
         const url = await resolveTrackUrl(nextTrack);
         inactive.src = url;
@@ -491,6 +496,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         console.warn("[smart-mix] crossfade prep failed; falling back", e);
         inCrossfadeRef.current = false;
         setIsCrossfading(false);
+        setCrossfadeProgress(0);
         return;
       }
 
@@ -507,6 +513,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         } catch {
           /* ignore */
         }
+        setCrossfadeProgress(t);
         if (t >= 1) {
           if (crossfadeTimerRef.current !== null) {
             window.clearInterval(crossfadeTimerRef.current);
@@ -530,12 +537,20 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
           pushHistory(nextTrack);
           inCrossfadeRef.current = false;
           setIsCrossfading(false);
+          setCrossfadeProgress(0);
           void pruneAndPreload();
         }
       };
       crossfadeTimerRef.current = window.setInterval(tick, 50);
     },
-    [getActiveAudio, getInactiveAudio, pushHistory, pruneAndPreload, volume],
+    [
+      getActiveAudio,
+      getInactiveAudio,
+      pushHistory,
+      pruneAndPreload,
+      resolveEffectiveSmartMix,
+      volume,
+    ],
   );
 
   // Dual <audio>; listeners on both, gated by "active" element.
