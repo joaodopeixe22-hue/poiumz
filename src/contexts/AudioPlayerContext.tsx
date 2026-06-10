@@ -411,6 +411,24 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     [broadcast],
   );
 
+  const setRepeat = useCallback(
+    (r: RepeatMode) => {
+      repeatRef.current = r;
+      setRepeatState(r);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("global-player-repeat", r);
+      }
+      broadcast({ type: "set_repeat", repeat: r });
+    },
+    [broadcast],
+  );
+
+  const cycleRepeat = useCallback(() => {
+    const order: RepeatMode[] = ["off", "all", "one"];
+    const i = order.indexOf(repeatRef.current);
+    setRepeat(order[(i + 1) % order.length]);
+  }, [setRepeat]);
+
   // Modo rádio: liga ao playback_state global e segue a programação
   useEffect(() => {
     if (mode !== "radio") return;
