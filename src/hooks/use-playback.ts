@@ -95,8 +95,8 @@ export function usePlayback() {
 
   const next = async (opts?: { expectedSong?: string; expectedInstitutional?: string }) => {
     const { data, error } = await supabase.rpc("advance_playback", {
-      expected_song: opts?.expectedSong ?? null,
-      expected_institutional: opts?.expectedInstitutional ?? null,
+      expected_song: opts?.expectedSong,
+      expected_institutional: opts?.expectedInstitutional,
     });
     if (data) setPlayback(data as unknown as PlaybackState);
     return { error: error?.message ?? null };
