@@ -17,6 +17,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
+import { Route as AuthenticatedDashboardUsuariosRouteImport } from './routes/_authenticated/dashboard.usuarios'
 import { Route as AuthenticatedDashboardProgramacaoRouteImport } from './routes/_authenticated/dashboard.programacao'
 import { Route as AuthenticatedDashboardMusicasRouteImport } from './routes/_authenticated/dashboard.musicas'
 import { Route as AuthenticatedDashboardInstitucionalRouteImport } from './routes/_authenticated/dashboard.institucional'
@@ -63,6 +64,12 @@ const AuthenticatedDashboardIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardUsuariosRoute =
+  AuthenticatedDashboardUsuariosRouteImport.update({
+    id: '/usuarios',
+    path: '/usuarios',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardProgramacaoRoute =
   AuthenticatedDashboardProgramacaoRouteImport.update({
     id: '/programacao',
@@ -104,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/institucional': typeof AuthenticatedDashboardInstitucionalRoute
   '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
   '/dashboard/programacao': typeof AuthenticatedDashboardProgramacaoRoute
+  '/dashboard/usuarios': typeof AuthenticatedDashboardUsuariosRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/playlists/$playlistId': typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
   '/dashboard/playlists/': typeof AuthenticatedDashboardPlaylistsIndexRoute
@@ -117,6 +125,7 @@ export interface FileRoutesByTo {
   '/dashboard/institucional': typeof AuthenticatedDashboardInstitucionalRoute
   '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
   '/dashboard/programacao': typeof AuthenticatedDashboardProgramacaoRoute
+  '/dashboard/usuarios': typeof AuthenticatedDashboardUsuariosRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/playlists/$playlistId': typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
   '/dashboard/playlists': typeof AuthenticatedDashboardPlaylistsIndexRoute
@@ -133,6 +142,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/institucional': typeof AuthenticatedDashboardInstitucionalRoute
   '/_authenticated/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
   '/_authenticated/dashboard/programacao': typeof AuthenticatedDashboardProgramacaoRoute
+  '/_authenticated/dashboard/usuarios': typeof AuthenticatedDashboardUsuariosRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/playlists/$playlistId': typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
   '/_authenticated/dashboard/playlists/': typeof AuthenticatedDashboardPlaylistsIndexRoute
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/dashboard/institucional'
     | '/dashboard/musicas'
     | '/dashboard/programacao'
+    | '/dashboard/usuarios'
     | '/dashboard/'
     | '/dashboard/playlists/$playlistId'
     | '/dashboard/playlists/'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/dashboard/institucional'
     | '/dashboard/musicas'
     | '/dashboard/programacao'
+    | '/dashboard/usuarios'
     | '/dashboard'
     | '/dashboard/playlists/$playlistId'
     | '/dashboard/playlists'
@@ -177,6 +189,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/institucional'
     | '/_authenticated/dashboard/musicas'
     | '/_authenticated/dashboard/programacao'
+    | '/_authenticated/dashboard/usuarios'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/playlists/$playlistId'
     | '/_authenticated/dashboard/playlists/'
@@ -249,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/usuarios': {
+      id: '/_authenticated/dashboard/usuarios'
+      path: '/usuarios'
+      fullPath: '/dashboard/usuarios'
+      preLoaderRoute: typeof AuthenticatedDashboardUsuariosRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/programacao': {
       id: '/_authenticated/dashboard/programacao'
       path: '/programacao'
@@ -291,6 +311,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardInstitucionalRoute: typeof AuthenticatedDashboardInstitucionalRoute
   AuthenticatedDashboardMusicasRoute: typeof AuthenticatedDashboardMusicasRoute
   AuthenticatedDashboardProgramacaoRoute: typeof AuthenticatedDashboardProgramacaoRoute
+  AuthenticatedDashboardUsuariosRoute: typeof AuthenticatedDashboardUsuariosRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardPlaylistsPlaylistIdRoute: typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
   AuthenticatedDashboardPlaylistsIndexRoute: typeof AuthenticatedDashboardPlaylistsIndexRoute
@@ -303,6 +324,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardMusicasRoute: AuthenticatedDashboardMusicasRoute,
     AuthenticatedDashboardProgramacaoRoute:
       AuthenticatedDashboardProgramacaoRoute,
+    AuthenticatedDashboardUsuariosRoute: AuthenticatedDashboardUsuariosRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardPlaylistsPlaylistIdRoute:
       AuthenticatedDashboardPlaylistsPlaylistIdRoute,
