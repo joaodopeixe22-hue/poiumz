@@ -154,6 +154,7 @@ function AuthSync() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => installRealtimeDebug(), []);
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSync />
