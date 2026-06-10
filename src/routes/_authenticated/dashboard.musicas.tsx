@@ -302,18 +302,25 @@ function MusicasPage() {
                       </td>
                     )}
                     <td className="py-3 px-4">
-                      <button
-                        onClick={() => togglePlay(song)}
-                        className="size-8 rounded-full grid place-items-center bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
-                        aria-label={playingId === song.id ? "Pausar" : "Reproduzir"}
-                      >
-                        {playingId === song.id ? (
-                          <Pause className="size-3.5" />
-                        ) : (
-                          <Play className="size-3.5" />
-                        )}
-                      </button>
+                      {(() => {
+                        const isThis = player.current?.id === song.id;
+                        const showPause = isThis && player.isPlaying;
+                        return (
+                          <button
+                            onClick={() => togglePlay(song)}
+                            className="size-8 rounded-full grid place-items-center bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
+                            aria-label={showPause ? "Pausar" : "Reproduzir"}
+                          >
+                            {showPause ? (
+                              <Pause className="size-3.5" />
+                            ) : (
+                              <Play className="size-3.5" />
+                            )}
+                          </button>
+                        );
+                      })()}
                     </td>
+
                     <td className="py-3 px-4 font-medium max-w-xs">
                       <div className="flex items-center gap-2">
                         <span className="truncate">{song.titulo}</span>
