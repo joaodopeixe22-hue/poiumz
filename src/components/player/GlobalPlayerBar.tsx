@@ -581,8 +581,41 @@ export function GlobalPlayerBar() {
               {preloadedIds.size} em cache
             </span>
           </div>
+          <div className="flex items-center justify-between gap-3 px-4 py-2 border-b text-xs">
+            <label className="flex items-center gap-2 text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={smartMix.enabled}
+                onChange={(e) => setSmartMix({ enabled: e.target.checked })}
+                className="accent-primary"
+              />
+              <span className="font-medium text-foreground">Smart Mix</span>
+              <span className="text-muted-foreground/70">
+                (música → música)
+              </span>
+            </label>
+            <label className="flex items-center gap-2 text-muted-foreground">
+              <span>Crossfade</span>
+              <input
+                type="range"
+                min={1}
+                max={12}
+                step={1}
+                value={smartMix.durationSec}
+                disabled={!smartMix.enabled}
+                onChange={(e) =>
+                  setSmartMix({ durationSec: Number(e.target.value) })
+                }
+                className="w-24 accent-primary disabled:opacity-40"
+                aria-label="Duração do crossfade"
+              />
+              <span className="tabular-nums w-8 text-right">
+                {smartMix.durationSec}s
+              </span>
+            </label>
+          </div>
 
-          <div className="flex-1 overflow-y-auto">
+
             {currentTrack && (
               <section className="px-4 py-3">
                 <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
