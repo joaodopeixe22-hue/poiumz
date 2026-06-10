@@ -20,6 +20,7 @@ const INSTITUTIONAL_BUCKET = "institutional";
 export function RadioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const { playback, next } = usePlayback();
+  const { settings } = useRadioSettings();
   const [current, setCurrent] = useState<CurrentItem | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [localPlaying, setLocalPlaying] = useState(false);
