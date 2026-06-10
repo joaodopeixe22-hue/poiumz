@@ -52,6 +52,7 @@ type AudioPlayerContextValue = {
   stop: () => void;
   jumpToTrack: (index: number) => Promise<void>;
   removeFromQueue: (index: number) => void;
+  reorderQueue: (from: number, to: number) => void;
   clearHistory: () => void;
   getUpcomingTracks: (limit?: number) => AudioTrack[];
 };
