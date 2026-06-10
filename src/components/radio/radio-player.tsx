@@ -130,9 +130,16 @@ export function RadioPlayer() {
           .eq("id", playback.current_song_id)
           .maybeSingle();
         if (cancelled || !data) return;
-        const { data: pub } = supabase.storage
+        const { data: signed, error: signErr } = await supabase.storage
           .from(SONG_BUCKET)
-          .getPublicUrl(data.storage_path);
+          .createSignedUrl(data.storage_path, 3600);
+        if (cancelled) return;
+        if (signErr || !signed?.signedUrl) {
+          console.error("[radio-player] signed url falhou:", signErr?.message, data.storage_path);
+          setAudioUrl(null);
+          return;
+        }
+        console.log("[radio-player] signed URL:", data.storage_path, "→", signed.signedUrl);
         setCurrent({
           kind: "song",
           id: data.id,
@@ -141,7 +148,8 @@ export function RadioPlayer() {
           duracao_segundos: data.duracao_segundos,
           storage_path: data.storage_path,
         });
-        setAudioUrl(pub.publicUrl);
+        setAudioUrl(signed.signedUrl);
+
       } else {
         setCurrent(null);
         setAudioUrl(null);
