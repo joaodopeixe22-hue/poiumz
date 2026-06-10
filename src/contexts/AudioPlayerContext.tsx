@@ -11,12 +11,21 @@ import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import {
-  insertAfterCurrent,
   insertAsNext,
   insertMultipleAfterCurrent,
   appendToQueue,
   clearManual,
 } from "@/lib/playback-queue";
+import {
+  type SmartMixSettings,
+  type TrackKind,
+  DEFAULT_SMART_MIX,
+  equalPowerGains,
+  loadSmartMixSettings,
+  saveSmartMixSettings,
+  shouldCrossfade,
+  normalizeSettings,
+} from "@/lib/smart-mix";
 
 export type AudioTrack = {
   id: string;
@@ -27,6 +36,8 @@ export type AudioTrack = {
   url?: string;
   sourcePlaylistId?: string | null;
   manuallyQueued?: boolean;
+  /** Smart Mix classification — defaults to 'music' when omitted. */
+  kind?: TrackKind;
 };
 
 export type PlayerMode = "playlist" | "shuffle" | "radio";
