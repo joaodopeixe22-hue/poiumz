@@ -189,6 +189,25 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     modeRef.current = mode;
   }, [mode]);
 
+  // Persist queue/index/mode/history (debounced via microtask grouping)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (mode === "radio") return; // radio is driven by server playback_state
+    const id = window.setTimeout(() => {
+      try {
+        localStorage.setItem(
+          "global-player-state",
+          JSON.stringify({ queue, index, mode, history }),
+        );
+      } catch {
+        /* quota or serialization issue — ignore */
+      }
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [queue, index, mode, history]);
+
+
+
 
   const broadcast = useCallback((evt: RemoteEvent) => {
     if (echoRef.current) return;
