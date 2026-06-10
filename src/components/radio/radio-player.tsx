@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Radio, Megaphone, Lock } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Radio, Megaphone, Lock, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { usePlayback, computeLivePosition } from "@/hooks/use-playback";
@@ -17,103 +17,45 @@ type CurrentItem = {
 const SONG_BUCKET = "songs";
 const INSTITUTIONAL_BUCKET = "institutional";
 
-const FADE_IN_SECONDS = 0.6;
-const FADE_OUT_SECONDS = 0.4;
-const TRACK_CHANGE_FADE = 0.35;
-
 export function RadioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const { playback, next } = usePlayback();
+  const { playback } = usePlayback();
   const { settings } = useRadioSettings();
   const [current, setCurrent] = useState<CurrentItem | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [localPlaying, setLocalPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [livePos, setLivePos] = useState(0);
-  const advancingRef = useRef(false);
-
-  // Web Audio graph: source -> compressor (normalização perceptual) -> gain (fade) -> destination
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
-  const targetVolumeRef = useRef<number>(0.8);
+  const [needsGesture, setNeedsGesture] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [buffering, setBuffering] = useState(false);
 
   const targetVolume = () => {
     const defaultVol = settings?.default_volume ?? 80;
     return Math.max(0, Math.min(1, defaultVol / 100));
   };
 
-  const ensureAudioGraph = () => {
-    const a = audioRef.current;
-    if (!a) return null;
-    if (!audioCtxRef.current) {
-      try {
-        const Ctx =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        if (!Ctx) return null;
-        const ctx = new Ctx();
-        const source = ctx.createMediaElementSource(a);
-        // Compressor com configuração de "loudness leveling":
-        // ataque rápido, release moderado, ratio alto para domar picos entre faixas
-        // e makeup gain (via post-gain) compensa a redução geral.
-        const compressor = ctx.createDynamicsCompressor();
-        compressor.threshold.value = -20;
-        compressor.knee.value = 24;
-        compressor.ratio.value = 6;
-        compressor.attack.value = 0.005;
-        compressor.release.value = 0.25;
-        const gain = ctx.createGain();
-        gain.gain.value = 0; // começa em silêncio para fade-in
-        source.connect(compressor);
-        compressor.connect(gain);
-        gain.connect(ctx.destination);
-        audioCtxRef.current = ctx;
-        sourceRef.current = source;
-        compressorRef.current = compressor;
-        gainRef.current = gain;
-      } catch {
-        return null;
-      }
-    }
-    return audioCtxRef.current;
-  };
-
-  const fadeTo = (value: number, seconds: number) => {
-    const ctx = audioCtxRef.current;
-    const gain = gainRef.current;
-    if (!ctx || !gain) return;
-    const now = ctx.currentTime;
-    const currentVal = gain.gain.value;
-    try {
-      gain.gain.cancelScheduledValues(now);
-      const safeTarget = Math.max(0.0001, value);
-      const safeCurrent = Math.max(0.0001, currentVal);
-      gain.gain.setValueAtTime(safeCurrent, now);
-      gain.gain.exponentialRampToValueAtTime(safeTarget, now + seconds);
-      if (value <= 0.0001) {
-        gain.gain.setValueAtTime(0, now + seconds);
-      }
-    } catch {
-      gain.gain.value = value;
-    }
-  };
-
-  // Resolve o item atual e gera URL pública
+  // Resolve o item atual e gera URL
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      setLoadError(null);
       if (playback?.current_institutional_id) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("institutional_contents")
           .select("id, titulo, tipo, duracao_segundos, storage_path")
           .eq("id", playback.current_institutional_id)
           .maybeSingle();
-        if (cancelled || !data) return;
+        if (cancelled) return;
+        if (error || !data) {
+          console.warn("[radio-player] institutional não encontrado", error);
+          setLoadError("Conteúdo não encontrado");
+          return;
+        }
         const { data: pub } = supabase.storage
           .from(INSTITUTIONAL_BUCKET)
           .getPublicUrl(data.storage_path);
+        console.log("[radio-player] institutional URL", data.storage_path, "→", pub.publicUrl);
         setCurrent({
           kind: "institutional",
           id: data.id,
@@ -124,22 +66,42 @@ export function RadioPlayer() {
         });
         setAudioUrl(pub.publicUrl);
       } else if (playback?.current_song_id) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("songs")
           .select("id, titulo, artista, duracao_segundos, storage_path")
           .eq("id", playback.current_song_id)
           .maybeSingle();
-        if (cancelled || !data) return;
-        const { data: signed, error: signErr } = await supabase.storage
-          .from(SONG_BUCKET)
-          .createSignedUrl(data.storage_path, 3600);
         if (cancelled) return;
-        if (signErr || !signed?.signedUrl) {
-          console.error("[radio-player] signed url falhou:", signErr?.message, data.storage_path);
-          setAudioUrl(null);
+        if (error || !data) {
+          console.warn("[radio-player] song não encontrada", error);
+          setLoadError("Faixa não encontrada");
           return;
         }
-        console.log("[radio-player] signed URL:", data.storage_path, "→", signed.signedUrl);
+        // Bucket "songs" é público — getPublicUrl evita o overhead/expiração de signed URLs
+        // e simplifica a reprodução. Caso o bucket seja privado, isto retorna 404 e cai
+        // no fallback de signed URL.
+        const { data: pub } = supabase.storage
+          .from(SONG_BUCKET)
+          .getPublicUrl(data.storage_path);
+        let url = pub.publicUrl;
+        try {
+          const head = await fetch(url, { method: "HEAD" });
+          if (!head.ok) throw new Error(`HTTP ${head.status}`);
+        } catch (e) {
+          console.warn("[radio-player] publicUrl inacessível, tentando signed URL", e);
+          const { data: signed, error: signErr } = await supabase.storage
+            .from(SONG_BUCKET)
+            .createSignedUrl(data.storage_path, 3600);
+          if (cancelled) return;
+          if (signErr || !signed?.signedUrl) {
+            console.error("[radio-player] signed url falhou:", signErr?.message);
+            setAudioUrl(null);
+            setLoadError("Não foi possível obter a URL do áudio");
+            return;
+          }
+          url = signed.signedUrl;
+        }
+        console.log("[radio-player] song URL", data.storage_path, "→", url);
         setCurrent({
           kind: "song",
           id: data.id,
@@ -148,8 +110,7 @@ export function RadioPlayer() {
           duracao_segundos: data.duracao_segundos,
           storage_path: data.storage_path,
         });
-        setAudioUrl(signed.signedUrl);
-
+        setAudioUrl(url);
       } else {
         setCurrent(null);
         setAudioUrl(null);
@@ -161,111 +122,104 @@ export function RadioPlayer() {
     };
   }, [playback?.current_song_id, playback?.current_institutional_id]);
 
-  // Quando muda o item OU started_at, sincroniza o elemento <audio>
+  // Sincroniza o elemento <audio> com playback_state.
+  // Depende somente dos campos relevantes — evitar passar `playback` inteiro
+  // que reagia a cada tick do realtime.
   useEffect(() => {
     const a = audioRef.current;
     if (!a || !audioUrl) return;
-    const targetSrc = audioUrl;
-    const srcChanged = a.src !== targetSrc;
-    const applySrcAndPlay = () => {
-      if (srcChanged) {
-        a.src = targetSrc;
+
+    const srcChanged = a.src !== audioUrl;
+    if (srcChanged) {
+      console.log("[radio-player] aplicando src", audioUrl);
+      a.src = audioUrl;
+      a.load();
+    }
+
+    // Volume direto no elemento (sem Web Audio para evitar conflito com autoplay policy)
+    a.volume = targetVolume();
+
+    const pos = computeLivePosition(playback);
+    if (Number.isFinite(pos) && Math.abs(a.currentTime - pos) > 1.5) {
+      try {
+        a.currentTime = pos;
+      } catch {
+        /* ignore */
       }
-      const pos = computeLivePosition(playback);
-      if (Math.abs(a.currentTime - pos) > 1.5) {
-        try {
-          a.currentTime = pos;
-        } catch {
-          // ignore
-        }
-      }
-      if (playback?.is_playing) {
-        // garante volume base no elemento; o gain controla o fade
-        a.volume = 1;
-        ensureAudioGraph();
-        const ctx = audioCtxRef.current;
-        if (ctx && ctx.state === "suspended") {
-          ctx.resume().catch(() => {});
-        }
-        a.play()
+    }
+
+    if (playback?.is_playing) {
+      setLoadError(null);
+      const playPromise = a.play();
+      if (playPromise && typeof playPromise.then === "function") {
+        playPromise
           .then(() => {
+            console.log("[radio-player] play() ok");
+            setNeedsGesture(false);
             setLocalPlaying(true);
-            targetVolumeRef.current = targetVolume();
-            fadeTo(targetVolumeRef.current, srcChanged ? TRACK_CHANGE_FADE : FADE_IN_SECONDS);
           })
-          .catch(() => {
+          .catch((err) => {
+            console.warn("[radio-player] play() bloqueado/falhou:", err?.name, err?.message);
             setLocalPlaying(false);
+            if (err?.name === "NotAllowedError" || err?.name === "AbortError") {
+              setNeedsGesture(true);
+            } else {
+              setLoadError(err?.message ?? "Falha ao iniciar a reprodução");
+            }
           });
-      } else {
-        // fade-out e então pausa
-        fadeTo(0, FADE_OUT_SECONDS);
-        window.setTimeout(() => {
-          a.pause();
-          setLocalPlaying(false);
-        }, FADE_OUT_SECONDS * 1000 + 50);
       }
-    };
-
-    if (srcChanged && !a.paused) {
-      // troca de faixa em pleno ar: fade-out curto antes de trocar o src
-      fadeTo(0, TRACK_CHANGE_FADE);
-      window.setTimeout(applySrcAndPlay, TRACK_CHANGE_FADE * 1000 + 30);
     } else {
-      applySrcAndPlay();
+      try {
+        a.pause();
+      } catch {
+        /* ignore */
+      }
+      setLocalPlaying(false);
     }
-  }, [audioUrl, playback?.is_playing, playback?.started_at, playback]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioUrl, playback?.is_playing, playback?.started_at]);
 
-  // Aplica volume padrão das configurações: ajusta o alvo do gain
+  // Ajusta volume em tempo real quando configuração mudar
   useEffect(() => {
-    targetVolumeRef.current = targetVolume();
-    if (playback?.is_playing && gainRef.current) {
-      fadeTo(targetVolumeRef.current, 0.3);
-    }
-  }, [playback?.is_playing, settings?.default_volume]);
+    const a = audioRef.current;
+    if (!a) return;
+    a.volume = targetVolume();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings?.default_volume]);
 
-  // Tick local para barra de progresso + auto-avanço
+  // Tick local para barra de progresso (sem auto-avanço — quem agenda é o operador)
   useEffect(() => {
     const id = setInterval(() => {
-      const pos = computeLivePosition(playback);
-      setLivePos(pos);
-      const dur = current?.duracao_segundos ?? null;
-      if (
-        playback?.is_playing &&
-        dur &&
-        pos >= dur - 0.3 &&
-        !advancingRef.current
-      ) {
-        advancingRef.current = true;
-        next({
-          expectedSong: playback.current_song_id ?? undefined,
-          expectedInstitutional: playback.current_institutional_id ?? undefined,
-        }).finally(() => {
-          setTimeout(() => {
-            advancingRef.current = false;
-          }, 1500);
-        });
-      }
+      setLivePos(computeLivePosition(playback));
     }, 500);
     return () => clearInterval(id);
-  }, [playback, current?.duracao_segundos, next]);
+  }, [playback]);
 
   const handleManualPlay = async () => {
     const a = audioRef.current;
     if (!a) return;
     try {
-      ensureAudioGraph();
-      const ctx = audioCtxRef.current;
-      if (ctx && ctx.state === "suspended") {
-        await ctx.resume();
+      if (!a.src && audioUrl) {
+        a.src = audioUrl;
+        a.load();
       }
-      a.volume = 1;
-      a.currentTime = computeLivePosition(playback);
+      a.volume = targetVolume();
+      const pos = computeLivePosition(playback);
+      if (Number.isFinite(pos)) {
+        try {
+          a.currentTime = pos;
+        } catch {
+          /* ignore */
+        }
+      }
       await a.play();
+      setNeedsGesture(false);
       setLocalPlaying(true);
-      targetVolumeRef.current = targetVolume();
-      fadeTo(targetVolumeRef.current, FADE_IN_SECONDS);
-    } catch {
-      // ignore
+      setLoadError(null);
+    } catch (err) {
+      const e = err as { name?: string; message?: string };
+      console.error("[radio-player] manual play falhou", e);
+      setLoadError(e?.message ?? "Não foi possível iniciar");
     }
   };
 
@@ -279,6 +233,7 @@ export function RadioPlayer() {
   const isOnAir = !!playback?.is_playing && !!current;
   const dur = current?.duracao_segundos ?? 0;
   const progressPct = dur ? Math.min(100, (livePos / dur) * 100) : 0;
+  const playBtnDisabled = !audioUrl || !playback?.is_playing;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
@@ -312,7 +267,7 @@ export function RadioPlayer() {
         </div>
 
         {/* Música atual */}
-        <div className="mb-10">
+        <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             {current?.kind === "institutional" ? (
               <Megaphone className="size-3.5 text-yellow-500" />
@@ -329,19 +284,43 @@ export function RadioPlayer() {
           </p>
         </div>
 
+        {/* Avisos */}
+        {needsGesture && playback?.is_playing && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
+            <AlertCircle className="size-4 text-primary shrink-0" />
+            <span className="text-foreground/90">
+              O navegador bloqueou a reprodução automática. Clique em{" "}
+              <strong>▶ Iniciar Rádio</strong> para liberar o som.
+            </span>
+          </div>
+        )}
+        {loadError && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{loadError}</span>
+          </div>
+        )}
+        {buffering && playback?.is_playing && (
+          <div className="mb-4 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+            Carregando…
+          </div>
+        )}
+
         {/* Controles */}
         <div className="flex items-center gap-6">
           <button
             onClick={handleManualPlay}
-            disabled={!audioUrl || !playback?.is_playing}
+            disabled={playBtnDisabled}
             className="size-16 md:size-20 rounded-full bg-primary text-primary-foreground grid place-items-center hover:scale-105 transition-transform shadow-xl shadow-primary/30 disabled:opacity-40 disabled:cursor-not-allowed"
-            aria-label="Tocar"
+            aria-label={needsGesture ? "Iniciar Rádio" : localPlaying ? "Pausar" : "Tocar"}
             title={
               !playback?.is_playing
                 ? "Aguardando o operador iniciar a transmissão"
-                : localPlaying
-                  ? "No ar"
-                  : "Tocar"
+                : needsGesture
+                  ? "▶ Iniciar Rádio"
+                  : localPlaying
+                    ? "No ar"
+                    : "Tocar"
             }
           >
             {localPlaying ? (
@@ -378,18 +357,37 @@ export function RadioPlayer() {
         <audio
           ref={audioRef}
           preload="auto"
-          crossOrigin="anonymous"
+          playsInline
           onLoadedMetadata={() => {
             const a = audioRef.current;
             if (!a) return;
             const pos = computeLivePosition(playback);
             try {
-              if (Math.abs(a.currentTime - pos) > 1) a.currentTime = pos;
+              if (Number.isFinite(pos) && Math.abs(a.currentTime - pos) > 1) {
+                a.currentTime = pos;
+              }
             } catch {
-              // ignore
+              /* ignore */
             }
-            // o elemento fica em volume cheio; o GainNode controla volume + fades
-            a.volume = 1;
+            console.log("[radio-player] loadedmetadata, duration=", a.duration);
+          }}
+          onCanPlay={() => setBuffering(false)}
+          onWaiting={() => setBuffering(true)}
+          onPlaying={() => {
+            setBuffering(false);
+            setLocalPlaying(true);
+          }}
+          onPause={() => setLocalPlaying(false)}
+          onEnded={() => setLocalPlaying(false)}
+          onError={(e) => {
+            const a = audioRef.current;
+            console.error("[radio-player] audio error", a?.error?.code, a?.error?.message, e);
+            setLoadError(
+              a?.error
+                ? `Erro de áudio (código ${a.error.code})`
+                : "Falha ao carregar o áudio",
+            );
+            setLocalPlaying(false);
           }}
         />
       </div>
