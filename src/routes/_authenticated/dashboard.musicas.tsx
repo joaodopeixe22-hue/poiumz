@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useProfile } from "@/hooks/use-profile";
-import { useSongs, getSongSignedUrl, type Song } from "@/hooks/use-songs";
+import { useSongs, getSongPublicUrl, type Song } from "@/hooks/use-songs";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime, formatRelative } from "@/lib/format";
 import { UploadDialog } from "@/components/musicas/upload-dialog";
@@ -55,7 +55,7 @@ function MusicasPage() {
       return;
     }
     try {
-      const url = await getSongSignedUrl(song.storage_path, 120);
+      const url = getSongPublicUrl(song.storage_path);
       if (!audioRef.current) audioRef.current = new Audio();
       audioRef.current.src = url;
       audioRef.current.onended = () => setPlayingId(null);
