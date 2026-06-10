@@ -7,8 +7,8 @@ import {
 } from "./smart-mix";
 
 describe("smart-mix.shouldCrossfade", () => {
-  const enabled = { enabled: true, durationSec: 4 };
-  const disabled = { enabled: false, durationSec: 4 };
+  const enabled = { enabled: true, durationSec: 4, showMixMeters: true };
+  const disabled = { enabled: false, durationSec: 4, showMixMeters: true };
 
   it("music → music crossfades when enabled", () => {
     expect(shouldCrossfade("music", "music", enabled)).toBe(true);
@@ -49,7 +49,7 @@ describe("smart-mix.shouldCrossfade", () => {
   });
 
   it("zero duration disables crossfade", () => {
-    expect(shouldCrossfade("music", "music", { enabled: true, durationSec: 0 })).toBe(
+    expect(shouldCrossfade("music", "music", { enabled: true, durationSec: 0, showMixMeters: true })).toBe(
       false,
     );
   });
@@ -65,7 +65,13 @@ describe("smart-mix.normalizeSettings", () => {
   it("falls back to defaults on missing fields", () => {
     expect(normalizeSettings({})).toEqual(DEFAULT_SMART_MIX);
   });
+
+  it("preserves showMixMeters when provided", () => {
+    expect(normalizeSettings({ showMixMeters: false }).showMixMeters).toBe(false);
+    expect(normalizeSettings({ showMixMeters: true }).showMixMeters).toBe(true);
+  });
 });
+
 
 describe("smart-mix.equalPowerGains", () => {
   it("starts with full out, zero in", () => {
