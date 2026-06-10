@@ -21,12 +21,14 @@ export type AudioTrack = {
 };
 
 export type PlayerMode = "playlist" | "shuffle" | "radio";
+export type RepeatMode = "off" | "all" | "one";
 
 type AudioPlayerContextValue = {
   currentTrack: AudioTrack | null;
   queue: AudioTrack[];
   index: number;
   mode: PlayerMode;
+  repeat: RepeatMode;
   isPlaying: boolean;
   duration: number;
   position: number;
@@ -39,6 +41,8 @@ type AudioPlayerContextValue = {
   seek: (sec: number) => void;
   setVolume: (v: number) => void;
   setMode: (m: PlayerMode) => void;
+  setRepeat: (r: RepeatMode) => void;
+  cycleRepeat: () => void;
   stop: () => void;
 };
 
@@ -70,6 +74,7 @@ type RemoteEvent =
   | { type: "toggle"; play: boolean }
   | { type: "seek"; position: number }
   | { type: "set_mode"; mode: PlayerMode }
+  | { type: "set_repeat"; repeat: RepeatMode }
   | { type: "stop" }
   | { type: "jump"; index: number };
 
@@ -78,6 +83,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const queueRef = useRef<AudioTrack[]>([]);
   const indexRef = useRef(0);
   const modeRef = useRef<PlayerMode>("playlist");
+  const repeatRef = useRef<RepeatMode>("all");
   const shuffleHistRef = useRef<number[]>([]);
 
   // Sync: broadcast channel + echo guard
@@ -87,6 +93,11 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<AudioTrack[]>([]);
   const [index, setIndex] = useState(0);
   const [mode, setModeState] = useState<PlayerMode>("playlist");
+  const [repeat, setRepeatState] = useState<RepeatMode>(() => {
+    if (typeof window === "undefined") return "all";
+    const r = localStorage.getItem("global-player-repeat") as RepeatMode | null;
+    return r === "off" || r === "all" || r === "one" ? r : "all";
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
@@ -95,6 +106,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     const v = Number(localStorage.getItem("global-player-volume"));
     return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.8;
   });
+
+  useEffect(() => {
+    repeatRef.current = repeat;
+  }, [repeat]);
 
   useEffect(() => {
     queueRef.current = queue;
@@ -213,7 +228,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
     const q = queueRef.current;
     const ni = indexRef.current + 1;
-    if (ni >= q.length) return;
+    if (ni >= q.length) {
+      // Fila acabou — em playlist com repeat=all, recomeça do início (fila contínua)
+      if (repeatRef.current === "all" && q.length > 0) {
+        await goToIndex(0);
+      }
+      return;
+    }
     await goToIndex(ni);
   }, [goToIndex, pickShuffleIndex]);
 
@@ -243,6 +264,11 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
     const pi = indexRef.current - 1;
     if (pi < 0) {
+      // Em repeat=all, volta para o final da fila
+      if (repeatRef.current === "all" && queueRef.current.length > 0) {
+        await goToIndex(queueRef.current.length - 1);
+        return;
+      }
       const a = audioRef.current;
       if (a) {
         a.currentTime = 0;
@@ -256,17 +282,36 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const handleEnded = useCallback(async () => {
     const m = modeRef.current;
     if (m === "radio") return; // rádio avança via realtime do playback_state
+    // repeat=one: reinicia a faixa atual
+    if (repeatRef.current === "one") {
+      const a = audioRef.current;
+      if (a) {
+        a.currentTime = 0;
+        setPosition(0);
+        try {
+          await a.play();
+        } catch {
+          /* ignore */
+        }
+      }
+      return;
+    }
     if (m === "shuffle") {
       await advanceNext();
       return;
     }
     const q = queueRef.current;
     if (indexRef.current + 1 >= q.length) {
+      // Fim da fila: loop contínuo se repeat=all
+      if (repeatRef.current === "all" && q.length > 0) {
+        await goToIndex(0);
+        return;
+      }
       setIsPlaying(false);
       return;
     }
     await advanceNext();
-  }, [advanceNext]);
+  }, [advanceNext, goToIndex]);
 
   const playQueue = useCallback(
     async (tracks: AudioTrack[], startIndex = 0) => {
@@ -371,6 +416,24 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     [broadcast],
   );
 
+  const setRepeat = useCallback(
+    (r: RepeatMode) => {
+      repeatRef.current = r;
+      setRepeatState(r);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("global-player-repeat", r);
+      }
+      broadcast({ type: "set_repeat", repeat: r });
+    },
+    [broadcast],
+  );
+
+  const cycleRepeat = useCallback(() => {
+    const order: RepeatMode[] = ["off", "all", "one"];
+    const i = order.indexOf(repeatRef.current);
+    setRepeat(order[(i + 1) % order.length]);
+  }, [setRepeat]);
+
   // Modo rádio: liga ao playback_state global e segue a programação
   useEffect(() => {
     if (mode !== "radio") return;
@@ -439,6 +502,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
                 modeRef.current = evt.mode;
                 setModeState(evt.mode);
                 shuffleHistRef.current = [];
+                break;
+              case "set_repeat":
+                repeatRef.current = evt.repeat;
+                setRepeatState(evt.repeat);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("global-player-repeat", evt.repeat);
+                }
                 break;
               case "play_queue": {
                 modeRef.current = evt.mode;
@@ -518,6 +588,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       queue,
       index,
       mode,
+      repeat,
       isPlaying,
       duration,
       position,
@@ -530,6 +601,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       seek,
       setVolume,
       setMode,
+      setRepeat,
+      cycleRepeat,
       stop,
     }),
     [
@@ -537,6 +610,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       queue,
       index,
       mode,
+      repeat,
       isPlaying,
       duration,
       position,
@@ -549,6 +623,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       seek,
       setVolume,
       setMode,
+      setRepeat,
+      cycleRepeat,
       stop,
     ],
   );

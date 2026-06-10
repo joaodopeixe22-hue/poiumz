@@ -15,6 +15,8 @@ import {
   Shuffle,
   Radio,
   ListMusic,
+  Repeat,
+  Repeat1,
 } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import type { PlayerMode } from "@/contexts/AudioPlayerContext";
@@ -37,6 +39,7 @@ export function GlobalPlayerBar() {
     queue,
     index,
     mode,
+    repeat,
     isPlaying,
     duration,
     position,
@@ -47,6 +50,7 @@ export function GlobalPlayerBar() {
     seek,
     setVolume,
     setMode,
+    cycleRepeat,
     stop,
   } = useAudioPlayer();
   const [muted, setMuted] = useState(false);
@@ -105,9 +109,13 @@ export function GlobalPlayerBar() {
   if (!currentTrack) return null;
 
   const pct = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
-  const hasPrev = mode === "playlist" ? index > 0 : true;
+  const hasPrev = mode === "playlist" ? index > 0 || repeat === "all" : true;
   const hasNext =
-    mode === "playlist" ? index < queue.length - 1 : mode === "shuffle" ? queue.length > 1 : true;
+    mode === "playlist"
+      ? index < queue.length - 1 || repeat === "all"
+      : mode === "shuffle"
+        ? queue.length > 1
+        : true;
 
   const cycleMode = () => {
     const order: PlayerMode[] = ["playlist", "shuffle", "radio"];
@@ -266,6 +274,30 @@ export function GlobalPlayerBar() {
           </div>
 
           <div className="flex items-center gap-1">
+            <button
+              onClick={cycleRepeat}
+              className={`size-8 rounded-md grid place-items-center transition-colors ${
+                repeat === "off"
+                  ? "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  : "text-primary bg-primary/10 hover:bg-primary/15"
+              }`}
+              aria-label={
+                repeat === "off"
+                  ? "Repetir: desativado"
+                  : repeat === "all"
+                    ? "Repetir: fila contínua"
+                    : "Repetir: faixa atual"
+              }
+              title={
+                repeat === "off"
+                  ? "Repetir: desativado (clique para fila contínua)"
+                  : repeat === "all"
+                    ? "Repetir: fila contínua (clique para repetir faixa)"
+                    : "Repetir: faixa atual (clique para desativar)"
+              }
+            >
+              {repeat === "one" ? <Repeat1 className="size-4" /> : <Repeat className="size-4" />}
+            </button>
             <button
               onClick={cycleMode}
               className={`hidden sm:flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium border transition-colors ${
