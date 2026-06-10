@@ -23,6 +23,7 @@ import { formatTime, formatRelative } from "@/lib/format";
 import { UploadDialog } from "@/components/musicas/upload-dialog";
 import { EditSongSheet } from "@/components/musicas/edit-song-sheet";
 import { toast } from "sonner";
+import { TrackContextMenu } from "@/components/player/TrackContextMenu";
 
 export const Route = createFileRoute("/_authenticated/dashboard/musicas")({
   component: MusicasPage,
