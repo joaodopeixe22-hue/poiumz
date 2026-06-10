@@ -45,6 +45,8 @@ function ProgramacaoPage() {
     setShuffle,
     setLocked,
     setInstitutionalEnabled,
+    setLoopPlaylist,
+    setResumeAfterInstitutional,
   } = usePlayback();
   const { playlists } = usePlaylists();
   const [currentLabel, setCurrentLabel] = useState<{
