@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Music, Plus, Search, Pencil, Trash2, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useProfile } from "@/hooks/use-profile";
-import { useSongs, useSongsInPlaylists, getSongPublicUrl, type Song } from "@/hooks/use-songs";
+import { useSongs, useSongsInPlaylists, type Song } from "@/hooks/use-songs";
+import { usePreviewPlayer } from "@/hooks/use-preview-player";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime, formatRelative } from "@/lib/format";
 import { UploadDialog } from "@/components/musicas/upload-dialog";
