@@ -15,6 +15,8 @@ import {
   Shuffle,
   Radio,
   ListMusic,
+  Repeat,
+  Repeat1,
 } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import type { PlayerMode } from "@/contexts/AudioPlayerContext";
