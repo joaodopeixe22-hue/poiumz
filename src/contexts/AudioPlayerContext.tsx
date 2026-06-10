@@ -1292,6 +1292,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       smartMix,
       setSmartMix,
       isCrossfading,
+      crossfadeProgress,
+      getPlaylistSmartMix,
+      setPlaylistSmartMix,
+      resolveEffectiveSmartMix,
     }),
     [
       currentTrack,
