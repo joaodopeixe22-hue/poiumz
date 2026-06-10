@@ -94,6 +94,11 @@ export function GlobalPlayerBar() {
     [queue, index, repeat, getUpcomingTracks],
   );
   const nextTrack = upcoming[0] ?? null;
+  const [dragQueueIdx, setDragQueueIdx] = useState<number | null>(null);
+  const [dragOverQueueIdx, setDragOverQueueIdx] = useState<number | null>(null);
+
+  // Reordering only makes sense within the linear playlist queue
+  const canReorder = mode === "playlist" && queue.length > 2;
 
 
   const pipSupported =
