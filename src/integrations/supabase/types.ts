@@ -14,380 +14,247 @@ export type Database = {
   }
   public: {
     Tables: {
-      folders: {
+      playback_state: {
         Row: {
-          color: string | null
-          created_at: string
-          id: string
-          name: string
+          controlled_by: string | null
+          current_playlist_id: string | null
+          current_song_id: string | null
+          id: boolean
+          is_locked: boolean
+          is_playing: boolean
+          position_seconds: number
           updated_at: string
-          user_id: string
+          volume: number
         }
         Insert: {
-          color?: string | null
-          created_at?: string
-          id?: string
-          name: string
+          controlled_by?: string | null
+          current_playlist_id?: string | null
+          current_song_id?: string | null
+          id?: boolean
+          is_locked?: boolean
+          is_playing?: boolean
+          position_seconds?: number
           updated_at?: string
-          user_id: string
+          volume?: number
         }
         Update: {
-          color?: string | null
-          created_at?: string
-          id?: string
-          name?: string
+          controlled_by?: string | null
+          current_playlist_id?: string | null
+          current_song_id?: string | null
+          id?: boolean
+          is_locked?: boolean
+          is_playing?: boolean
+          position_seconds?: number
           updated_at?: string
-          user_id?: string
+          volume?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "playback_state_controlled_by_fkey"
+            columns: ["controlled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playback_state_current_playlist_id_fkey"
+            columns: ["current_playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playback_state_current_song_id_fkey"
+            columns: ["current_song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      playlist_tracks: {
+      playlist_songs: {
         Row: {
-          added_at: string
+          id: string
           playlist_id: string
-          position: number
-          track_id: string
-          user_id: string
+          posicao: number
+          song_id: string
         }
         Insert: {
-          added_at?: string
+          id?: string
           playlist_id: string
-          position: number
-          track_id: string
-          user_id: string
+          posicao?: number
+          song_id: string
         }
         Update: {
-          added_at?: string
+          id?: string
           playlist_id?: string
-          position?: number
-          track_id?: string
-          user_id?: string
+          posicao?: number
+          song_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "playlist_songs_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlist_songs_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       playlists: {
         Row: {
-          cover_url: string | null
           created_at: string
-          description: string | null
-          duration_total: number
+          created_by: string | null
           id: string
-          is_public: boolean
-          name: string
-          tracks_count: number
-          updated_at: string
-          user_id: string
+          nome: string
         }
         Insert: {
-          cover_url?: string | null
           created_at?: string
-          description?: string | null
-          duration_total?: number
+          created_by?: string | null
           id?: string
-          is_public?: boolean
-          name: string
-          tracks_count?: number
-          updated_at?: string
-          user_id: string
+          nome: string
         }
         Update: {
-          cover_url?: string | null
           created_at?: string
-          description?: string | null
-          duration_total?: number
+          created_by?: string | null
           id?: string
-          is_public?: boolean
-          name?: string
-          tracks_count?: number
-          updated_at?: string
-          user_id?: string
+          nome?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "playlists_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
-          avatar_url: string | null
-          bio: string | null
+          can_upload: boolean
           created_at: string
-          display_name: string | null
           id: string
-          preferences: Json
-          updated_at: string
-          username: string | null
+          nome: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["user_status"]
         }
         Insert: {
-          avatar_url?: string | null
-          bio?: string | null
+          can_upload?: boolean
           created_at?: string
-          display_name?: string | null
           id: string
-          preferences?: Json
-          updated_at?: string
-          username?: string | null
+          nome?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
         }
         Update: {
-          avatar_url?: string | null
-          bio?: string | null
+          can_upload?: boolean
           created_at?: string
-          display_name?: string | null
           id?: string
-          preferences?: Json
-          updated_at?: string
-          username?: string | null
+          nome?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
         }
         Relationships: []
       }
-      track_folders: {
+      queue: {
         Row: {
+          added_by: string | null
           created_at: string
-          folder_id: string
-          track_id: string
-          user_id: string
+          id: string
+          posicao: number
+          song_id: string
         }
         Insert: {
+          added_by?: string | null
           created_at?: string
-          folder_id: string
-          track_id: string
-          user_id: string
+          id?: string
+          posicao?: number
+          song_id: string
         }
         Update: {
+          added_by?: string | null
           created_at?: string
-          folder_id?: string
-          track_id?: string
-          user_id?: string
+          id?: string
+          posicao?: number
+          song_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "track_folders_folder_id_fkey"
-            columns: ["folder_id"]
+            foreignKeyName: "queue_added_by_fkey"
+            columns: ["added_by"]
             isOneToOne: false
-            referencedRelation: "folders"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "track_folders_track_id_fkey"
-            columns: ["track_id"]
+            foreignKeyName: "queue_song_id_fkey"
+            columns: ["song_id"]
             isOneToOne: false
-            referencedRelation: "tracks"
+            referencedRelation: "songs"
             referencedColumns: ["id"]
           },
         ]
       }
-      track_tags: {
+      songs: {
         Row: {
+          artista: string | null
           created_at: string
+          duracao_segundos: number | null
           id: string
-          tag: string
-          track_id: string
-          user_id: string
+          storage_path: string
+          titulo: string
+          uploaded_by: string | null
         }
         Insert: {
+          artista?: string | null
           created_at?: string
+          duracao_segundos?: number | null
           id?: string
-          tag: string
-          track_id: string
-          user_id: string
+          storage_path: string
+          titulo: string
+          uploaded_by?: string | null
         }
         Update: {
+          artista?: string | null
           created_at?: string
+          duracao_segundos?: number | null
           id?: string
-          tag?: string
-          track_id?: string
-          user_id?: string
+          storage_path?: string
+          titulo?: string
+          uploaded_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "track_tags_track_id_fkey"
-            columns: ["track_id"]
+            foreignKeyName: "songs_uploaded_by_fkey"
+            columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: "tracks"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
-      }
-      track_uploads: {
-        Row: {
-          created_at: string
-          error_message: string | null
-          file_name: string
-          file_size: number | null
-          id: string
-          progress: number
-          session_id: string
-          status: string
-          track_id: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          error_message?: string | null
-          file_name: string
-          file_size?: number | null
-          id?: string
-          progress?: number
-          session_id: string
-          status?: string
-          track_id?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          error_message?: string | null
-          file_name?: string
-          file_size?: number | null
-          id?: string
-          progress?: number
-          session_id?: string
-          status?: string
-          track_id?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      tracks: {
-        Row: {
-          album: string | null
-          artist: string | null
-          bitrate: number | null
-          content_hash: string | null
-          cover_url: string | null
-          created_at: string
-          duration: number | null
-          file_path: string
-          file_size: number | null
-          genre: string | null
-          id: string
-          is_favorite: boolean
-          last_played_at: string | null
-          mime_type: string | null
-          play_count: number
-          title: string
-          track_number: number | null
-          updated_at: string
-          user_id: string
-          year: number | null
-        }
-        Insert: {
-          album?: string | null
-          artist?: string | null
-          bitrate?: number | null
-          content_hash?: string | null
-          cover_url?: string | null
-          created_at?: string
-          duration?: number | null
-          file_path: string
-          file_size?: number | null
-          genre?: string | null
-          id?: string
-          is_favorite?: boolean
-          last_played_at?: string | null
-          mime_type?: string | null
-          play_count?: number
-          title: string
-          track_number?: number | null
-          updated_at?: string
-          user_id: string
-          year?: number | null
-        }
-        Update: {
-          album?: string | null
-          artist?: string | null
-          bitrate?: number | null
-          content_hash?: string | null
-          cover_url?: string | null
-          created_at?: string
-          duration?: number | null
-          file_path?: string
-          file_size?: number | null
-          genre?: string | null
-          id?: string
-          is_favorite?: boolean
-          last_played_at?: string | null
-          mime_type?: string | null
-          play_count?: number
-          title?: string
-          track_number?: number | null
-          updated_at?: string
-          user_id?: string
-          year?: number | null
-        }
-        Relationships: []
-      }
-      upload_sessions: {
-        Row: {
-          completed_files: number
-          created_at: string
-          failed_files: number
-          id: string
-          status: string
-          total_files: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          completed_files?: number
-          created_at?: string
-          failed_files?: number
-          id?: string
-          status?: string
-          total_files?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          completed_files?: number
-          created_at?: string
-          failed_files?: number
-          id?: string
-          status?: string
-          total_files?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      recompute_playlist_aggregates: {
-        Args: { _playlist_id: string }
-        Returns: undefined
-      }
+      can_user_upload: { Args: never; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
+      is_approved_member: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      user_role: "admin" | "operador"
+      user_status: "pendente" | "aprovado" | "recusado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -515,7 +382,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      user_role: ["admin", "operador"],
+      user_status: ["pendente", "aprovado", "recusado"],
     },
   },
 } as const
