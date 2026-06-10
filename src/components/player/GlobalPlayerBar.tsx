@@ -105,8 +105,21 @@ export function GlobalPlayerBar() {
   if (!currentTrack) return null;
 
   const pct = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
-  const hasPrev = index > 0;
-  const hasNext = index < queue.length - 1;
+  const hasPrev = mode === "playlist" ? index > 0 : true;
+  const hasNext =
+    mode === "playlist" ? index < queue.length - 1 : mode === "shuffle" ? queue.length > 1 : true;
+
+  const cycleMode = () => {
+    const order: PlayerMode[] = ["playlist", "shuffle", "radio"];
+    const i = order.indexOf(mode);
+    setMode(order[(i + 1) % order.length]);
+  };
+
+  const modeMeta: Record<PlayerMode, { label: string; Icon: typeof Shuffle }> = {
+    playlist: { label: "Playlist", Icon: ListMusic },
+    shuffle: { label: "Aleatório", Icon: Shuffle },
+    radio: { label: "Rádio", Icon: Radio },
+  };
 
   const onSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!duration) return;
