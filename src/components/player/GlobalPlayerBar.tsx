@@ -254,7 +254,19 @@ export function GlobalPlayerBar() {
                 {currentTrack.artista ?? "—"}
                 {queue.length > 1 && ` · ${index + 1}/${queue.length}`}
               </p>
+              {nextTrack && (
+                <p className="hidden md:block text-[10px] text-muted-foreground/80 truncate mt-0.5">
+                  <span className="uppercase tracking-wider">Próxima:</span>{" "}
+                  {nextTrack.titulo}
+                  {preloadedIds.has(nextTrack.id) && (
+                    <span className="ml-1 inline-flex items-center gap-0.5 text-primary">
+                      <Zap className="size-2.5" /> pronta
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
+
           </div>
 
           <div className="flex-1 flex flex-col items-center gap-1.5 max-w-2xl">
