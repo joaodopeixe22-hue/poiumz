@@ -25,7 +25,7 @@ type NavItemDef = {
 
 const nav: NavItemDef[] = [
   { to: "/dashboard", label: "Painel", icon: LayoutDashboard },
-  { to: "/dashboard/musicas", label: "Músicas", icon: Music, soon: true },
+  { to: "/dashboard/musicas", label: "Músicas", icon: Music },
   { to: "/dashboard/playlists", label: "Playlists", icon: ListMusic, soon: true },
   { to: "/dashboard/programacao", label: "Programação", icon: Radio, soon: true },
   { to: "/dashboard/usuarios", label: "Usuários", icon: Users, soon: true, adminOnly: true },
