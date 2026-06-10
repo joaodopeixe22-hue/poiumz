@@ -648,6 +648,69 @@ export function GlobalPlayerBar() {
               </section>
             )}
 
+            {isCrossfading && nextTrack && (
+              <section className="px-4 py-3 border-t bg-primary/5">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[10px] uppercase tracking-wider text-primary inline-flex items-center gap-1.5">
+                    <Zap className="size-3" /> Smart Mix em andamento
+                  </h3>
+                  <span className="text-[10px] text-muted-foreground tabular-nums">
+                    {Math.round(crossfadeProgress * 100)}%
+                  </span>
+                </div>
+                {(() => {
+                  // Equal-power gains for the live meters
+                  const t = Math.max(0, Math.min(1, crossfadeProgress));
+                  const out = Math.cos((t * Math.PI) / 2);
+                  const inc = Math.sin((t * Math.PI) / 2);
+                  return (
+                    <div className="space-y-2">
+                      <div>
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-0.5">
+                          <span className="truncate pr-2">
+                            ↓ {currentTrack?.titulo ?? "—"}
+                          </span>
+                          <span className="tabular-nums">
+                            {Math.round(out * 100)}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-border rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-muted-foreground/70 transition-[width] duration-75"
+                            style={{ width: `${out * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between text-[11px] text-foreground mb-0.5">
+                          <span className="truncate pr-2 font-medium">
+                            ↑ {nextTrack.titulo}
+                          </span>
+                          <span className="tabular-nums">
+                            {Math.round(inc * 100)}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-border rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-[width] duration-75"
+                            style={{ width: `${inc * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="h-1 bg-border rounded-full overflow-hidden mt-1">
+                        <div
+                          className="h-full bg-primary/60 transition-[width] duration-75"
+                          style={{ width: `${t * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </section>
+            )}
+
+
+
             <section className="px-4 py-3 border-t">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground">
