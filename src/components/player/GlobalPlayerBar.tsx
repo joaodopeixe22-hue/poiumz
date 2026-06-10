@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Play,
   Pause,
@@ -17,10 +17,28 @@ import {
   ListMusic,
   Repeat,
   Repeat1,
+  ListVideo,
+  Zap,
+  Trash2,
+  Check,
 } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
-import type { PlayerMode } from "@/contexts/AudioPlayerContext";
+import type { PlayerMode, PreloadCount } from "@/contexts/AudioPlayerContext";
 import { formatTime } from "@/lib/format";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 type DocumentPiP = {
   requestWindow: (opts?: { width?: number; height?: number }) => Promise<Window>;
