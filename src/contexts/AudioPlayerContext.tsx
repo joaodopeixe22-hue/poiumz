@@ -581,6 +581,31 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     [pruneAndPreload],
   );
 
+  const reorderQueue = useCallback(
+    (from: number, to: number) => {
+      const q = queueRef.current;
+      if (from === to) return;
+      if (from < 0 || from >= q.length) return;
+      if (to < 0 || to >= q.length) return;
+      const cur = indexRef.current;
+      // Don't move the currently-playing track
+      if (from === cur || to === cur) return;
+      const next = q.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      // Recompute index of the currently-playing track
+      let newIndex = cur;
+      if (from < cur && to >= cur) newIndex = cur - 1;
+      else if (from > cur && to <= cur) newIndex = cur + 1;
+      setQueue(next);
+      setIndex(newIndex);
+      queueRef.current = next;
+      indexRef.current = newIndex;
+      void pruneAndPreload();
+    },
+    [pruneAndPreload],
+  );
+
   const clearHistory = useCallback(() => {
     setHistory([]);
   }, []);
