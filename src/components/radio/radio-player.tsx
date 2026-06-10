@@ -247,9 +247,17 @@ export function RadioPlayer() {
     const a = audioRef.current;
     if (!a) return;
     try {
+      ensureAudioGraph();
+      const ctx = audioCtxRef.current;
+      if (ctx && ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      a.volume = 1;
       a.currentTime = computeLivePosition(playback);
       await a.play();
       setLocalPlaying(true);
+      targetVolumeRef.current = targetVolume();
+      fadeTo(targetVolumeRef.current, FADE_IN_SECONDS);
     } catch {
       // ignore
     }
