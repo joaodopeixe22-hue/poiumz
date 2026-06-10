@@ -3,6 +3,7 @@ import { Play, Pause, Volume2, VolumeX, Radio, Megaphone, Lock } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { usePlayback, computeLivePosition } from "@/hooks/use-playback";
+import { useRadioSettings } from "@/hooks/use-radio-settings";
 
 type CurrentItem = {
   kind: "song" | "institutional";
@@ -19,6 +20,7 @@ const INSTITUTIONAL_BUCKET = "institutional";
 export function RadioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const { playback, next } = usePlayback();
+  const { settings } = useRadioSettings();
   const [current, setCurrent] = useState<CurrentItem | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -108,6 +110,14 @@ export function RadioPlayer() {
       setLocalPlaying(false);
     }
   }, [audioUrl, playback?.is_playing, playback?.started_at, playback]);
+
+  // Aplica volume padrão das configurações ao iniciar reprodução
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a || !playback?.is_playing) return;
+    const defaultVol = settings?.default_volume ?? 80;
+    a.volume = Math.max(0, Math.min(1, defaultVol / 100));
+  }, [playback?.is_playing, settings?.default_volume]);
 
   // Tick local para barra de progresso + auto-avanço
   useEffect(() => {
@@ -265,6 +275,8 @@ export function RadioPlayer() {
             } catch {
               // ignore
             }
+            const defaultVol = settings?.default_volume ?? 80;
+            a.volume = Math.max(0, Math.min(1, defaultVol / 100));
           }}
         />
       </div>
