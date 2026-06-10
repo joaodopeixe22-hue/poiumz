@@ -39,6 +39,7 @@ export function GlobalPlayerBar() {
     queue,
     index,
     mode,
+    repeat,
     isPlaying,
     duration,
     position,
@@ -49,6 +50,7 @@ export function GlobalPlayerBar() {
     seek,
     setVolume,
     setMode,
+    cycleRepeat,
     stop,
   } = useAudioPlayer();
   const [muted, setMuted] = useState(false);
