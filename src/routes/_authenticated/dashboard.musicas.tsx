@@ -299,7 +299,7 @@ function MusicasPage() {
                     )}
                     <td className="py-3 px-4">
                       {(() => {
-                        const isThis = player.current?.id === song.id;
+                        const isThis = player.currentTrack?.id === song.id;
                         const showPause = isThis && player.isPlaying;
                         return (
                           <button
