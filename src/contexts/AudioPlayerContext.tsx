@@ -10,6 +10,13 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import {
+  insertAfterCurrent,
+  insertAsNext,
+  insertMultipleAfterCurrent,
+  appendToQueue,
+  clearManual,
+} from "@/lib/playback-queue";
 
 export type AudioTrack = {
   id: string;
