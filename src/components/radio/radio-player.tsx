@@ -186,12 +186,11 @@ export function RadioPlayer() {
 
     const srcChanged = a.src !== audioUrl;
     if (srcChanged) {
-      console.log("[radio-player] aplicando src", audioUrl);
       a.src = audioUrl;
       a.load();
+      logRadio("src_applied", { url: audioUrl });
     }
 
-    // Volume direto no elemento (sem Web Audio para evitar conflito com autoplay policy)
     a.volume = targetVolume();
 
     const pos = computeLivePosition(playback);
@@ -205,22 +204,29 @@ export function RadioPlayer() {
 
     if (playback?.is_playing) {
       setLoadError(null);
+      logRadio("play_attempt", {
+        trigger: "auto",
+        url: audioUrl,
+        seek_to: pos,
+      });
       const playPromise = a.play();
       if (playPromise && typeof playPromise.then === "function") {
         playPromise
           .then(() => {
-            console.log("[radio-player] play() ok");
+            logRadio("play_success", { trigger: "auto" });
             setNeedsGesture(false);
             setLocalPlaying(true);
           })
           .catch((err) => {
-            console.warn("[radio-player] play() bloqueado/falhou:", err?.name, err?.message);
-            setLocalPlaying(false);
-            if (err?.name === "NotAllowedError" || err?.name === "AbortError") {
+            const e = err as { name?: string; message?: string };
+            if (e?.name === "NotAllowedError" || e?.name === "AbortError") {
+              logRadio("play_blocked", { name: e?.name, message: e?.message });
               setNeedsGesture(true);
             } else {
-              setLoadError(err?.message ?? "Falha ao iniciar a reprodução");
+              logRadio("play_failed", { name: e?.name, message: e?.message });
+              setLoadError(e?.message ?? "Falha ao iniciar a reprodução");
             }
+            setLocalPlaying(false);
           });
       }
     } else {
