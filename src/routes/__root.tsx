@@ -10,6 +10,7 @@ import {
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { installRealtimeDebug } from "@/lib/realtime-debug";
 
 import appCss from "../styles.css?url";
 
@@ -153,6 +154,7 @@ function AuthSync() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => installRealtimeDebug(), []);
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSync />
