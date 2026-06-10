@@ -160,37 +160,61 @@ export function RadioPlayer() {
     const a = audioRef.current;
     if (!a || !audioUrl) return;
     const targetSrc = audioUrl;
-    if (a.src !== targetSrc) {
-      a.src = targetSrc;
-    }
-    const pos = computeLivePosition(playback);
-    // tolera pequena diferença para não "engasgar"
-    if (Math.abs(a.currentTime - pos) > 1.5) {
-      try {
-        a.currentTime = pos;
-      } catch {
-        // alguns navegadores precisam de loadedmetadata
+    const srcChanged = a.src !== targetSrc;
+    const applySrcAndPlay = () => {
+      if (srcChanged) {
+        a.src = targetSrc;
       }
-    }
-    if (playback?.is_playing) {
-      a.play()
-        .then(() => setLocalPlaying(true))
-        .catch(() => {
-          // bloqueio de autoplay — usuário precisa clicar uma vez
+      const pos = computeLivePosition(playback);
+      if (Math.abs(a.currentTime - pos) > 1.5) {
+        try {
+          a.currentTime = pos;
+        } catch {
+          // ignore
+        }
+      }
+      if (playback?.is_playing) {
+        // garante volume base no elemento; o gain controla o fade
+        a.volume = 1;
+        ensureAudioGraph();
+        const ctx = audioCtxRef.current;
+        if (ctx && ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
+        a.play()
+          .then(() => {
+            setLocalPlaying(true);
+            targetVolumeRef.current = targetVolume();
+            fadeTo(targetVolumeRef.current, srcChanged ? TRACK_CHANGE_FADE : FADE_IN_SECONDS);
+          })
+          .catch(() => {
+            setLocalPlaying(false);
+          });
+      } else {
+        // fade-out e então pausa
+        fadeTo(0, FADE_OUT_SECONDS);
+        window.setTimeout(() => {
+          a.pause();
           setLocalPlaying(false);
-        });
+        }, FADE_OUT_SECONDS * 1000 + 50);
+      }
+    };
+
+    if (srcChanged && !a.paused) {
+      // troca de faixa em pleno ar: fade-out curto antes de trocar o src
+      fadeTo(0, TRACK_CHANGE_FADE);
+      window.setTimeout(applySrcAndPlay, TRACK_CHANGE_FADE * 1000 + 30);
     } else {
-      a.pause();
-      setLocalPlaying(false);
+      applySrcAndPlay();
     }
   }, [audioUrl, playback?.is_playing, playback?.started_at, playback]);
 
-  // Aplica volume padrão das configurações ao iniciar reprodução
+  // Aplica volume padrão das configurações: ajusta o alvo do gain
   useEffect(() => {
-    const a = audioRef.current;
-    if (!a || !playback?.is_playing) return;
-    const defaultVol = settings?.default_volume ?? 80;
-    a.volume = Math.max(0, Math.min(1, defaultVol / 100));
+    targetVolumeRef.current = targetVolume();
+    if (playback?.is_playing && gainRef.current) {
+      fadeTo(targetVolumeRef.current, 0.3);
+    }
   }, [playback?.is_playing, settings?.default_volume]);
 
   // Tick local para barra de progresso + auto-avanço
