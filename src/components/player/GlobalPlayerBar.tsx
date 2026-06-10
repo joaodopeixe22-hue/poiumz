@@ -21,6 +21,7 @@ import {
   Zap,
   Trash2,
   Check,
+  GripVertical,
 } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import type { PlayerMode, PreloadCount } from "@/contexts/AudioPlayerContext";
