@@ -1180,6 +1180,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       clearManualQueue,
       clearHistory,
       getUpcomingTracks,
+      smartMix,
+      setSmartMix,
+      isCrossfading,
     }),
     [
       currentTrack,
@@ -1217,6 +1220,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       clearManualQueue,
       clearHistory,
       getUpcomingTracks,
+      smartMix,
+      setSmartMix,
+      isCrossfading,
     ],
   );
 
