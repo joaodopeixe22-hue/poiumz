@@ -1,6 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, Search, Music } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  Search,
+  Music,
+  Play,
+  Pause,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +23,7 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 import { useSongs } from "@/hooks/use-songs";
 import { usePlaylist } from "@/hooks/use-playlists";
+import { usePreviewPlayer, type PreviewTrack } from "@/hooks/use-preview-player";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { toast } from "sonner";
