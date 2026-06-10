@@ -92,22 +92,23 @@ function MusicasPage() {
   };
 
   const togglePlay = async (song: Song) => {
-    if (playingId === song.id) {
-      audioRef.current?.pause();
-      setPlayingId(null);
+    if (player.current?.id === song.id && player.isPlaying) {
+      await player.toggle();
       return;
     }
-    try {
-      const url = getSongPublicUrl(song.storage_path);
-      if (!audioRef.current) audioRef.current = new Audio();
-      audioRef.current.src = url;
-      audioRef.current.onended = () => setPlayingId(null);
-      await audioRef.current.play();
-      setPlayingId(song.id);
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível reproduzir");
+    if (player.current?.id === song.id && !player.isPlaying) {
+      await player.toggle();
+      return;
     }
+    await player.playTrack({
+      id: song.id,
+      titulo: song.titulo,
+      artista: song.artista,
+      duracao_segundos: song.duracao_segundos,
+      storage_path: song.storage_path,
+    });
   };
+
 
   const confirmDelete = async () => {
     if (!deleting) return;
