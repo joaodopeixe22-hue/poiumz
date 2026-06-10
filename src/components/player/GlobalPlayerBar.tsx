@@ -84,6 +84,7 @@ export function GlobalPlayerBar() {
     smartMix,
     setSmartMix,
     isCrossfading,
+    crossfadeProgress,
   } = useAudioPlayer();
   const [muted, setMuted] = useState(false);
   const [expanded, setExpanded] = useState(false);
