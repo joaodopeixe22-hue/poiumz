@@ -573,13 +573,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       if (!isActive(el)) return;
       if (inCrossfadeRef.current) return;
       if (modeRef.current === "radio") return;
-      const settings = smartMixRef.current;
-      if (!settings.enabled) return;
       const dur = el.duration;
       if (!Number.isFinite(dur) || dur <= 0) return;
-      const remaining = dur - el.currentTime;
-      if (remaining > settings.durationSec + 0.15) return;
-      if (remaining <= 0) return;
+      if (repeatRef.current === "one") return; // never crossfade into self
       // Determine next index respecting repeat
       const q = queueRef.current;
       const cur = indexRef.current;
@@ -588,10 +584,16 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         if (repeatRef.current === "all" && q.length > 0) nextI = 0;
         else return;
       }
-      if (repeatRef.current === "one") return; // never crossfade into self
       const curTrack = q[cur];
       const nextTrack = q[nextI];
       if (!curTrack || !nextTrack) return;
+      // Resolve effective Smart Mix settings (global + per-playlist override
+      // for the CURRENT track's source playlist).
+      const settings = resolveEffectiveSmartMix(curTrack.sourcePlaylistId ?? null);
+      if (!settings.enabled) return;
+      const remaining = dur - el.currentTime;
+      if (remaining > settings.durationSec + 0.15) return;
+      if (remaining <= 0) return;
       if (
         !shouldCrossfade(curTrack.kind, nextTrack.kind, settings, {
           nextIsManual: !!nextTrack.manuallyQueued,
