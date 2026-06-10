@@ -119,12 +119,24 @@ type RemoteEvent =
   | { type: "jump"; index: number };
 
 export function AudioPlayerProvider({ children }: { children: ReactNode }) {
+  // Dual audio elements for Smart Mix crossfading.
+  // `audioRef` is a facade always pointing at the currently-active element.
+  const audioARef = useRef<HTMLAudioElement | null>(null);
+  const audioBRef = useRef<HTMLAudioElement | null>(null);
+  const activeKeyRef = useRef<"A" | "B">("A");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const queueRef = useRef<AudioTrack[]>([]);
   const indexRef = useRef(0);
   const modeRef = useRef<PlayerMode>("playlist");
   const repeatRef = useRef<RepeatMode>("all");
   const shuffleHistRef = useRef<number[]>([]);
+
+  // Smart Mix crossfade engine state
+  const inCrossfadeRef = useRef(false);
+  const crossfadeTimerRef = useRef<number | null>(null);
+  const smartMixRef = useRef<SmartMixSettings>(DEFAULT_SMART_MIX);
+  const [smartMix, setSmartMixState] = useState<SmartMixSettings>(DEFAULT_SMART_MIX);
+  const [isCrossfading, setIsCrossfading] = useState(false);
 
   // Sync: broadcast channel + echo guard
   const channelRef = useRef<RealtimeChannel | null>(null);
