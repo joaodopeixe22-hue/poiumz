@@ -618,11 +618,64 @@ export function GlobalPlayerBar() {
                   {upcoming.map((t, i) => {
                     const queueIdx = (index + 1 + i) % Math.max(queue.length, 1);
                     const preloaded = preloadedIds.has(t.id);
+                    const isDragging = dragQueueIdx === queueIdx;
+                    const isDragOver =
+                      dragOverQueueIdx === queueIdx && dragQueueIdx !== queueIdx;
                     return (
                       <li
                         key={`${t.id}-${i}`}
-                        className="group flex items-center gap-3 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+                        draggable={canReorder}
+                        onDragStart={(e) => {
+                          if (!canReorder) return;
+                          setDragQueueIdx(queueIdx);
+                          e.dataTransfer.effectAllowed = "move";
+                          try {
+                            e.dataTransfer.setData("text/plain", String(queueIdx));
+                          } catch {
+                            /* ignore */
+                          }
+                        }}
+                        onDragOver={(e) => {
+                          if (!canReorder || dragQueueIdx === null) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          if (dragOverQueueIdx !== queueIdx) {
+                            setDragOverQueueIdx(queueIdx);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverQueueIdx === queueIdx) {
+                            setDragOverQueueIdx(null);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (!canReorder || dragQueueIdx === null) return;
+                          reorderQueue(dragQueueIdx, queueIdx);
+                          setDragQueueIdx(null);
+                          setDragOverQueueIdx(null);
+                        }}
+                        onDragEnd={() => {
+                          setDragQueueIdx(null);
+                          setDragOverQueueIdx(null);
+                        }}
+                        className={`group flex items-center gap-2 p-2 rounded-md transition-colors ${
+                          isDragging
+                            ? "opacity-40 bg-secondary/50"
+                            : isDragOver
+                              ? "bg-primary/10 ring-1 ring-primary/40"
+                              : "hover:bg-secondary/50"
+                        }`}
                       >
+                        {canReorder && (
+                          <span
+                            className="cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground touch-none"
+                            aria-label="Arrastar para reordenar"
+                            title="Arrastar para reordenar"
+                          >
+                            <GripVertical className="size-3.5" />
+                          </span>
+                        )}
                         <span className="w-5 text-xs text-muted-foreground tabular-nums text-right">
                           {i + 1}
                         </span>
@@ -661,6 +714,7 @@ export function GlobalPlayerBar() {
                     );
                   })}
                 </ul>
+
               )}
             </section>
 
