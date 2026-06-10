@@ -275,6 +275,8 @@ export function RadioPlayer() {
             } catch {
               // ignore
             }
+            const defaultVol = settings?.default_volume ?? 80;
+            a.volume = Math.max(0, Math.min(1, defaultVol / 100));
           }}
         />
       </div>
