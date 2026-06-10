@@ -109,9 +109,13 @@ export function GlobalPlayerBar() {
   if (!currentTrack) return null;
 
   const pct = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
-  const hasPrev = mode === "playlist" ? index > 0 : true;
+  const hasPrev = mode === "playlist" ? index > 0 || repeat === "all" : true;
   const hasNext =
-    mode === "playlist" ? index < queue.length - 1 : mode === "shuffle" ? queue.length > 1 : true;
+    mode === "playlist"
+      ? index < queue.length - 1 || repeat === "all"
+      : mode === "shuffle"
+        ? queue.length > 1
+        : true;
 
   const cycleMode = () => {
     const order: PlayerMode[] = ["playlist", "shuffle", "radio"];
