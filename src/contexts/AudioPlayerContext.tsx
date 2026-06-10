@@ -18,6 +18,8 @@ export type AudioTrack = {
   duracao_segundos: number | null;
   storage_path?: string;
   url?: string;
+  sourcePlaylistId?: string | null;
+  manuallyQueued?: boolean;
 };
 
 export type PlayerMode = "playlist" | "shuffle" | "radio";
@@ -52,7 +54,13 @@ type AudioPlayerContextValue = {
   stop: () => void;
   jumpToTrack: (index: number) => Promise<void>;
   removeFromQueue: (index: number) => void;
+  removeFromQueueById: (id: string) => void;
   reorderQueue: (from: number, to: number) => void;
+  moveQueueItem: (from: number, to: number) => void;
+  addToQueue: (track: AudioTrack) => void;
+  addNext: (track: AudioTrack) => void;
+  addMultipleToQueue: (tracks: AudioTrack[]) => void;
+  clearManualQueue: () => void;
   clearHistory: () => void;
   getUpcomingTracks: (limit?: number) => AudioTrack[];
 };
