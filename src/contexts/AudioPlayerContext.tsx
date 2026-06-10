@@ -228,7 +228,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
     const q = queueRef.current;
     const ni = indexRef.current + 1;
-    if (ni >= q.length) return;
+    if (ni >= q.length) {
+      // Fila acabou — em playlist com repeat=all, recomeça do início (fila contínua)
+      if (repeatRef.current === "all" && q.length > 0) {
+        await goToIndex(0);
+      }
+      return;
+    }
     await goToIndex(ni);
   }, [goToIndex, pickShuffleIndex]);
 
