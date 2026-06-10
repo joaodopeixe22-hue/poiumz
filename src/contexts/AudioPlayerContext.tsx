@@ -137,6 +137,12 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const smartMixRef = useRef<SmartMixSettings>(DEFAULT_SMART_MIX);
   const [smartMix, setSmartMixState] = useState<SmartMixSettings>(DEFAULT_SMART_MIX);
   const [isCrossfading, setIsCrossfading] = useState(false);
+  // Live crossfade progress in [0..1]; 0 when no crossfade is active.
+  const [crossfadeProgress, setCrossfadeProgress] = useState(0);
+  // Per-playlist Smart Mix overrides; loaded lazily as playlists touch them.
+  const playlistOverridesRef = useRef<Map<string, Partial<SmartMixSettings>>>(
+    new Map(),
+  );
 
   // Sync: broadcast channel + echo guard
   const channelRef = useRef<RealtimeChannel | null>(null);
