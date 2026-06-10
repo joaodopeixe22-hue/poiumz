@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardMusicasRouteImport } from './routes/_authenticated/dashboard.musicas'
+import { Route as AuthenticatedDashboardInstitucionalRouteImport } from './routes/_authenticated/dashboard.institucional'
 import { Route as AuthenticatedDashboardPlaylistsIndexRouteImport } from './routes/_authenticated/dashboard.playlists.index'
 import { Route as AuthenticatedDashboardPlaylistsPlaylistIdRouteImport } from './routes/_authenticated/dashboard.playlists.$playlistId'
 
@@ -67,6 +68,12 @@ const AuthenticatedDashboardMusicasRoute =
     path: '/musicas',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardInstitucionalRoute =
+  AuthenticatedDashboardInstitucionalRouteImport.update({
+    id: '/institucional',
+    path: '/institucional',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardPlaylistsIndexRoute =
   AuthenticatedDashboardPlaylistsIndexRouteImport.update({
     id: '/playlists/',
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/dashboard/institucional': typeof AuthenticatedDashboardInstitucionalRoute
   '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/playlists/$playlistId': typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/dashboard/institucional': typeof AuthenticatedDashboardInstitucionalRoute
   '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/playlists/$playlistId': typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
@@ -112,6 +121,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_authenticated/dashboard/institucional': typeof AuthenticatedDashboardInstitucionalRoute
   '/_authenticated/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/playlists/$playlistId': typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/dashboard'
+    | '/dashboard/institucional'
     | '/dashboard/musicas'
     | '/dashboard/'
     | '/dashboard/playlists/$playlistId'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/dashboard/institucional'
     | '/dashboard/musicas'
     | '/dashboard'
     | '/dashboard/playlists/$playlistId'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_authenticated/dashboard'
+    | '/_authenticated/dashboard/institucional'
     | '/_authenticated/dashboard/musicas'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/playlists/$playlistId'
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardMusicasRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/institucional': {
+      id: '/_authenticated/dashboard/institucional'
+      path: '/institucional'
+      fullPath: '/dashboard/institucional'
+      preLoaderRoute: typeof AuthenticatedDashboardInstitucionalRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/playlists/': {
       id: '/_authenticated/dashboard/playlists/'
       path: '/playlists'
@@ -248,6 +268,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardInstitucionalRoute: typeof AuthenticatedDashboardInstitucionalRoute
   AuthenticatedDashboardMusicasRoute: typeof AuthenticatedDashboardMusicasRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardPlaylistsPlaylistIdRoute: typeof AuthenticatedDashboardPlaylistsPlaylistIdRoute
@@ -256,6 +277,8 @@ interface AuthenticatedDashboardRouteChildren {
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
+    AuthenticatedDashboardInstitucionalRoute:
+      AuthenticatedDashboardInstitucionalRoute,
     AuthenticatedDashboardMusicasRoute: AuthenticatedDashboardMusicasRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardPlaylistsPlaylistIdRoute:
@@ -292,3 +315,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
