@@ -54,8 +54,9 @@ function PlaylistDetailPage() {
           artista: it.song!.artista,
           duracao_segundos: it.song!.duracao_segundos,
           storage_path: it.song!.storage_path,
+          sourcePlaylistId: playlistId,
         })),
-    [items],
+    [items, playlistId],
   );
 
   const playFromIndex = (i: number) => {
