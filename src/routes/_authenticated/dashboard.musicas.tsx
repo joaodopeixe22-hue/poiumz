@@ -42,8 +42,7 @@ function MusicasPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkRunning, setBulkRunning] = useState(false);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const player = usePreviewPlayer();
 
   const canUpload = !!profile?.can_upload || profile?.role === "admin";
   const isAdmin = profile?.role === "admin";
