@@ -14,12 +14,52 @@ export type Database = {
   }
   public: {
     Tables: {
+      institutional_contents: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          duracao_segundos: number | null
+          frequencia_musicas: number | null
+          horario: string | null
+          id: string
+          storage_path: string
+          tipo: Database["public"]["Enums"]["institutional_type"]
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          duracao_segundos?: number | null
+          frequencia_musicas?: number | null
+          horario?: string | null
+          id?: string
+          storage_path: string
+          tipo: Database["public"]["Enums"]["institutional_type"]
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          duracao_segundos?: number | null
+          frequencia_musicas?: number | null
+          horario?: string | null
+          id?: string
+          storage_path?: string
+          tipo?: Database["public"]["Enums"]["institutional_type"]
+          titulo?: string
+        }
+        Relationships: []
+      }
       playback_state: {
         Row: {
           controlled_by: string | null
           current_playlist_id: string | null
           current_song_id: string | null
           id: boolean
+          institutional_enabled: boolean
           is_locked: boolean
           is_playing: boolean
           position_seconds: number
@@ -31,6 +71,7 @@ export type Database = {
           current_playlist_id?: string | null
           current_song_id?: string | null
           id?: boolean
+          institutional_enabled?: boolean
           is_locked?: boolean
           is_playing?: boolean
           position_seconds?: number
@@ -42,6 +83,7 @@ export type Database = {
           current_playlist_id?: string | null
           current_song_id?: string | null
           id?: boolean
+          institutional_enabled?: boolean
           is_locked?: boolean
           is_playing?: boolean
           position_seconds?: number
@@ -253,6 +295,7 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
+      institutional_type: "vinheta" | "aviso"
       user_role: "admin" | "operador"
       user_status: "pendente" | "aprovado" | "recusado"
     }
@@ -382,6 +425,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      institutional_type: ["vinheta", "aviso"],
       user_role: ["admin", "operador"],
       user_status: ["pendente", "aprovado", "recusado"],
     },
