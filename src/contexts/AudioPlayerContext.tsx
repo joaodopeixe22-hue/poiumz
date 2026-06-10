@@ -763,6 +763,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       duration,
       position,
       volume,
+      history,
+      preloadedIds,
+      preloadCount,
+      setPreloadCount,
       playTrack,
       playQueue,
       toggle,
@@ -774,6 +778,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setRepeat,
       cycleRepeat,
       stop,
+      jumpToTrack,
+      removeFromQueue,
+      clearHistory,
+      getUpcomingTracks,
     }),
     [
       currentTrack,
@@ -785,6 +793,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       duration,
       position,
       volume,
+      history,
+      preloadedIds,
+      preloadCount,
+      setPreloadCount,
       playTrack,
       playQueue,
       toggle,
@@ -796,8 +808,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setRepeat,
       cycleRepeat,
       stop,
+      jumpToTrack,
+      removeFromQueue,
+      clearHistory,
+      getUpcomingTracks,
     ],
   );
+
 
   return (
     <AudioPlayerContext.Provider value={value}>{children}</AudioPlayerContext.Provider>
