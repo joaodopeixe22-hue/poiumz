@@ -615,6 +615,9 @@ export function GlobalPlayerBar() {
             </label>
           </div>
 
+          <div className="flex-1 overflow-y-auto">
+
+
 
             {currentTrack && (
               <section className="px-4 py-3">
