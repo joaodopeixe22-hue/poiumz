@@ -583,6 +583,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       queue,
       index,
       mode,
+      repeat,
       isPlaying,
       duration,
       position,
@@ -595,6 +596,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       seek,
       setVolume,
       setMode,
+      setRepeat,
+      cycleRepeat,
       stop,
     }),
     [
@@ -602,6 +605,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       queue,
       index,
       mode,
+      repeat,
       isPlaying,
       duration,
       position,
@@ -614,6 +618,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       seek,
       setVolume,
       setMode,
+      setRepeat,
+      cycleRepeat,
       stop,
     ],
   );
