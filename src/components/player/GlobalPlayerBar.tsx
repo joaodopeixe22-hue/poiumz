@@ -78,6 +78,7 @@ export function GlobalPlayerBar() {
     jumpToTrack,
     removeFromQueue,
     reorderQueue,
+    clearManualQueue,
     clearHistory,
     getUpcomingTracks,
   } = useAudioPlayer();
