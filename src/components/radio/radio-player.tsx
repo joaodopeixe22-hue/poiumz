@@ -372,6 +372,7 @@ export function RadioPlayer() {
         <audio
           ref={audioRef}
           preload="auto"
+          crossOrigin="anonymous"
           onLoadedMetadata={() => {
             const a = audioRef.current;
             if (!a) return;
@@ -381,8 +382,8 @@ export function RadioPlayer() {
             } catch {
               // ignore
             }
-            const defaultVol = settings?.default_volume ?? 80;
-            a.volume = Math.max(0, Math.min(1, defaultVol / 100));
+            // o elemento fica em volume cheio; o GainNode controla volume + fades
+            a.volume = 1;
           }}
         />
       </div>
