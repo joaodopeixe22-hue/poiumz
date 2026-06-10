@@ -277,17 +277,36 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const handleEnded = useCallback(async () => {
     const m = modeRef.current;
     if (m === "radio") return; // rádio avança via realtime do playback_state
+    // repeat=one: reinicia a faixa atual
+    if (repeatRef.current === "one") {
+      const a = audioRef.current;
+      if (a) {
+        a.currentTime = 0;
+        setPosition(0);
+        try {
+          await a.play();
+        } catch {
+          /* ignore */
+        }
+      }
+      return;
+    }
     if (m === "shuffle") {
       await advanceNext();
       return;
     }
     const q = queueRef.current;
     if (indexRef.current + 1 >= q.length) {
+      // Fim da fila: loop contínuo se repeat=all
+      if (repeatRef.current === "all" && q.length > 0) {
+        await goToIndex(0);
+        return;
+      }
       setIsPlaying(false);
       return;
     }
     await advanceNext();
-  }, [advanceNext]);
+  }, [advanceNext, goToIndex]);
 
   const playQueue = useCallback(
     async (tracks: AudioTrack[], startIndex = 0) => {
