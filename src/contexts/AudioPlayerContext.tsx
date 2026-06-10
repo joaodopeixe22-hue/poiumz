@@ -74,6 +74,7 @@ type RemoteEvent =
   | { type: "toggle"; play: boolean }
   | { type: "seek"; position: number }
   | { type: "set_mode"; mode: PlayerMode }
+  | { type: "set_repeat"; repeat: RepeatMode }
   | { type: "stop" }
   | { type: "jump"; index: number };
 
