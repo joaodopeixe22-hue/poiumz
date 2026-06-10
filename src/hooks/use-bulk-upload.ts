@@ -177,7 +177,7 @@ export function useBulkUpload() {
         update(item.id, { status: "done", progress: 100, trackId });
         updateSessionFn({ data: { sessionId, completedDelta: 1 } }).catch(() => {});
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Upload failed";
+        const msg = e instanceof Error ? e.message : "Falha no envio";
         const attempts =
           useUploadStore.getState().items.find((x) => x.id === item.id)?.attempts ?? 1;
         if (attempts < MAX_ATTEMPTS && !cancelledRef.current.has(item.id)) {
@@ -207,7 +207,7 @@ export function useBulkUpload() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
-        toast.error("Sign in required.");
+        toast.error("Login necessário.");
         return;
       }
       const valid: File[] = [];
@@ -237,7 +237,7 @@ export function useBulkUpload() {
         sessionId = r.sessionId;
         setSession(sessionId);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Failed to start session");
+        toast.error(e instanceof Error ? e.message : "Falha ao iniciar a sessão");
         return;
       }
 

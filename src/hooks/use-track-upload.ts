@@ -108,7 +108,7 @@ export function useTrackUpload() {
 
         update(item.id, { status: "done", progress: 100, trackId });
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Upload failed";
+        const msg = e instanceof Error ? e.message : "Falha no envio";
         update(item.id, { status: "error", error: msg, progress: 0 });
       }
     },
@@ -122,7 +122,7 @@ export function useTrackUpload() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
-        toast.error("Sign in required.");
+        toast.error("Login necessário.");
         return;
       }
       const valid: File[] = [];
