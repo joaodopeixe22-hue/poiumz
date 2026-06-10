@@ -274,6 +274,11 @@ export function GlobalPlayerBar() {
                       <Zap className="size-2.5" /> pronta
                     </span>
                   )}
+                  {isCrossfading && (
+                    <span className="ml-1 inline-flex items-center gap-0.5 text-primary">
+                      · mixando
+                    </span>
+                  )}
                 </p>
               )}
             </div>
