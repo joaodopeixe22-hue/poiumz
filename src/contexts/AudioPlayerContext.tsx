@@ -116,9 +116,35 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const echoRef = useRef(false);
 
-  const [queue, setQueue] = useState<AudioTrack[]>([]);
-  const [index, setIndex] = useState(0);
-  const [mode, setModeState] = useState<PlayerMode>("playlist");
+  // Restore persisted queue/index/mode/history from localStorage
+  const persisted = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem("global-player-state");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        queue?: AudioTrack[];
+        index?: number;
+        mode?: PlayerMode;
+        history?: HistoryItem[];
+      };
+      return parsed;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const [queue, setQueue] = useState<AudioTrack[]>(
+    () => (Array.isArray(persisted?.queue) ? (persisted!.queue as AudioTrack[]) : []),
+  );
+  const [index, setIndex] = useState(
+    () => (typeof persisted?.index === "number" ? persisted!.index : 0),
+  );
+  const [mode, setModeState] = useState<PlayerMode>(
+    () => (persisted?.mode === "playlist" || persisted?.mode === "shuffle" || persisted?.mode === "radio"
+      ? persisted.mode
+      : "playlist"),
+  );
   const [repeat, setRepeatState] = useState<RepeatMode>(() => {
     if (typeof window === "undefined") return "all";
     const r = localStorage.getItem("global-player-repeat") as RepeatMode | null;
@@ -133,7 +159,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.8;
   });
 
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>(
+    () => (Array.isArray(persisted?.history) ? (persisted!.history as HistoryItem[]) : []),
+  );
   const [preloadCount, setPreloadCountState] = useState<PreloadCount>(() => {
     if (typeof window === "undefined") return 3;
     const n = Number(localStorage.getItem("global-player-preload-count"));
