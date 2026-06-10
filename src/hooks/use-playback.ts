@@ -40,14 +40,14 @@ export function usePlayback() {
 
   useEffect(() => {
     refresh();
-    const ch = supabase
-      .channel("playback-state-hook")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "playback_state" },
-        (payload) => setPlayback(payload.new as PlaybackState),
-      )
-      .subscribe();
+    const ch = supabase.channel(
+      `playback-state-hook-${Math.random().toString(36).slice(2)}`,
+    );
+    ch.on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "playback_state" },
+      (payload) => setPlayback(payload.new as PlaybackState),
+    ).subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
