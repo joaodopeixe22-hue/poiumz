@@ -84,6 +84,21 @@ type AudioPlayerContextValue = {
   smartMix: SmartMixSettings;
   setSmartMix: (s: Partial<SmartMixSettings>) => void;
   isCrossfading: boolean;
+  /** 0..1 progress of the active crossfade; 0 when idle. */
+  crossfadeProgress: number;
+  /** Read the override (if any) for a playlist's Smart Mix settings. */
+  getPlaylistSmartMix: (
+    playlistId: string | null | undefined,
+  ) => Partial<SmartMixSettings> | null;
+  /** Save or clear (`null`) the per-playlist Smart Mix override. */
+  setPlaylistSmartMix: (
+    playlistId: string,
+    partial: Partial<SmartMixSettings> | null,
+  ) => void;
+  /** Effective settings = global merged with override. */
+  resolveEffectiveSmartMix: (
+    playlistId: string | null | undefined,
+  ) => SmartMixSettings;
 };
 
 export const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
@@ -137,6 +152,12 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const smartMixRef = useRef<SmartMixSettings>(DEFAULT_SMART_MIX);
   const [smartMix, setSmartMixState] = useState<SmartMixSettings>(DEFAULT_SMART_MIX);
   const [isCrossfading, setIsCrossfading] = useState(false);
+  // Live crossfade progress in [0..1]; 0 when no crossfade is active.
+  const [crossfadeProgress, setCrossfadeProgress] = useState(0);
+  // Per-playlist Smart Mix overrides; loaded lazily as playlists touch them.
+  const playlistOverridesRef = useRef<Map<string, Partial<SmartMixSettings>>>(
+    new Map(),
+  );
 
   // Sync: broadcast channel + echo guard
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -228,6 +249,76 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setSmartMixState(next);
     saveSmartMixSettings(next);
   }, []);
+
+  // --- Per-playlist Smart Mix overrides (localStorage-backed) ---------------
+  const playlistKey = (id: string) => `global-player-smartmix-playlist:${id}`;
+
+  const getPlaylistSmartMix = useCallback(
+    (playlistId: string | null | undefined): Partial<SmartMixSettings> | null => {
+      if (!playlistId) return null;
+      const cached = playlistOverridesRef.current.get(playlistId);
+      if (cached) return { ...cached };
+      if (typeof window === "undefined") return null;
+      try {
+        const raw = window.localStorage.getItem(playlistKey(playlistId));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as Partial<SmartMixSettings>;
+        playlistOverridesRef.current.set(playlistId, parsed);
+        return { ...parsed };
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
+  const setPlaylistSmartMix = useCallback(
+    (
+      playlistId: string,
+      partial: Partial<SmartMixSettings> | null,
+    ) => {
+      if (!playlistId) return;
+      if (partial === null) {
+        playlistOverridesRef.current.delete(playlistId);
+        if (typeof window !== "undefined") {
+          try {
+            window.localStorage.removeItem(playlistKey(playlistId));
+          } catch {
+            /* ignore */
+          }
+        }
+        return;
+      }
+      const prev = playlistOverridesRef.current.get(playlistId) ?? {};
+      const merged: Partial<SmartMixSettings> = { ...prev, ...partial };
+      // Normalize numeric field if provided
+      if (typeof merged.durationSec === "number") {
+        merged.durationSec = Math.max(1, Math.min(12, Math.round(merged.durationSec)));
+      }
+      playlistOverridesRef.current.set(playlistId, merged);
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(playlistKey(playlistId), JSON.stringify(merged));
+        } catch {
+          /* ignore */
+        }
+      }
+    },
+    [],
+  );
+
+  /** Merge global Smart Mix settings with any per-playlist override. */
+  const resolveEffectiveSmartMix = useCallback(
+    (playlistId: string | null | undefined): SmartMixSettings => {
+      const base = smartMixRef.current;
+      const override = getPlaylistSmartMix(playlistId);
+      if (!override) return base;
+      return normalizeSettings({ ...base, ...override });
+    },
+    [getPlaylistSmartMix],
+  );
+
+
 
   // Persist queue/index/mode/history (debounced via microtask grouping)
   useEffect(() => {
@@ -352,6 +443,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     if (!inCrossfadeRef.current) return;
     inCrossfadeRef.current = false;
     setIsCrossfading(false);
+    setCrossfadeProgress(0);
     const inactive = getInactiveAudio();
     if (inactive) {
       try {
@@ -398,13 +490,18 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       const active = getActiveAudio();
       const inactive = getInactiveAudio();
       const q = queueRef.current;
+      const curTrack = q[indexRef.current];
       const nextTrack = q[nextIndex];
       if (!active || !inactive || !nextTrack) return;
-      const dur = smartMixRef.current.durationSec;
+      // Effective duration is the per-playlist override (when the current
+      // track belongs to a playlist) or the global setting.
+      const eff = resolveEffectiveSmartMix(curTrack?.sourcePlaylistId ?? null);
+      const dur = eff.durationSec;
       if (dur <= 0) return;
 
       inCrossfadeRef.current = true;
       setIsCrossfading(true);
+      setCrossfadeProgress(0);
       try {
         const url = await resolveTrackUrl(nextTrack);
         inactive.src = url;
@@ -415,6 +512,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         console.warn("[smart-mix] crossfade prep failed; falling back", e);
         inCrossfadeRef.current = false;
         setIsCrossfading(false);
+        setCrossfadeProgress(0);
         return;
       }
 
@@ -431,6 +529,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         } catch {
           /* ignore */
         }
+        setCrossfadeProgress(t);
         if (t >= 1) {
           if (crossfadeTimerRef.current !== null) {
             window.clearInterval(crossfadeTimerRef.current);
@@ -454,12 +553,20 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
           pushHistory(nextTrack);
           inCrossfadeRef.current = false;
           setIsCrossfading(false);
+          setCrossfadeProgress(0);
           void pruneAndPreload();
         }
       };
       crossfadeTimerRef.current = window.setInterval(tick, 50);
     },
-    [getActiveAudio, getInactiveAudio, pushHistory, pruneAndPreload, volume],
+    [
+      getActiveAudio,
+      getInactiveAudio,
+      pushHistory,
+      pruneAndPreload,
+      resolveEffectiveSmartMix,
+      volume,
+    ],
   );
 
   // Dual <audio>; listeners on both, gated by "active" element.
@@ -482,13 +589,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       if (!isActive(el)) return;
       if (inCrossfadeRef.current) return;
       if (modeRef.current === "radio") return;
-      const settings = smartMixRef.current;
-      if (!settings.enabled) return;
       const dur = el.duration;
       if (!Number.isFinite(dur) || dur <= 0) return;
-      const remaining = dur - el.currentTime;
-      if (remaining > settings.durationSec + 0.15) return;
-      if (remaining <= 0) return;
+      if (repeatRef.current === "one") return; // never crossfade into self
       // Determine next index respecting repeat
       const q = queueRef.current;
       const cur = indexRef.current;
@@ -497,10 +600,16 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         if (repeatRef.current === "all" && q.length > 0) nextI = 0;
         else return;
       }
-      if (repeatRef.current === "one") return; // never crossfade into self
       const curTrack = q[cur];
       const nextTrack = q[nextI];
       if (!curTrack || !nextTrack) return;
+      // Resolve effective Smart Mix settings (global + per-playlist override
+      // for the CURRENT track's source playlist).
+      const settings = resolveEffectiveSmartMix(curTrack.sourcePlaylistId ?? null);
+      if (!settings.enabled) return;
+      const remaining = dur - el.currentTime;
+      if (remaining > settings.durationSec + 0.15) return;
+      if (remaining <= 0) return;
       if (
         !shouldCrossfade(curTrack.kind, nextTrack.kind, settings, {
           nextIsManual: !!nextTrack.manuallyQueued,
@@ -1183,6 +1292,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       smartMix,
       setSmartMix,
       isCrossfading,
+      crossfadeProgress,
+      getPlaylistSmartMix,
+      setPlaylistSmartMix,
+      resolveEffectiveSmartMix,
     }),
     [
       currentTrack,
@@ -1223,6 +1336,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       smartMix,
       setSmartMix,
       isCrossfading,
+      crossfadeProgress,
+      getPlaylistSmartMix,
+      setPlaylistSmartMix,
+      resolveEffectiveSmartMix,
     ],
   );
 
