@@ -111,6 +111,14 @@ export function RadioPlayer() {
     }
   }, [audioUrl, playback?.is_playing, playback?.started_at, playback]);
 
+  // Aplica volume padrão das configurações ao iniciar reprodução
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a || !playback?.is_playing) return;
+    const defaultVol = settings?.default_volume ?? 80;
+    a.volume = Math.max(0, Math.min(1, defaultVol / 100));
+  }, [playback?.is_playing, settings?.default_volume]);
+
   // Tick local para barra de progresso + auto-avanço
   useEffect(() => {
     const id = setInterval(() => {
