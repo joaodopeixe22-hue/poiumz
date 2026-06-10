@@ -761,6 +761,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
   const seek = useCallback(
     (sec: number) => {
+      abortCrossfade();
       const a = audioRef.current;
       if (!a) return;
       try {
@@ -771,7 +772,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         /* ignore */
       }
     },
-    [broadcast],
+    [abortCrossfade, broadcast],
   );
 
   const setVolume = useCallback((v: number) => {
