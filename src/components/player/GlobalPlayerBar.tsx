@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Play,
   Pause,
@@ -17,10 +17,28 @@ import {
   ListMusic,
   Repeat,
   Repeat1,
+  ListVideo,
+  Zap,
+  Trash2,
+  Check,
 } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
-import type { PlayerMode } from "@/contexts/AudioPlayerContext";
+import type { PlayerMode, PreloadCount } from "@/contexts/AudioPlayerContext";
 import { formatTime } from "@/lib/format";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 type DocumentPiP = {
   requestWindow: (opts?: { width?: number; height?: number }) => Promise<Window>;
@@ -44,6 +62,10 @@ export function GlobalPlayerBar() {
     duration,
     position,
     volume,
+    history,
+    preloadedIds,
+    preloadCount,
+    setPreloadCount,
     toggle,
     next,
     prev,
@@ -52,11 +74,25 @@ export function GlobalPlayerBar() {
     setMode,
     cycleRepeat,
     stop,
+    jumpToTrack,
+    removeFromQueue,
+    clearHistory,
+    getUpcomingTracks,
   } = useAudioPlayer();
   const [muted, setMuted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [pipActive, setPipActive] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
   const lastVolumeRef = useRef(volume);
+
+  const upcoming = useMemo(
+    () => getUpcomingTracks(20),
+    // Recompute when queue/index/repeat change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queue, index, repeat, getUpcomingTracks],
+  );
+  const nextTrack = upcoming[0] ?? null;
+
 
   const pipSupported =
     typeof window !== "undefined" && "documentPictureInPicture" in window;
@@ -218,7 +254,19 @@ export function GlobalPlayerBar() {
                 {currentTrack.artista ?? "—"}
                 {queue.length > 1 && ` · ${index + 1}/${queue.length}`}
               </p>
+              {nextTrack && (
+                <p className="hidden md:block text-[10px] text-muted-foreground/80 truncate mt-0.5">
+                  <span className="uppercase tracking-wider">Próxima:</span>{" "}
+                  {nextTrack.titulo}
+                  {preloadedIds.has(nextTrack.id) && (
+                    <span className="ml-1 inline-flex items-center gap-0.5 text-primary">
+                      <Zap className="size-2.5" /> pronta
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
+
           </div>
 
           <div className="flex-1 flex flex-col items-center gap-1.5 max-w-2xl">
@@ -274,6 +322,21 @@ export function GlobalPlayerBar() {
           </div>
 
           <div className="flex items-center gap-1">
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setQueueOpen(true)}
+                    className="size-8 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                    aria-label="Fila de reprodução"
+                  >
+                    <ListVideo className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Ver fila completa</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             <button
               onClick={cycleRepeat}
               className={`size-8 rounded-md grid place-items-center transition-colors ${
@@ -468,6 +531,181 @@ export function GlobalPlayerBar() {
           </div>
         </div>
       )}
+
+      <Sheet open={queueOpen} onOpenChange={setQueueOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle className="flex items-center gap-2">
+              <ListVideo className="size-4" /> Fila de reprodução
+            </SheetTitle>
+            <SheetDescription>
+              Gerencie as próximas músicas, veja o histórico e ajuste o pré-carregamento.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex items-center justify-between px-4 py-2 border-b text-xs">
+            <label className="flex items-center gap-2 text-muted-foreground">
+              <Zap className="size-3.5 text-primary" />
+              Pré-carregar
+              <select
+                value={preloadCount}
+                onChange={(e) =>
+                  setPreloadCount(Number(e.target.value) as PreloadCount)
+                }
+                className="bg-background border border-border rounded px-1.5 py-0.5 text-foreground"
+              >
+                {[2, 3, 4, 5].map((n) => (
+                  <option key={n} value={n}>
+                    {n} faixas
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="text-muted-foreground">
+              {preloadedIds.size} em cache
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {currentTrack && (
+              <section className="px-4 py-3">
+                <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                  Tocando agora
+                </h3>
+                <div className="flex items-center gap-3 p-2 rounded-md bg-primary/10 border border-primary/20">
+                  <div className="size-9 rounded bg-primary/20 grid place-items-center shrink-0">
+                    {isPlaying ? (
+                      <Pause className="size-4 text-primary" />
+                    ) : (
+                      <Play className="size-4 text-primary translate-x-0.5" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">
+                      {currentTrack.titulo}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {currentTrack.artista ?? "—"}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formatTime(currentTrack.duracao_segundos ?? 0)}
+                  </span>
+                </div>
+              </section>
+            )}
+
+            <section className="px-4 py-3 border-t">
+              <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                Próximas músicas{" "}
+                <span className="normal-case tracking-normal text-muted-foreground/70">
+                  ({upcoming.length})
+                </span>
+              </h3>
+              {upcoming.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">
+                  Não há músicas na fila.
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {upcoming.map((t, i) => {
+                    const queueIdx = (index + 1 + i) % Math.max(queue.length, 1);
+                    const preloaded = preloadedIds.has(t.id);
+                    return (
+                      <li
+                        key={`${t.id}-${i}`}
+                        className="group flex items-center gap-3 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+                      >
+                        <span className="w-5 text-xs text-muted-foreground tabular-nums text-right">
+                          {i + 1}
+                        </span>
+                        <button
+                          onClick={() => {
+                            void jumpToTrack(queueIdx);
+                            setQueueOpen(false);
+                          }}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <p className="text-sm truncate">{t.titulo}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {t.artista ?? "—"}
+                          </p>
+                        </button>
+                        {preloaded && (
+                          <span
+                            className="text-[10px] text-primary inline-flex items-center gap-0.5"
+                            title="Pré-carregada"
+                          >
+                            <Check className="size-3" />
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {formatTime(t.duracao_segundos ?? 0)}
+                        </span>
+                        <button
+                          onClick={() => removeFromQueue(queueIdx)}
+                          className="size-7 rounded grid place-items-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remover da fila"
+                          title="Remover da fila"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            <section className="px-4 py-3 border-t">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Histórico recente{" "}
+                  <span className="normal-case tracking-normal text-muted-foreground/70">
+                    ({history.length})
+                  </span>
+                </h3>
+                {history.length > 0 && (
+                  <button
+                    onClick={clearHistory}
+                    className="text-[10px] text-muted-foreground hover:text-foreground"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
+              {history.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">
+                  Sem reproduções recentes.
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {history.map((h, i) => (
+                    <li
+                      key={`${h.id}-${h.playedAt}-${i}`}
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm truncate">{h.titulo}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {h.artista ?? "—"}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {new Date(h.playedAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
+

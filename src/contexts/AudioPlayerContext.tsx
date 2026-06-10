@@ -22,6 +22,8 @@ export type AudioTrack = {
 
 export type PlayerMode = "playlist" | "shuffle" | "radio";
 export type RepeatMode = "off" | "all" | "one";
+export type PreloadCount = 2 | 3 | 4 | 5;
+export type HistoryItem = AudioTrack & { playedAt: number };
 
 type AudioPlayerContextValue = {
   currentTrack: AudioTrack | null;
@@ -33,6 +35,10 @@ type AudioPlayerContextValue = {
   duration: number;
   position: number;
   volume: number;
+  history: HistoryItem[];
+  preloadedIds: Set<string>;
+  preloadCount: PreloadCount;
+  setPreloadCount: (n: PreloadCount) => void;
   playTrack: (track: AudioTrack) => Promise<void>;
   playQueue: (tracks: AudioTrack[], startIndex?: number) => Promise<void>;
   toggle: () => Promise<void>;
@@ -44,6 +50,10 @@ type AudioPlayerContextValue = {
   setRepeat: (r: RepeatMode) => void;
   cycleRepeat: () => void;
   stop: () => void;
+  jumpToTrack: (index: number) => Promise<void>;
+  removeFromQueue: (index: number) => void;
+  clearHistory: () => void;
+  getUpcomingTracks: (limit?: number) => AudioTrack[];
 };
 
 export const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
@@ -107,6 +117,20 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.8;
   });
 
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [preloadCount, setPreloadCountState] = useState<PreloadCount>(() => {
+    if (typeof window === "undefined") return 3;
+    const n = Number(localStorage.getItem("global-player-preload-count"));
+    return n === 2 || n === 3 || n === 4 || n === 5 ? (n as PreloadCount) : 3;
+  });
+  const [preloadedIds, setPreloadedIds] = useState<Set<string>>(new Set());
+  const preloadedAudioRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const preloadCountRef = useRef<PreloadCount>(preloadCount);
+
+  useEffect(() => {
+    preloadCountRef.current = preloadCount;
+  }, [preloadCount]);
+
   useEffect(() => {
     repeatRef.current = repeat;
   }, [repeat]);
@@ -121,25 +145,114 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     modeRef.current = mode;
   }, [mode]);
 
+
   const broadcast = useCallback((evt: RemoteEvent) => {
     if (echoRef.current) return;
     channelRef.current?.send({ type: "broadcast", event: "sync", payload: evt });
   }, []);
 
-  const loadAndPlay = useCallback(async (track: AudioTrack) => {
-    const a = audioRef.current;
-    if (!a) return;
+  const pushHistory = useCallback((track: AudioTrack) => {
+    setHistory((prev) => {
+      const item: HistoryItem = { ...track, playedAt: Date.now() };
+      const filtered = prev.filter((h) => h.id !== track.id);
+      return [item, ...filtered].slice(0, 10);
+    });
+  }, []);
+
+  const preloadTrack = useCallback(async (track: AudioTrack) => {
+    if (!track) return;
+    const map = preloadedAudioRef.current;
+    if (map.has(track.id)) return;
     try {
       const url = await resolveTrackUrl(track);
-      a.src = url;
-      a.currentTime = 0;
-      setPosition(0);
-      await a.play();
-    } catch (e: unknown) {
-      setIsPlaying(false);
-      toast.error(e instanceof Error ? e.message : "Não foi possível reproduzir");
+      const el = new Audio();
+      el.preload = "auto";
+      el.src = url;
+      // Trigger network fetch / browser cache
+      try {
+        el.load();
+      } catch {
+        /* ignore */
+      }
+      map.set(track.id, el);
+      setPreloadedIds((prev) => {
+        if (prev.has(track.id)) return prev;
+        const n = new Set(prev);
+        n.add(track.id);
+        return n;
+      });
+    } catch (e) {
+      console.warn("[global-player] preload failed", track.id, e);
     }
   }, []);
+
+  const pruneAndPreload = useCallback(async () => {
+    if (modeRef.current === "radio") return;
+    const q = queueRef.current;
+    const cur = indexRef.current;
+    const count = preloadCountRef.current;
+    // Build keep set: current + next (count-1) tracks (wrap around when repeat=all)
+    const keepIds = new Set<string>();
+    if (q[cur]) keepIds.add(q[cur].id);
+    const targets: AudioTrack[] = [];
+    for (let i = 1; i < count && i < q.length; i++) {
+      let j = cur + i;
+      if (j >= q.length) {
+        if (repeatRef.current !== "all") break;
+        j = j % q.length;
+      }
+      const t = q[j];
+      if (t && !keepIds.has(t.id)) {
+        keepIds.add(t.id);
+        targets.push(t);
+      }
+    }
+    // Prune unused
+    const map = preloadedAudioRef.current;
+    for (const [id, el] of map) {
+      if (!keepIds.has(id)) {
+        try {
+          el.pause();
+          el.src = "";
+        } catch {
+          /* ignore */
+        }
+        map.delete(id);
+      }
+    }
+    setPreloadedIds((prev) => {
+      const n = new Set<string>();
+      for (const id of prev) if (keepIds.has(id)) n.add(id);
+      for (const id of map.keys()) n.add(id);
+      return n;
+    });
+    // Preload targets sequentially to respect priority
+    for (const t of targets) {
+      await preloadTrack(t);
+    }
+  }, [preloadTrack]);
+
+  const loadAndPlay = useCallback(
+    async (track: AudioTrack) => {
+      const a = audioRef.current;
+      if (!a) return;
+      try {
+        const url = await resolveTrackUrl(track);
+        a.src = url;
+        a.currentTime = 0;
+        setPosition(0);
+        await a.play();
+        pushHistory(track);
+        // Fire-and-forget preload of upcoming tracks
+        void pruneAndPreload();
+      } catch (e: unknown) {
+        setIsPlaying(false);
+        toast.error(e instanceof Error ? e.message : "Não foi possível reproduzir");
+      }
+    },
+    [pushHistory, pruneAndPreload],
+  );
+
 
   // Único <audio>; listeners únicos
   useEffect(() => {
@@ -434,6 +547,63 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setRepeat(order[(i + 1) % order.length]);
   }, [setRepeat]);
 
+  const setPreloadCount = useCallback((n: PreloadCount) => {
+    preloadCountRef.current = n;
+    setPreloadCountState(n);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("global-player-preload-count", String(n));
+    }
+    void pruneAndPreload();
+  }, [pruneAndPreload]);
+
+  const jumpToTrack = useCallback(
+    async (i: number) => {
+      await goToIndex(i);
+    },
+    [goToIndex],
+  );
+
+  const removeFromQueue = useCallback(
+    (i: number) => {
+      const q = queueRef.current;
+      if (i < 0 || i >= q.length) return;
+      if (i === indexRef.current) return; // não remove a faixa atual
+      const next = q.slice(0, i).concat(q.slice(i + 1));
+      let newIndex = indexRef.current;
+      if (i < indexRef.current) newIndex = indexRef.current - 1;
+      setQueue(next);
+      setIndex(newIndex);
+      queueRef.current = next;
+      indexRef.current = newIndex;
+      void pruneAndPreload();
+    },
+    [pruneAndPreload],
+  );
+
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+  }, []);
+
+  const getUpcomingTracks = useCallback(
+    (limit = 20): AudioTrack[] => {
+      const q = queueRef.current;
+      const cur = indexRef.current;
+      const out: AudioTrack[] = [];
+      for (let i = 1; i <= limit; i++) {
+        let j = cur + i;
+        if (j >= q.length) {
+          if (repeatRef.current !== "all" || q.length === 0) break;
+          j = j % q.length;
+          if (j === cur) break;
+        }
+        out.push(q[j]);
+      }
+      return out;
+    },
+    [],
+  );
+
+
   // Modo rádio: liga ao playback_state global e segue a programação
   useEffect(() => {
     if (mode !== "radio") return;
@@ -593,6 +763,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       duration,
       position,
       volume,
+      history,
+      preloadedIds,
+      preloadCount,
+      setPreloadCount,
       playTrack,
       playQueue,
       toggle,
@@ -604,6 +778,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setRepeat,
       cycleRepeat,
       stop,
+      jumpToTrack,
+      removeFromQueue,
+      clearHistory,
+      getUpcomingTracks,
     }),
     [
       currentTrack,
@@ -615,6 +793,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       duration,
       position,
       volume,
+      history,
+      preloadedIds,
+      preloadCount,
+      setPreloadCount,
       playTrack,
       playQueue,
       toggle,
@@ -626,8 +808,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setRepeat,
       cycleRepeat,
       stop,
+      jumpToTrack,
+      removeFromQueue,
+      clearHistory,
+      getUpcomingTracks,
     ],
   );
+
 
   return (
     <AudioPlayerContext.Provider value={value}>{children}</AudioPlayerContext.Provider>
