@@ -235,6 +235,76 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     saveSmartMixSettings(next);
   }, []);
 
+  // --- Per-playlist Smart Mix overrides (localStorage-backed) ---------------
+  const playlistKey = (id: string) => `global-player-smartmix-playlist:${id}`;
+
+  const getPlaylistSmartMix = useCallback(
+    (playlistId: string | null | undefined): Partial<SmartMixSettings> | null => {
+      if (!playlistId) return null;
+      const cached = playlistOverridesRef.current.get(playlistId);
+      if (cached) return { ...cached };
+      if (typeof window === "undefined") return null;
+      try {
+        const raw = window.localStorage.getItem(playlistKey(playlistId));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as Partial<SmartMixSettings>;
+        playlistOverridesRef.current.set(playlistId, parsed);
+        return { ...parsed };
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
+  const setPlaylistSmartMix = useCallback(
+    (
+      playlistId: string,
+      partial: Partial<SmartMixSettings> | null,
+    ) => {
+      if (!playlistId) return;
+      if (partial === null) {
+        playlistOverridesRef.current.delete(playlistId);
+        if (typeof window !== "undefined") {
+          try {
+            window.localStorage.removeItem(playlistKey(playlistId));
+          } catch {
+            /* ignore */
+          }
+        }
+        return;
+      }
+      const prev = playlistOverridesRef.current.get(playlistId) ?? {};
+      const merged: Partial<SmartMixSettings> = { ...prev, ...partial };
+      // Normalize numeric field if provided
+      if (typeof merged.durationSec === "number") {
+        merged.durationSec = Math.max(1, Math.min(12, Math.round(merged.durationSec)));
+      }
+      playlistOverridesRef.current.set(playlistId, merged);
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(playlistKey(playlistId), JSON.stringify(merged));
+        } catch {
+          /* ignore */
+        }
+      }
+    },
+    [],
+  );
+
+  /** Merge global Smart Mix settings with any per-playlist override. */
+  const resolveEffectiveSmartMix = useCallback(
+    (playlistId: string | null | undefined): SmartMixSettings => {
+      const base = smartMixRef.current;
+      const override = getPlaylistSmartMix(playlistId);
+      if (!override) return base;
+      return normalizeSettings({ ...base, ...override });
+    },
+    [getPlaylistSmartMix],
+  );
+
+
+
   // Persist queue/index/mode/history (debounced via microtask grouping)
   useEffect(() => {
     if (typeof window === "undefined") return;
