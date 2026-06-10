@@ -167,19 +167,32 @@ function PlaylistDetailPage() {
             {formatTime(totalDuration)}
           </p>
         </div>
-        {canEdit && (
-          <Button
-            onClick={() => {
-              setQuery("");
-              setAddOpen(true);
-            }}
-            className="gap-2"
-          >
-            <Plus className="size-4" />
-            Adicionar músicas
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <Button
+              variant="secondary"
+              onClick={() => playFromIndex(0)}
+              className="gap-2"
+            >
+              <Play className="size-4" />
+              Tocar playlist
+            </Button>
+          )}
+          {canEdit && (
+            <Button
+              onClick={() => {
+                setQuery("");
+                setAddOpen(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="size-4" />
+              Adicionar músicas
+            </Button>
+          )}
+        </div>
       </div>
+
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         {items.length === 0 ? (
