@@ -23,6 +23,7 @@ export type Database = {
           frequencia_musicas: number | null
           horario: string | null
           id: string
+          last_played_at: string | null
           storage_path: string
           tipo: Database["public"]["Enums"]["institutional_type"]
           titulo: string
@@ -35,6 +36,7 @@ export type Database = {
           frequencia_musicas?: number | null
           horario?: string | null
           id?: string
+          last_played_at?: string | null
           storage_path: string
           tipo: Database["public"]["Enums"]["institutional_type"]
           titulo: string
@@ -47,6 +49,7 @@ export type Database = {
           frequencia_musicas?: number | null
           horario?: string | null
           id?: string
+          last_played_at?: string | null
           storage_path?: string
           tipo?: Database["public"]["Enums"]["institutional_type"]
           titulo?: string
@@ -55,38 +58,56 @@ export type Database = {
       }
       playback_state: {
         Row: {
+          active_playlist_id: string | null
           controlled_by: string | null
+          current_institutional_id: string | null
           current_playlist_id: string | null
           current_song_id: string | null
           id: boolean
           institutional_enabled: boolean
           is_locked: boolean
           is_playing: boolean
+          loop_index: number
           position_seconds: number
+          shuffle: boolean
+          songs_since_institutional: number
+          started_at: string | null
           updated_at: string
           volume: number
         }
         Insert: {
+          active_playlist_id?: string | null
           controlled_by?: string | null
+          current_institutional_id?: string | null
           current_playlist_id?: string | null
           current_song_id?: string | null
           id?: boolean
           institutional_enabled?: boolean
           is_locked?: boolean
           is_playing?: boolean
+          loop_index?: number
           position_seconds?: number
+          shuffle?: boolean
+          songs_since_institutional?: number
+          started_at?: string | null
           updated_at?: string
           volume?: number
         }
         Update: {
+          active_playlist_id?: string | null
           controlled_by?: string | null
+          current_institutional_id?: string | null
           current_playlist_id?: string | null
           current_song_id?: string | null
           id?: boolean
           institutional_enabled?: boolean
           is_locked?: boolean
           is_playing?: boolean
+          loop_index?: number
           position_seconds?: number
+          shuffle?: boolean
+          songs_since_institutional?: number
+          started_at?: string | null
           updated_at?: string
           volume?: number
         }
@@ -288,11 +309,119 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_playback: {
+        Args: { expected_institutional?: string; expected_song?: string }
+        Returns: {
+          active_playlist_id: string | null
+          controlled_by: string | null
+          current_institutional_id: string | null
+          current_playlist_id: string | null
+          current_song_id: string | null
+          id: boolean
+          institutional_enabled: boolean
+          is_locked: boolean
+          is_playing: boolean
+          loop_index: number
+          position_seconds: number
+          shuffle: boolean
+          songs_since_institutional: number
+          started_at: string | null
+          updated_at: string
+          volume: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "playback_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       can_user_upload: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_approved_member: { Args: never; Returns: boolean }
+      pause_playback: {
+        Args: never
+        Returns: {
+          active_playlist_id: string | null
+          controlled_by: string | null
+          current_institutional_id: string | null
+          current_playlist_id: string | null
+          current_song_id: string | null
+          id: boolean
+          institutional_enabled: boolean
+          is_locked: boolean
+          is_playing: boolean
+          loop_index: number
+          position_seconds: number
+          shuffle: boolean
+          songs_since_institutional: number
+          started_at: string | null
+          updated_at: string
+          volume: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "playback_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resume_playback: {
+        Args: never
+        Returns: {
+          active_playlist_id: string | null
+          controlled_by: string | null
+          current_institutional_id: string | null
+          current_playlist_id: string | null
+          current_song_id: string | null
+          id: boolean
+          institutional_enabled: boolean
+          is_locked: boolean
+          is_playing: boolean
+          loop_index: number
+          position_seconds: number
+          shuffle: boolean
+          songs_since_institutional: number
+          started_at: string | null
+          updated_at: string
+          volume: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "playback_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      start_playback: {
+        Args: { p_playlist_id: string }
+        Returns: {
+          active_playlist_id: string | null
+          controlled_by: string | null
+          current_institutional_id: string | null
+          current_playlist_id: string | null
+          current_song_id: string | null
+          id: boolean
+          institutional_enabled: boolean
+          is_locked: boolean
+          is_playing: boolean
+          loop_index: number
+          position_seconds: number
+          shuffle: boolean
+          songs_since_institutional: number
+          started_at: string | null
+          updated_at: string
+          volume: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "playback_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       institutional_type: "vinheta" | "aviso"
