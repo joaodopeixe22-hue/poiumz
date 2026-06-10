@@ -285,6 +285,54 @@ export type Database = {
           },
         ]
       }
+      radio_settings: {
+        Row: {
+          contato_email: string | null
+          contato_whatsapp: string | null
+          cor_primaria: string
+          default_volume: number
+          descricao: string | null
+          fuso_horario: string
+          id: boolean
+          logo_url: string | null
+          nome: string
+          permitir_ouvinte_publico: boolean
+          slogan: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contato_email?: string | null
+          contato_whatsapp?: string | null
+          cor_primaria?: string
+          default_volume?: number
+          descricao?: string | null
+          fuso_horario?: string
+          id?: boolean
+          logo_url?: string | null
+          nome?: string
+          permitir_ouvinte_publico?: boolean
+          slogan?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contato_email?: string | null
+          contato_whatsapp?: string | null
+          cor_primaria?: string
+          default_volume?: number
+          descricao?: string | null
+          fuso_horario?: string
+          id?: boolean
+          logo_url?: string | null
+          nome?: string
+          permitir_ouvinte_publico?: boolean
+          slogan?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       songs: {
         Row: {
           artista: string | null
