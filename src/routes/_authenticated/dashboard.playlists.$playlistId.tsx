@@ -27,6 +27,7 @@ import { useAudioPlayer, type AudioTrack } from "@/hooks/useAudioPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { toast } from "sonner";
+import { TrackContextMenu } from "@/components/player/TrackContextMenu";
 
 export const Route = createFileRoute("/_authenticated/dashboard/playlists/$playlistId")({
   component: PlaylistDetailPage,
