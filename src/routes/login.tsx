@@ -30,7 +30,7 @@ function LoginPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Welcome back.");
+    toast.success("Bem-vindo de volta.");
     navigate({ to: "/" });
   };
 
@@ -41,7 +41,7 @@ function LoginPage() {
     });
     if (result.error) {
       setGoogleLoading(false);
-      toast.error("Google sign-in failed.");
+      toast.error("Falha ao entrar com Google.");
       return;
     }
     if (result.redirected) return;
@@ -51,9 +51,9 @@ function LoginPage() {
 
   return (
     <AuthShell
-      eyebrow="Sign in"
-      title="Welcome back."
-      subtitle="Continue where you left off — your queue, your library, your dispositivos."
+      eyebrow="Entrar"
+      title="Bem-vindo de volta."
+      subtitle="Continue de onde parou — sua fila, sua biblioteca, seus dispositivos."
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <Field
@@ -65,7 +65,7 @@ function LoginPage() {
           required
         />
         <Field
-          label="Password"
+          label="Senha"
           type="password"
           autoComplete="current-password"
           value={password}
@@ -77,7 +77,7 @@ function LoginPage() {
             to="/forgot-password"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            Forgot password?
+            Esqueceu a senha?
           </Link>
         </div>
         <button
@@ -86,13 +86,13 @@ function LoginPage() {
           className="w-full h-11 rounded-sm bg-accent text-accent-foreground font-medium text-sm hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading && <Loader2 className="size-4 animate-spin" />}
-          Sign in
+          Entrar
         </button>
       </form>
 
       <div className="my-7 flex items-center gap-4">
         <div className="h-px flex-1 bg-border" />
-        <span className="font-mono-caption text-muted-foreground">or</span>
+        <span className="font-mono-caption text-muted-foreground">ou</span>
         <div className="h-px flex-1 bg-border" />
       </div>
 
@@ -102,13 +102,13 @@ function LoginPage() {
         className="w-full h-11 rounded-sm border border-border text-sm font-medium hover:bg-secondary transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
       >
         {googleLoading ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon />}
-        Continue with Google
+        Continuar com o Google
       </button>
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        New here?{" "}
+        Novo por aqui?{" "}
         <Link to="/signup" className="text-accent hover:underline">
-          Create an account
+          Criar uma conta
         </Link>
       </p>
     </AuthShell>

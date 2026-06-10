@@ -30,12 +30,12 @@ function ForgotPage() {
 
   return (
     <AuthShell
-      eyebrow="Recover access"
-      title={sent ? "Check your inbox." : "Reset your password."}
+      eyebrow="Recuperar acesso"
+      title={sent ? "Confira sua caixa de entrada." : "Redefina sua senha."}
       subtitle={
         sent
-          ? "We sent you a link. Open it on this device to choose a new password."
-          : "Enter your email and we'll send instructions to choose a new password."
+          ? "Enviamos um link. Abra-o neste dispositivo para escolher uma nova senha."
+          : "Informe seu email e enviaremos as instruções para escolher uma nova senha."
       }
     >
       {!sent && (
@@ -56,13 +56,13 @@ function ForgotPage() {
             className="w-full h-11 rounded-sm bg-accent text-accent-foreground font-medium text-sm hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="size-4 animate-spin" />}
-            Send reset link
+            Enviar link de redefinição
           </button>
         </form>
       )}
       <p className="mt-8 text-center text-sm text-muted-foreground">
         <Link to="/login" className="text-accent hover:underline">
-          Back to sign in
+          Voltar para entrar
         </Link>
       </p>
     </AuthShell>

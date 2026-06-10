@@ -86,57 +86,57 @@ export function TrackEditSheet({
       qc.invalidateQueries({ queryKey: ["tracks"] });
       qc.invalidateQueries({ queryKey: ["all-tags"] });
       qc.invalidateQueries({ queryKey: ["tracks-edit"] });
-      toast.success("Saved.");
+      toast.success("Salvo.");
       onClose();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar"),
   });
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Edit metadata</SheetTitle>
+          <SheetTitle>Editar metadados</SheetTitle>
         </SheetHeader>
         {track && (
           <div className="mt-6 space-y-4">
             <Field
-              label="Title"
+              label="Título"
               value={form.title}
               onChange={(v) => setForm((f) => ({ ...f, title: v }))}
             />
             <Field
-              label="Artist"
+              label="Artista"
               value={form.artist}
               onChange={(v) => setForm((f) => ({ ...f, artist: v }))}
             />
             <Field
-              label="Album"
+              label="Álbum"
               value={form.album}
               onChange={(v) => setForm((f) => ({ ...f, album: v }))}
             />
             <Field
-              label="Genre"
+              label="Gênero"
               value={form.genre}
               onChange={(v) => setForm((f) => ({ ...f, genre: v }))}
             />
             <div className="grid grid-cols-2 gap-3">
               <Field
-                label="Year"
+                label="Ano"
                 value={form.year}
                 onChange={(v) => setForm((f) => ({ ...f, year: v }))}
               />
               <Field
-                label="Track #"
+                label="Faixa nº"
                 value={form.track_number}
                 onChange={(v) => setForm((f) => ({ ...f, track_number: v }))}
               />
             </div>
             <Field
-              label="Tags (comma-separated)"
+              label="Tags (separadas por vírgula)"
               value={tags}
               onChange={setTags}
-              placeholder="focus, study, evening"
+              placeholder="foco, estudo, noite"
             />
             <div className="flex gap-2 pt-4">
               <Button
@@ -144,10 +144,10 @@ export function TrackEditSheet({
                 disabled={saveMut.isPending}
                 className="flex-1"
               >
-                {saveMut.isPending ? "Saving…" : "Save"}
+                {saveMut.isPending ? "Salvando…" : "Salvar"}
               </Button>
               <Button variant="ghost" onClick={onClose}>
-                Cancel
+                Cancelar
               </Button>
             </div>
           </div>

@@ -49,10 +49,7 @@ export type TrackRow = {
 export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
   const { search, sort, favoritesOnly, genre, folderId } = useLibraryStore();
   const selected = useSelectionStore((s) => s.selected);
-  const lastSelectedId = useSelectionStore((s) => s.lastSelectedId);
   const toggle = useSelectionStore((s) => s.toggle);
-  const setRange = useSelectionStore((s) => s.setRange);
-  const selectOnly = useSelectionStore((s) => s.selectOnly);
   const selectAll = useSelectionStore((s) => s.selectAll);
   const clearSelection = useSelectionStore((s) => s.clear);
 
@@ -80,7 +77,7 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
     onSuccess: (r) => {
       clearSelection();
       qc.invalidateQueries({ queryKey: ["tracks"] });
-      toast.success(`${r.deleted} removed.`);
+      toast.success(`${r.deleted} removida(s).`);
     },
   });
 
@@ -97,7 +94,7 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
       const pt: Track = {
         id: t.id,
         title: t.title,
-        artist: t.artist ?? "Unknown",
+        artist: t.artist ?? "Desconhecido",
         album: t.album ?? undefined,
         duration: t.duration ?? undefined,
         cover_url: t.cover_url ?? undefined,
@@ -107,12 +104,11 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
       setCurrent(pt);
       play();
       if (queueRest && queueRest.length) {
-        // signed URLs resolved lazily on next/prev — store basic info now
         enqueue(
           queueRest.map((r) => ({
             id: r.id,
             title: r.title,
-            artist: r.artist ?? "Unknown",
+            artist: r.artist ?? "Desconhecido",
             album: r.album ?? undefined,
             duration: r.duration ?? undefined,
             cover_url: r.cover_url ?? undefined,
@@ -124,7 +120,7 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
         playCountFn({ data: { id: t.id } }).catch(() => {});
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to play");
+      toast.error(e instanceof Error ? e.message : "Falha ao reproduzir");
     }
   };
 
@@ -143,7 +139,9 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
   useEffect(() => () => clearSelection(), [clearSelection]);
 
   if (isLoading) {
-    return <div className="px-10 py-12 text-sm text-muted-foreground">Loading library…</div>;
+    return (
+      <div className="px-10 py-12 text-sm text-muted-foreground">Carregando biblioteca…</div>
+    );
   }
 
   if (!tracks.length) {
@@ -152,8 +150,8 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
         <div className="mx-auto size-14 rounded-full bg-secondary grid place-items-center mb-4">
           <MS name="library_music" className="text-[28px] text-muted-foreground" />
         </div>
-        <p className="text-sm font-semibold">No tracks yet</p>
-        <p className="text-xs text-muted-foreground mt-1">Upload an MP3 to get started.</p>
+        <p className="text-sm font-semibold">Nenhuma faixa ainda</p>
+        <p className="text-xs text-muted-foreground mt-1">Envie um MP3 para começar.</p>
       </div>
     );
   }
@@ -164,6 +162,7 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
         <div className="grid grid-cols-[40px_42px_1fr_220px_120px_80px_60px] gap-3 items-center px-4 h-10 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
           <input
             type="checkbox"
+            aria-label="Selecionar todas"
             checked={allSelected}
             ref={(el) => {
               if (el) el.indeterminate = someSelected;
@@ -172,9 +171,9 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
             className="size-3.5 accent-accent"
           />
           <span>#</span>
-          <span>Title</span>
-          <span>Album</span>
-          <span>Genre</span>
+          <span>Título</span>
+          <span>Álbum</span>
+          <span>Gênero</span>
           <span className="text-right">
             <MS name="schedule" className="text-[14px] inline-block" />
           </span>
@@ -203,6 +202,7 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
                 >
                   <input
                     type="checkbox"
+                    aria-label="Selecionar faixa"
                     checked={isSel}
                     onChange={() => toggle(t.id)}
                     className="size-3.5 accent-accent"
@@ -210,7 +210,7 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
                   <button
                     onClick={() => playTrack(t, tracks.slice(vi.index + 1))}
                     className="size-9 rounded-md overflow-hidden bg-secondary grid place-items-center text-muted-foreground hover:text-foreground transition-colors relative"
-                    aria-label="Play"
+                    aria-label="Tocar"
                   >
                     <CoverImage
                       src={t.cover_url}
@@ -225,7 +225,7 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
                   <div className="min-w-0">
                     <p className="text-sm truncate">{t.title}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {t.artist ?? "Unknown"}
+                      {t.artist ?? "Desconhecido"}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{t.album ?? "—"}</p>
@@ -239,14 +239,14 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
                       className={`size-7 grid place-items-center rounded-full hover:bg-secondary transition-colors ${
                         t.is_favorite ? "text-accent" : "text-muted-foreground"
                       }`}
-                      aria-label="Favorite"
+                      aria-label="Favoritar"
                     >
                       <MS name="favorite" className="text-[16px]" />
                     </button>
                     <button
                       onClick={() => onEdit?.(t.id)}
                       className="size-7 grid place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                      aria-label="Edit"
+                      aria-label="Editar"
                     >
                       <MS name="edit" className="text-[16px]" />
                     </button>
@@ -263,7 +263,12 @@ export function TrackTable({ onEdit }: { onEdit?: (id: string) => void }) {
           count={selected.size}
           onClear={clearSelection}
           onDelete={() => {
-            if (!confirm(`Delete ${selected.size} track(s)? This cannot be undone.`)) return;
+            if (
+              !confirm(
+                `Excluir ${selected.size} faixa(s)? Esta ação não pode ser desfeita.`,
+              )
+            )
+              return;
             delMut.mutate(Array.from(selected));
           }}
         />
@@ -283,17 +288,17 @@ function SelectionToolbar({
 }) {
   return (
     <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-card border border-border shadow-xl px-3 py-2">
-      <span className="text-xs text-muted-foreground px-2">{count} selected</span>
+      <span className="text-xs text-muted-foreground px-2">{count} selecionada(s)</span>
       <button
         onClick={onDelete}
         className="text-xs px-3 py-1.5 rounded-full bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors flex items-center gap-1.5"
       >
-        <MS name="delete" className="text-[14px]" /> Delete
+        <MS name="delete" className="text-[14px]" /> Excluir
       </button>
       <button
         onClick={onClear}
         className="size-7 grid place-items-center rounded-full text-muted-foreground hover:bg-secondary transition-colors"
-        aria-label="Clear"
+        aria-label="Limpar"
       >
         <MS name="close" className="text-[16px]" />
       </button>

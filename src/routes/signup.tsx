@@ -16,9 +16,9 @@ export const Route = createFileRoute("/signup")({
 });
 
 const schema = z.object({
-  displayName: z.string().trim().min(1, "Required").max(80),
-  email: z.string().trim().email("Invalid email").max(255),
-  password: z.string().min(8, "At least 8 characters").max(72),
+  displayName: z.string().trim().min(1, "Obrigatório").max(80),
+  email: z.string().trim().email("Email inválido").max(255),
+  password: z.string().min(8, "Pelo menos 8 caracteres").max(72),
 });
 
 function SignupPage() {
@@ -49,7 +49,7 @@ function SignupPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Account created. Welcome to Aethel.");
+    toast.success("Conta criada. Bem-vindo ao Aethel.");
     navigate({ to: "/" });
   };
 
@@ -58,7 +58,7 @@ function SignupPage() {
       redirect_uri: window.location.origin,
     });
     if (result.error) {
-      toast.error("Google sign-up failed.");
+      toast.error("Falha ao cadastrar com Google.");
       return;
     }
     if (result.redirected) return;
@@ -67,12 +67,12 @@ function SignupPage() {
 
   return (
     <AuthShell
-      eyebrow="Create account"
-      title="Begin the rotation."
-      subtitle="Free forever. Bring your library, your radios, your dispositivos."
+      eyebrow="Criar conta"
+      title="Comece a rotação."
+      subtitle="Grátis para sempre. Traga sua biblioteca, suas rádios, seus dispositivos."
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Field label="Display name" value={displayName} onChange={setDisplayName} required />
+        <Field label="Nome de exibição" value={displayName} onChange={setDisplayName} required />
         <Field
           label="Email"
           type="email"
@@ -82,7 +82,7 @@ function SignupPage() {
           required
         />
         <Field
-          label="Password"
+          label="Senha"
           type="password"
           autoComplete="new-password"
           value={password}
@@ -95,13 +95,13 @@ function SignupPage() {
           className="w-full h-11 rounded-sm bg-accent text-accent-foreground font-medium text-sm hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading && <Loader2 className="size-4 animate-spin" />}
-          Create account
+          Criar conta
         </button>
       </form>
 
       <div className="my-7 flex items-center gap-4">
         <div className="h-px flex-1 bg-border" />
-        <span className="font-mono-caption text-muted-foreground">or</span>
+        <span className="font-mono-caption text-muted-foreground">ou</span>
         <div className="h-px flex-1 bg-border" />
       </div>
 
@@ -109,13 +109,13 @@ function SignupPage() {
         onClick={handleGoogle}
         className="w-full h-11 rounded-sm border border-border text-sm font-medium hover:bg-secondary transition-colors flex items-center justify-center gap-3"
       >
-        Continue with Google
+        Continuar com o Google
       </button>
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
+        Já tem uma conta?{" "}
         <Link to="/login" className="text-accent hover:underline">
-          Sign in
+          Entrar
         </Link>
       </p>
     </AuthShell>

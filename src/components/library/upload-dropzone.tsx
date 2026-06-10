@@ -45,10 +45,12 @@ export function UploadDropzone() {
           <MS name="upload" className="text-[28px] text-accent" />
         </div>
         <p className="text-base font-semibold">
-          {isDragActive ? "Drop to upload" : "Drag audio files here, or click to browse"}
+          {isDragActive
+            ? "Solte para enviar"
+            : "Arraste arquivos de áudio aqui, ou clique para selecionar"}
         </p>
         <p className="text-xs text-muted-foreground mt-1.5">
-          MP3 · FLAC · WAV · M4A · AAC · up to 50 MB · up to 500 per batch
+          MP3 · FLAC · WAV · M4A · AAC · até 50 MB · até 500 por lote
         </p>
       </div>
 
@@ -59,12 +61,12 @@ export function UploadDropzone() {
           className="flex items-center gap-2 px-4 h-9 rounded-full bg-secondary text-xs font-medium hover:bg-secondary/70 transition-colors"
         >
           <MS name="folder" className="text-[16px]" />
-          Import folder
+          Importar pasta
         </button>
         <input
           ref={folderInputRef}
           type="file"
-          // @ts-expect-error non-standard but widely supported
+          // @ts-expect-error non-standard mas amplamente suportado
           webkitdirectory=""
           directory=""
           multiple
@@ -77,16 +79,16 @@ export function UploadDropzone() {
         />
 
         <div className="flex items-center gap-2 ml-auto text-xs">
-          <span className="text-muted-foreground">Duplicates:</span>
+          <span className="text-muted-foreground">Duplicados:</span>
           <select
             value={duplicatePolicy}
             onChange={(e) => setDuplicatePolicy(e.target.value as typeof duplicatePolicy)}
             className="h-8 px-2 rounded-md bg-secondary border border-transparent focus:border-accent outline-none text-xs"
           >
-            <option value="ask">Skip duplicates</option>
-            <option value="skip">Skip</option>
-            <option value="replace">Replace</option>
-            <option value="keep_both">Keep both</option>
+            <option value="ask">Ignorar duplicados</option>
+            <option value="skip">Ignorar</option>
+            <option value="replace">Substituir</option>
+            <option value="keep_both">Manter ambos</option>
           </select>
         </div>
       </div>

@@ -29,9 +29,9 @@ function PlaylistsIndex() {
   return (
     <div>
       <PageHeader
-        eyebrow="Your selections"
+        eyebrow="Suas seleções"
         title="Playlists"
-        subtitle="Build and curate your own."
+        subtitle="Crie e organize as suas próprias."
       />
       <div className="px-10 pb-6 flex justify-end">
         <button
@@ -39,20 +39,20 @@ function PlaylistsIndex() {
           className="flex items-center gap-2 h-10 px-4 rounded-full bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-opacity"
         >
           <MS name="add" className="text-[18px]" />
-          New playlist
+          Nova playlist
         </button>
       </div>
 
       {isLoading ? (
-        <p className="px-10 text-sm text-muted-foreground">Loading…</p>
+        <p className="px-10 text-sm text-muted-foreground">Carregando…</p>
       ) : playlists.length === 0 ? (
         <div className="px-10 py-16 text-center">
           <div className="mx-auto size-14 rounded-full bg-secondary grid place-items-center mb-4">
             <MS name="queue_music" className="text-[28px] text-muted-foreground" />
           </div>
-          <p className="text-sm font-semibold">No playlists yet</p>
+          <p className="text-sm font-semibold">Nenhuma playlist ainda</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Create one to start organizing your music.
+            Crie uma para começar a organizar suas músicas.
           </p>
         </div>
       ) : (
@@ -81,7 +81,7 @@ function PlaylistsIndex() {
               </div>
               <p className="mt-3 text-sm font-semibold leading-tight truncate">{p.name}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {p.tracks_count} track{p.tracks_count === 1 ? "" : "s"}
+                {p.tracks_count} {p.tracks_count === 1 ? "faixa" : "faixas"}
               </p>
             </Link>
           ))}
@@ -110,7 +110,7 @@ function CreatePlaylistDialog({
       createFn({ data: { name: name.trim(), description: description.trim() || undefined } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["playlists"] });
-      toast.success(`Playlist "${name}" created.`);
+      toast.success(`Playlist "${name}" criada.`);
       setName("");
       setDescription("");
       onOpenChange(false);
@@ -123,21 +123,21 @@ function CreatePlaylistDialog({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[460px] max-w-[92vw] rounded-2xl bg-card border border-border p-6 shadow-2xl">
-          <Dialog.Title className="text-lg font-semibold">New playlist</Dialog.Title>
+          <Dialog.Title className="text-lg font-semibold">Nova playlist</Dialog.Title>
           <div className="mt-5 space-y-4">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Name</label>
+              <label className="text-xs font-medium text-muted-foreground">Nome</label>
               <input
                 autoFocus
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="My playlist"
+                placeholder="Minha playlist"
                 className="mt-1.5 w-full h-10 px-3 rounded-md bg-secondary text-sm outline-none border border-transparent focus:border-accent"
               />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Description (optional)
+                Descrição (opcional)
               </label>
               <textarea
                 value={description}
@@ -150,7 +150,7 @@ function CreatePlaylistDialog({
           <div className="mt-6 flex gap-2 justify-end">
             <Dialog.Close asChild>
               <button className="h-9 px-4 rounded-md text-sm text-muted-foreground hover:bg-secondary">
-                Cancel
+                Cancelar
               </button>
             </Dialog.Close>
             <button
@@ -158,7 +158,7 @@ function CreatePlaylistDialog({
               onClick={() => mut.mutate()}
               className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50"
             >
-              {mut.isPending ? "Creating…" : "Create"}
+              {mut.isPending ? "Criando…" : "Criar"}
             </button>
           </div>
         </Dialog.Content>

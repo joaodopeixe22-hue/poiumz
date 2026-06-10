@@ -11,7 +11,6 @@ interface AuthShellProps {
 export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps) {
   return (
     <div className="min-h-screen flex bg-atmosphere">
-      {/* Left — editorial column */}
       <aside className="hidden lg:flex flex-col justify-between w-[44%] xl:w-[40%] p-12 border-r border-border relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none opacity-70">
           <div
@@ -36,25 +35,24 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
           </div>
           <div>
             <p className="text-sm font-semibold leading-tight">Focus Audio</p>
-            <p className="text-[10px] text-accent font-medium tracking-wide">Premium Focus</p>
+            <p className="text-[10px] text-accent font-medium tracking-wide">Foco Premium</p>
           </div>
         </Link>
 
         <div className="relative z-10 max-w-md">
-          <p className="text-xs text-accent font-medium tracking-wide mb-4 uppercase">A note</p>
+          <p className="text-xs text-accent font-medium tracking-wide mb-4 uppercase">Uma nota</p>
           <p className="font-display text-3xl xl:text-4xl leading-tight text-balance">
-            Premium audio for deep focus. Curated frequencies, considered design, your sound —
-            uninterrupted.
+            Áudio premium para foco profundo. Frequências curadas, design pensado, seu som —
+            sem interrupções.
           </p>
           <p className="mt-6 text-sm text-muted-foreground">— Focus Audio Studio</p>
         </div>
 
         <div className="relative z-10 text-xs text-muted-foreground tracking-wide">
-          Vol. 01 — Issue 0001
+          Vol. 01 — Edição 0001
         </div>
       </aside>
 
-      {/* Right — form column */}
       <main className="flex-1 flex items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-sm">
           <Link to="/" className="lg:hidden flex items-center gap-3 mb-10">
@@ -65,7 +63,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
             </div>
             <div>
               <p className="text-sm font-semibold leading-tight">Focus Audio</p>
-              <p className="text-[10px] text-accent font-medium tracking-wide">Premium Focus</p>
+              <p className="text-[10px] text-accent font-medium tracking-wide">Foco Premium</p>
             </div>
           </Link>
           <p className="text-xs text-accent font-medium tracking-wide mb-3 uppercase">{eyebrow}</p>
