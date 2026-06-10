@@ -21,7 +21,7 @@ import { UploadDialog } from "@/components/musicas/upload-dialog";
 import { EditSongSheet } from "@/components/musicas/edit-song-sheet";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/musicas")({
+export const Route = createFileRoute("/_authenticated/dashboard/musicas")({
   component: MusicasPage,
 });
 
