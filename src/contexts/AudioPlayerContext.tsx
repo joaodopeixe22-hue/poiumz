@@ -777,13 +777,21 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const setVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
     setVolumeState(clamped);
-    if (audioRef.current) audioRef.current.volume = clamped;
+    // During a crossfade the per-element volumes are being ramped by the
+    // engine; updating both elements directly would break the ramp. The
+    // engine reads the latest user volume on its next tick, so just update
+    // the user volume and let the engine catch up.
+    if (!inCrossfadeRef.current) {
+      if (audioARef.current) audioARef.current.volume = clamped;
+      if (audioBRef.current) audioBRef.current.volume = clamped;
+    }
     if (typeof window !== "undefined") {
       localStorage.setItem("global-player-volume", String(clamped));
     }
   }, []);
 
   const stop = useCallback(() => {
+    abortCrossfade();
     const a = audioRef.current;
     if (a) {
       a.pause();
@@ -798,7 +806,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     indexRef.current = 0;
     shuffleHistRef.current = [];
     broadcast({ type: "stop" });
-  }, [broadcast]);
+  }, [abortCrossfade, broadcast]);
 
   const setMode = useCallback(
     (m: PlayerMode) => {
