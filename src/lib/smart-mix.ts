@@ -7,11 +7,14 @@ export type SmartMixSettings = {
   enabled: boolean;
   /** Crossfade duration in seconds. Clamped to [1, 12]. */
   durationSec: number;
+  /** Whether to show the live outgoing/incoming volume meters in the queue sheet. */
+  showMixMeters: boolean;
 };
 
 export const DEFAULT_SMART_MIX: SmartMixSettings = {
   enabled: true,
   durationSec: 4,
+  showMixMeters: true,
 };
 
 const STORAGE_KEY = "global-player-smartmix";
@@ -43,8 +46,12 @@ export function normalizeSettings(s: Partial<SmartMixSettings>): SmartMixSetting
     ? s.durationSec
     : DEFAULT_SMART_MIX.durationSec;
   const durationSec = Math.max(1, Math.min(12, Math.round(raw)));
-  return { enabled, durationSec };
+  const showMixMeters = typeof s.showMixMeters === "boolean"
+    ? s.showMixMeters
+    : DEFAULT_SMART_MIX.showMixMeters;
+  return { enabled, durationSec, showMixMeters };
 }
+
 
 /**
  * Smart Mix rule:

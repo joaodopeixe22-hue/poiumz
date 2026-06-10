@@ -615,6 +615,18 @@ export function GlobalPlayerBar() {
               </span>
             </label>
           </div>
+          <div className="flex items-center justify-between px-4 py-1.5 border-b text-xs">
+            <label className="flex items-center gap-2 text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={smartMix.showMixMeters}
+                onChange={(e) => setSmartMix({ showMixMeters: e.target.checked })}
+                className="accent-primary"
+              />
+              <span>Mostrar medidores de mixagem</span>
+            </label>
+          </div>
+
 
           <div className="flex-1 overflow-y-auto">
 
@@ -648,7 +660,7 @@ export function GlobalPlayerBar() {
               </section>
             )}
 
-            {isCrossfading && nextTrack && (
+            {smartMix.showMixMeters && isCrossfading && nextTrack && (
               <section className="px-4 py-3 border-t bg-primary/5">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-[10px] uppercase tracking-wider text-primary inline-flex items-center gap-1.5">
@@ -708,6 +720,7 @@ export function GlobalPlayerBar() {
                 })()}
               </section>
             )}
+
 
 
 
