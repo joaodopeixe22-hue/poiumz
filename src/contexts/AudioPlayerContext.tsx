@@ -498,6 +498,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
                 setModeState(evt.mode);
                 shuffleHistRef.current = [];
                 break;
+              case "set_repeat":
+                repeatRef.current = evt.repeat;
+                setRepeatState(evt.repeat);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("global-player-repeat", evt.repeat);
+                }
+                break;
               case "play_queue": {
                 modeRef.current = evt.mode;
                 setModeState(evt.mode);
