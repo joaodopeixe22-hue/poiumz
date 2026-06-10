@@ -54,8 +54,8 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 } as any)
 const AuthenticatedDashboardMusicasRoute =
   AuthenticatedDashboardMusicasRouteImport.update({
-    id: '/musicas',
-    path: '/musicas',
+    id: '/dashboard/musicas',
+    path: '/dashboard/musicas',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 
@@ -66,7 +66,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
-  '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
+  '/dashboard/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -75,7 +75,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
-  '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
+  '/dashboard/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,7 +86,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
-  '/_authenticated/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
+  '/_authenticated/dashboard/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,7 +97,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/dashboard'
-    | '/dashboard/musicas'
+    | '/dashboard/dashboard/musicas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -106,7 +106,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/dashboard'
-    | '/dashboard/musicas'
+    | '/dashboard/dashboard/musicas'
   id:
     | '__root__'
     | '/'
@@ -116,7 +116,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_authenticated/dashboard'
-    | '/_authenticated/dashboard/musicas'
+    | '/_authenticated/dashboard/dashboard/musicas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -179,10 +179,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/dashboard/musicas': {
-      id: '/_authenticated/dashboard/musicas'
-      path: '/musicas'
-      fullPath: '/dashboard/musicas'
+    '/_authenticated/dashboard/dashboard/musicas': {
+      id: '/_authenticated/dashboard/dashboard/musicas'
+      path: '/dashboard/musicas'
+      fullPath: '/dashboard/dashboard/musicas'
       preLoaderRoute: typeof AuthenticatedDashboardMusicasRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
@@ -226,13 +226,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
