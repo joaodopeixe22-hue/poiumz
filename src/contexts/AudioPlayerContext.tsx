@@ -21,6 +21,7 @@ export type AudioTrack = {
 };
 
 export type PlayerMode = "playlist" | "shuffle" | "radio";
+export type RepeatMode = "off" | "all" | "one";
 
 type AudioPlayerContextValue = {
   currentTrack: AudioTrack | null;
