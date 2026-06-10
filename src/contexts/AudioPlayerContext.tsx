@@ -117,6 +117,20 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.8;
   });
 
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [preloadCount, setPreloadCountState] = useState<PreloadCount>(() => {
+    if (typeof window === "undefined") return 3;
+    const n = Number(localStorage.getItem("global-player-preload-count"));
+    return n === 2 || n === 3 || n === 4 || n === 5 ? (n as PreloadCount) : 3;
+  });
+  const [preloadedIds, setPreloadedIds] = useState<Set<string>>(new Set());
+  const preloadedAudioRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const preloadCountRef = useRef<PreloadCount>(preloadCount);
+
+  useEffect(() => {
+    preloadCountRef.current = preloadCount;
+  }, [preloadCount]);
+
   useEffect(() => {
     repeatRef.current = repeat;
   }, [repeat]);
@@ -130,6 +144,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
 
   const broadcast = useCallback((evt: RemoteEvent) => {
     if (echoRef.current) return;
