@@ -264,6 +264,11 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
     const pi = indexRef.current - 1;
     if (pi < 0) {
+      // Em repeat=all, volta para o final da fila
+      if (repeatRef.current === "all" && queueRef.current.length > 0) {
+        await goToIndex(queueRef.current.length - 1);
+        return;
+      }
       const a = audioRef.current;
       if (a) {
         a.currentTime = 0;
