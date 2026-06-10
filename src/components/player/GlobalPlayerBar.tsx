@@ -686,7 +686,17 @@ export function GlobalPlayerBar() {
                           }}
                           className="min-w-0 flex-1 text-left"
                         >
-                          <p className="text-sm truncate">{t.titulo}</p>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="text-sm truncate">{t.titulo}</p>
+                            {t.manuallyQueued && (
+                              <span
+                                className="shrink-0 text-[9px] font-semibold tracking-wider uppercase px-1 py-0.5 rounded bg-primary/15 text-primary border border-primary/30"
+                                title="Adicionada manualmente à fila"
+                              >
+                                Manual
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground truncate">
                             {t.artista ?? "—"}
                           </p>
