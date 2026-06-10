@@ -621,9 +621,85 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     [pruneAndPreload],
   );
 
+  const applyQueueState = useCallback(
+    (state: { queue: AudioTrack[]; index: number }) => {
+      setQueue(state.queue);
+      setIndex(state.index);
+      queueRef.current = state.queue;
+      indexRef.current = state.index;
+      void pruneAndPreload();
+    },
+    [pruneAndPreload],
+  );
+
+  const addNext = useCallback(
+    (track: AudioTrack) => {
+      const next = insertAsNext(
+        { queue: queueRef.current, index: indexRef.current },
+        track,
+      );
+      applyQueueState(next);
+    },
+    [applyQueueState],
+  );
+
+  const addToQueue = useCallback(
+    (track: AudioTrack) => {
+      const next = appendToQueue(
+        { queue: queueRef.current, index: indexRef.current },
+        track,
+      );
+      applyQueueState(next);
+    },
+    [applyQueueState],
+  );
+
+  const addMultipleToQueue = useCallback(
+    (tracks: AudioTrack[]) => {
+      const next = insertMultipleAfterCurrent(
+        { queue: queueRef.current, index: indexRef.current },
+        tracks,
+      );
+      applyQueueState(next);
+    },
+    [applyQueueState],
+  );
+
+  const removeFromQueueById = useCallback(
+    (id: string) => {
+      const q = queueRef.current;
+      const at = q.findIndex((t) => t.id === id);
+      if (at === -1 || at === indexRef.current) return;
+      const next = q.slice(0, at).concat(q.slice(at + 1));
+      const newIndex = at < indexRef.current ? indexRef.current - 1 : indexRef.current;
+      applyQueueState({ queue: next, index: newIndex });
+    },
+    [applyQueueState],
+  );
+
+  const clearManualQueue = useCallback(() => {
+    const next = clearManual({
+      queue: queueRef.current,
+      index: indexRef.current,
+    });
+    applyQueueState(next);
+  }, [applyQueueState]);
+
+  const moveQueueItem = useCallback(
+    (from: number, to: number) => {
+      // delegated to reorderQueue logic (reorderQueue lives above)
+      // but defined here so the public API matches the spec.
+      reorderQueue(from, to);
+    },
+    // reorderQueue declared above
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   const clearHistory = useCallback(() => {
     setHistory([]);
   }, []);
+
 
   const getUpcomingTracks = useCallback(
     (limit = 20): AudioTrack[] => {
