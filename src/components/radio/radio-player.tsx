@@ -17,6 +17,10 @@ type CurrentItem = {
 const SONG_BUCKET = "songs";
 const INSTITUTIONAL_BUCKET = "institutional";
 
+const FADE_IN_SECONDS = 0.6;
+const FADE_OUT_SECONDS = 0.4;
+const TRACK_CHANGE_FADE = 0.35;
+
 export function RadioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const { playback, next } = usePlayback();
@@ -27,6 +31,74 @@ export function RadioPlayer() {
   const [muted, setMuted] = useState(false);
   const [livePos, setLivePos] = useState(0);
   const advancingRef = useRef(false);
+
+  // Web Audio graph: source -> compressor (normalização perceptual) -> gain (fade) -> destination
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const targetVolumeRef = useRef<number>(0.8);
+
+  const targetVolume = () => {
+    const defaultVol = settings?.default_volume ?? 80;
+    return Math.max(0, Math.min(1, defaultVol / 100));
+  };
+
+  const ensureAudioGraph = () => {
+    const a = audioRef.current;
+    if (!a) return null;
+    if (!audioCtxRef.current) {
+      try {
+        const Ctx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!Ctx) return null;
+        const ctx = new Ctx();
+        const source = ctx.createMediaElementSource(a);
+        // Compressor com configuração de "loudness leveling":
+        // ataque rápido, release moderado, ratio alto para domar picos entre faixas
+        // e makeup gain (via post-gain) compensa a redução geral.
+        const compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.value = -20;
+        compressor.knee.value = 24;
+        compressor.ratio.value = 6;
+        compressor.attack.value = 0.005;
+        compressor.release.value = 0.25;
+        const gain = ctx.createGain();
+        gain.gain.value = 0; // começa em silêncio para fade-in
+        source.connect(compressor);
+        compressor.connect(gain);
+        gain.connect(ctx.destination);
+        audioCtxRef.current = ctx;
+        sourceRef.current = source;
+        compressorRef.current = compressor;
+        gainRef.current = gain;
+      } catch {
+        return null;
+      }
+    }
+    return audioCtxRef.current;
+  };
+
+  const fadeTo = (value: number, seconds: number) => {
+    const ctx = audioCtxRef.current;
+    const gain = gainRef.current;
+    if (!ctx || !gain) return;
+    const now = ctx.currentTime;
+    const currentVal = gain.gain.value;
+    try {
+      gain.gain.cancelScheduledValues(now);
+      const safeTarget = Math.max(0.0001, value);
+      const safeCurrent = Math.max(0.0001, currentVal);
+      gain.gain.setValueAtTime(safeCurrent, now);
+      gain.gain.exponentialRampToValueAtTime(safeTarget, now + seconds);
+      if (value <= 0.0001) {
+        gain.gain.setValueAtTime(0, now + seconds);
+      }
+    } catch {
+      gain.gain.value = value;
+    }
+  };
 
   // Resolve o item atual e gera URL pública
   useEffect(() => {
@@ -86,37 +158,61 @@ export function RadioPlayer() {
     const a = audioRef.current;
     if (!a || !audioUrl) return;
     const targetSrc = audioUrl;
-    if (a.src !== targetSrc) {
-      a.src = targetSrc;
-    }
-    const pos = computeLivePosition(playback);
-    // tolera pequena diferença para não "engasgar"
-    if (Math.abs(a.currentTime - pos) > 1.5) {
-      try {
-        a.currentTime = pos;
-      } catch {
-        // alguns navegadores precisam de loadedmetadata
+    const srcChanged = a.src !== targetSrc;
+    const applySrcAndPlay = () => {
+      if (srcChanged) {
+        a.src = targetSrc;
       }
-    }
-    if (playback?.is_playing) {
-      a.play()
-        .then(() => setLocalPlaying(true))
-        .catch(() => {
-          // bloqueio de autoplay — usuário precisa clicar uma vez
+      const pos = computeLivePosition(playback);
+      if (Math.abs(a.currentTime - pos) > 1.5) {
+        try {
+          a.currentTime = pos;
+        } catch {
+          // ignore
+        }
+      }
+      if (playback?.is_playing) {
+        // garante volume base no elemento; o gain controla o fade
+        a.volume = 1;
+        ensureAudioGraph();
+        const ctx = audioCtxRef.current;
+        if (ctx && ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
+        a.play()
+          .then(() => {
+            setLocalPlaying(true);
+            targetVolumeRef.current = targetVolume();
+            fadeTo(targetVolumeRef.current, srcChanged ? TRACK_CHANGE_FADE : FADE_IN_SECONDS);
+          })
+          .catch(() => {
+            setLocalPlaying(false);
+          });
+      } else {
+        // fade-out e então pausa
+        fadeTo(0, FADE_OUT_SECONDS);
+        window.setTimeout(() => {
+          a.pause();
           setLocalPlaying(false);
-        });
+        }, FADE_OUT_SECONDS * 1000 + 50);
+      }
+    };
+
+    if (srcChanged && !a.paused) {
+      // troca de faixa em pleno ar: fade-out curto antes de trocar o src
+      fadeTo(0, TRACK_CHANGE_FADE);
+      window.setTimeout(applySrcAndPlay, TRACK_CHANGE_FADE * 1000 + 30);
     } else {
-      a.pause();
-      setLocalPlaying(false);
+      applySrcAndPlay();
     }
   }, [audioUrl, playback?.is_playing, playback?.started_at, playback]);
 
-  // Aplica volume padrão das configurações ao iniciar reprodução
+  // Aplica volume padrão das configurações: ajusta o alvo do gain
   useEffect(() => {
-    const a = audioRef.current;
-    if (!a || !playback?.is_playing) return;
-    const defaultVol = settings?.default_volume ?? 80;
-    a.volume = Math.max(0, Math.min(1, defaultVol / 100));
+    targetVolumeRef.current = targetVolume();
+    if (playback?.is_playing && gainRef.current) {
+      fadeTo(targetVolumeRef.current, 0.3);
+    }
   }, [playback?.is_playing, settings?.default_volume]);
 
   // Tick local para barra de progresso + auto-avanço
@@ -149,9 +245,17 @@ export function RadioPlayer() {
     const a = audioRef.current;
     if (!a) return;
     try {
+      ensureAudioGraph();
+      const ctx = audioCtxRef.current;
+      if (ctx && ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      a.volume = 1;
       a.currentTime = computeLivePosition(playback);
       await a.play();
       setLocalPlaying(true);
+      targetVolumeRef.current = targetVolume();
+      fadeTo(targetVolumeRef.current, FADE_IN_SECONDS);
     } catch {
       // ignore
     }
@@ -266,6 +370,7 @@ export function RadioPlayer() {
         <audio
           ref={audioRef}
           preload="auto"
+          crossOrigin="anonymous"
           onLoadedMetadata={() => {
             const a = audioRef.current;
             if (!a) return;
@@ -275,8 +380,8 @@ export function RadioPlayer() {
             } catch {
               // ignore
             }
-            const defaultVol = settings?.default_volume ?? 80;
-            a.volume = Math.max(0, Math.min(1, defaultVol / 100));
+            // o elemento fica em volume cheio; o GainNode controla volume + fades
+            a.volume = 1;
           }}
         />
       </div>
