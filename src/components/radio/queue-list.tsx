@@ -23,27 +23,37 @@ export function QueueList() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      if (!playback?.active_playlist_id) {
-        setItems([]);
-        setLoading(false);
-        return;
+      // 1. Fila prioritária
+      const { data: queueData } = await supabase
+        .from("queue")
+        .select("id, posicao, song:songs(id, titulo, artista, duracao_segundos)")
+        .order("posicao", { ascending: true })
+        .limit(8);
+      const queueItems = ((queueData as unknown as Item[]) ?? []).map((q) => ({
+        ...q,
+        id: `q-${q.id}`,
+      }));
+
+      // 2. Playlist no ar
+      let playlistNext: Item[] = [];
+      if (playback?.active_playlist_id) {
+        const { data } = await supabase
+          .from("playlist_songs")
+          .select("id, posicao, song:songs(id, titulo, artista, duracao_segundos)")
+          .eq("playlist_id", playback.active_playlist_id)
+          .order("posicao", { ascending: true });
+        const all = (data as unknown as Item[]) ?? [];
+        if (all.length > 0) {
+          const startIdx = ((playback.loop_index ?? 0) + 1) % all.length;
+          const remaining = Math.max(0, 8 - queueItems.length);
+          for (let i = 0; i < Math.min(remaining, all.length); i++) {
+            playlistNext.push(all[(startIdx + i) % all.length]);
+          }
+        }
       }
-      const { data } = await supabase
-        .from("playlist_songs")
-        .select(
-          "id, posicao, song:songs(id, titulo, artista, duracao_segundos)",
-        )
-        .eq("playlist_id", playback.active_playlist_id)
-        .order("posicao", { ascending: true });
+
       if (cancelled) return;
-      const all = (data as unknown as Item[]) ?? [];
-      const startIdx = ((playback.loop_index ?? 0) + 1) % Math.max(1, all.length);
-      // mostra os próximos 8 itens em ordem circular
-      const next: Item[] = [];
-      for (let i = 0; i < Math.min(8, all.length); i++) {
-        next.push(all[(startIdx + i) % all.length]);
-      }
-      setItems(next);
+      setItems([...queueItems, ...playlistNext]);
       setLoading(false);
     };
     load();
@@ -52,6 +62,11 @@ export function QueueList() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "playlist_songs" },
+        () => load(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "queue" },
         () => load(),
       )
       .subscribe();
