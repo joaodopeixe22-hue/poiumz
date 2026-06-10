@@ -259,6 +259,7 @@ export function RadioPlayer() {
   const handleManualPlay = async () => {
     const a = audioRef.current;
     if (!a) return;
+    logRadio("manual_play", { url: audioUrl });
     try {
       if (!a.src && audioUrl) {
         a.src = audioUrl;
@@ -273,13 +274,15 @@ export function RadioPlayer() {
           /* ignore */
         }
       }
+      logRadio("play_attempt", { trigger: "manual", url: audioUrl, seek_to: pos });
       await a.play();
+      logRadio("play_success", { trigger: "manual" });
       setNeedsGesture(false);
       setLocalPlaying(true);
       setLoadError(null);
     } catch (err) {
       const e = err as { name?: string; message?: string };
-      console.error("[radio-player] manual play falhou", e);
+      logRadio("play_failed", { trigger: "manual", name: e?.name, message: e?.message });
       setLoadError(e?.message ?? "Não foi possível iniciar");
     }
   };
