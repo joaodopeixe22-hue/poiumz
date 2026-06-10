@@ -547,6 +547,63 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setRepeat(order[(i + 1) % order.length]);
   }, [setRepeat]);
 
+  const setPreloadCount = useCallback((n: PreloadCount) => {
+    preloadCountRef.current = n;
+    setPreloadCountState(n);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("global-player-preload-count", String(n));
+    }
+    void pruneAndPreload();
+  }, [pruneAndPreload]);
+
+  const jumpToTrack = useCallback(
+    async (i: number) => {
+      await goToIndex(i);
+    },
+    [goToIndex],
+  );
+
+  const removeFromQueue = useCallback(
+    (i: number) => {
+      const q = queueRef.current;
+      if (i < 0 || i >= q.length) return;
+      if (i === indexRef.current) return; // não remove a faixa atual
+      const next = q.slice(0, i).concat(q.slice(i + 1));
+      let newIndex = indexRef.current;
+      if (i < indexRef.current) newIndex = indexRef.current - 1;
+      setQueue(next);
+      setIndex(newIndex);
+      queueRef.current = next;
+      indexRef.current = newIndex;
+      void pruneAndPreload();
+    },
+    [pruneAndPreload],
+  );
+
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+  }, []);
+
+  const getUpcomingTracks = useCallback(
+    (limit = 20): AudioTrack[] => {
+      const q = queueRef.current;
+      const cur = indexRef.current;
+      const out: AudioTrack[] = [];
+      for (let i = 1; i <= limit; i++) {
+        let j = cur + i;
+        if (j >= q.length) {
+          if (repeatRef.current !== "all" || q.length === 0) break;
+          j = j % q.length;
+          if (j === cur) break;
+        }
+        out.push(q[j]);
+      }
+      return out;
+    },
+    [],
+  );
+
+
   // Modo rádio: liga ao playback_state global e segue a programação
   useEffect(() => {
     if (mode !== "radio") return;
