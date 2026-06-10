@@ -84,6 +84,21 @@ type AudioPlayerContextValue = {
   smartMix: SmartMixSettings;
   setSmartMix: (s: Partial<SmartMixSettings>) => void;
   isCrossfading: boolean;
+  /** 0..1 progress of the active crossfade; 0 when idle. */
+  crossfadeProgress: number;
+  /** Read the override (if any) for a playlist's Smart Mix settings. */
+  getPlaylistSmartMix: (
+    playlistId: string | null | undefined,
+  ) => Partial<SmartMixSettings> | null;
+  /** Save or clear (`null`) the per-playlist Smart Mix override. */
+  setPlaylistSmartMix: (
+    playlistId: string,
+    partial: Partial<SmartMixSettings> | null,
+  ) => void;
+  /** Effective settings = global merged with override. */
+  resolveEffectiveSmartMix: (
+    playlistId: string | null | undefined,
+  ) => SmartMixSettings;
 };
 
 export const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
