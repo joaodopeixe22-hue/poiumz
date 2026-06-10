@@ -52,11 +52,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedDashboardMusicasRoute = AuthenticatedDashboardMusicasRouteImport.update({
-  id: '/dashboard/musicas',
-  path: '/dashboard/musicas',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
+const AuthenticatedDashboardMusicasRoute =
+  AuthenticatedDashboardMusicasRouteImport.update({
+    id: '/musicas',
+    path: '/musicas',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -64,7 +65,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
 }
 export interface FileRoutesByTo {
@@ -73,7 +74,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
 }
 export interface FileRoutesById {
@@ -84,7 +85,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/dashboard/musicas': typeof AuthenticatedDashboardMusicasRoute
 }
 export interface FileRouteTypes {
@@ -180,22 +181,34 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/dashboard/musicas': {
       id: '/_authenticated/dashboard/musicas'
-      path: '/dashboard/musicas'
+      path: '/musicas'
       fullPath: '/dashboard/musicas'
       preLoaderRoute: typeof AuthenticatedDashboardMusicasRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      parentRoute: typeof AuthenticatedDashboardRoute
     }
   }
 }
 
-interface AuthenticatedRouteChildren {
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardMusicasRoute: typeof AuthenticatedDashboardMusicasRoute
 }
 
+const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
+  {
+    AuthenticatedDashboardMusicasRoute: AuthenticatedDashboardMusicasRoute,
+  }
+
+const AuthenticatedDashboardRouteWithChildren =
+  AuthenticatedDashboardRoute._addFileChildren(
+    AuthenticatedDashboardRouteChildren,
+  )
+
+interface AuthenticatedRouteChildren {
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
+}
+
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedDashboardMusicasRoute: AuthenticatedDashboardMusicasRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
