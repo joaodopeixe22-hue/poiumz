@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ListMusic } from "lucide-react";
+import { ListMusic, Play } from "lucide-react";
+import { toast } from "sonner";
 import { formatTime } from "@/lib/format";
 import { usePlayback } from "@/hooks/use-playback";
+import { useProfile } from "@/hooks/use-profile";
+import { useAuth } from "@/hooks/use-auth";
 
 type Item = {
   id: string;
   posicao: number;
+  source: "queue" | "playlist";
+  rawId: string;
   song: {
     id: string;
     titulo: string;
@@ -14,6 +19,7 @@ type Item = {
     duracao_segundos: number | null;
   } | null;
 };
+
 
 export function QueueList() {
   const { playback } = usePlayback();
