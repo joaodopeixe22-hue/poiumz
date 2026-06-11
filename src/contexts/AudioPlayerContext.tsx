@@ -259,6 +259,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   });
   const [preloadedIds, setPreloadedIds] = useState<Set<string>>(new Set());
   const preloadedAudioRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const [playbackSource, setPlaybackSource] = useState<PlaybackSource>("library");
   const preloadCountRef = useRef<PreloadCount>(preloadCount);
 
   useEffect(() => {
