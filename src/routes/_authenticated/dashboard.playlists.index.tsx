@@ -143,9 +143,6 @@ function PlaylistsPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {formatPlaylistDuration(pl.song_count, pl.total_duration_seconds)}
                 </p>
-                <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-                  Criada {formatRelative(pl.created_at)}
-                </p>
               </Link>
               {canEdit && (
                 <div className="flex justify-end gap-1 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
