@@ -28,13 +28,13 @@ export function QueueList() {
         .from("queue")
         .select("id, posicao, song:songs(id, titulo, artista, duracao_segundos)")
         .order("posicao", { ascending: true })
-        .limit(8);
+        .limit(5);
       const queueItems = ((queueData as unknown as Item[]) ?? []).map((q) => ({
         ...q,
         id: `q-${q.id}`,
       }));
 
-      // 2. Playlist no ar
+      // 2. Playlist no ar — completa até 5 próximas
       let playlistNext: Item[] = [];
       if (playback?.active_playlist_id) {
         const { data } = await supabase
@@ -45,7 +45,7 @@ export function QueueList() {
         const all = (data as unknown as Item[]) ?? [];
         if (all.length > 0) {
           const startIdx = ((playback.loop_index ?? 0) + 1) % all.length;
-          const remaining = Math.max(0, 8 - queueItems.length);
+          const remaining = Math.max(0, 5 - queueItems.length);
           for (let i = 0; i < Math.min(remaining, all.length); i++) {
             playlistNext.push(all[(startIdx + i) % all.length]);
           }
