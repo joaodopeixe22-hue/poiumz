@@ -781,7 +781,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     [loadAndPlay, broadcast],
   );
 
-  // next / prev / ended respeitando o modo
+  // next / prev / ended — fila ativa percorrida linearmente.
+  // Quando `isShuffle` está ligado, a fila já foi pré-embaralhada;
+  // andar 1 a 1 garante que cada faixa toca exatamente uma vez antes
+  // de qualquer ciclo (sem repetição prematura).
   const advanceNext = useCallback(async () => {
     const m = modeRef.current;
     if (m === "radio") {
@@ -789,24 +792,32 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       if (error) toast.error(error.message);
       return;
     }
-    if (m === "shuffle") {
-      const cur = indexRef.current;
-      const ni = pickShuffleIndex();
-      shuffleHistRef.current.push(cur);
-      await goToIndex(ni);
-      return;
-    }
     const q = queueRef.current;
     const ni = indexRef.current + 1;
     if (ni >= q.length) {
-      // Fila acabou — em playlist com repeat=all, recomeça do início (fila contínua)
+      // Fim da fila — em repeat=all com shuffle ligado, gera nova rodada
+      // (reshuffle do restante, sem repetir a última imediatamente).
       if (repeatRef.current === "all" && q.length > 0) {
+        if (isShuffleRef.current && q.length > 1) {
+          const curTrack = q[indexRef.current];
+          const original =
+            originalQueueRef.current.length > 0
+              ? originalQueueRef.current.slice()
+              : q.slice();
+          const reshuffled = buildShuffleQueue(original, curTrack?.id ?? null);
+          // Pula a faixa atual (já tocada) e segue para a próxima da nova
+          // rodada — startIndex = 1.
+          setQueue(reshuffled);
+          queueRef.current = reshuffled;
+          await goToIndex(Math.min(1, reshuffled.length - 1));
+          return;
+        }
         await goToIndex(0);
       }
       return;
     }
     await goToIndex(ni);
-  }, [goToIndex, pickShuffleIndex]);
+  }, [goToIndex]);
 
   const advancePrev = useCallback(async () => {
     const m = modeRef.current;
