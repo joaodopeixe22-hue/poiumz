@@ -518,6 +518,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
       const startVol = volume;
       const startAt = performance.now();
+      let lastProgressSet = 0;
       const tick = () => {
         if (!inCrossfadeRef.current) return;
         const elapsed = (performance.now() - startAt) / 1000;
@@ -529,7 +530,12 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         } catch {
           /* ignore */
         }
-        setCrossfadeProgress(t);
+        // Throttle progress state to ~25 updates/crossfade instead of one
+        // per 50ms tick — UI doesn't need finer granularity.
+        if (t - lastProgressSet >= 0.04 || t >= 1) {
+          lastProgressSet = t;
+          setCrossfadeProgress(t);
+        }
         if (t >= 1) {
           if (crossfadeTimerRef.current !== null) {
             window.clearInterval(crossfadeTimerRef.current);
