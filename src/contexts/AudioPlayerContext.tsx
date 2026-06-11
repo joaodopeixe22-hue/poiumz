@@ -270,6 +270,23 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     modeRef.current = mode;
   }, [mode]);
 
+  // === Shuffle profissional (estilo Spotify) =================================
+  // Fila pré-embaralhada (Fisher-Yates) + snapshot da ordem original para
+  // restauração. Sem ciclo prematuro: a fila ativa cobre todas as faixas
+  // exatamente uma vez antes de qualquer repetição.
+  const [isShuffle, setIsShuffleState] = useState<boolean>(
+    () => persisted?.isShuffle === true || persisted?.mode === "shuffle",
+  );
+  const isShuffleRef = useRef(isShuffle);
+  const originalQueueRef = useRef<AudioTrack[]>(
+    Array.isArray(persisted?.originalQueue)
+      ? (persisted!.originalQueue as AudioTrack[])
+      : [],
+  );
+  useEffect(() => {
+    isShuffleRef.current = isShuffle;
+  }, [isShuffle]);
+
   // Load persisted Smart Mix settings on mount
   useEffect(() => {
     const s = loadSmartMixSettings();
