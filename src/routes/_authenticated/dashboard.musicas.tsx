@@ -44,11 +44,14 @@ function MusicasPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkRunning, setBulkRunning] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addSongIds, setAddSongIds] = useState<string[]>([]);
   const player = useAudioPlayer();
 
   const canUpload = !!profile?.can_upload || profile?.role === "admin";
   const isAdmin = profile?.role === "admin";
   const canDelete = isAdmin || !!profile?.can_upload;
+  const canEditPlaylists = profile?.status === "aprovado";
 
   const unusedCount = useMemo(
     () => songs.filter((s) => !songsInPlaylists.has(s.id)).length,
