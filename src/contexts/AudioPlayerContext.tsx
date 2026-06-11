@@ -1407,6 +1407,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setMode,
       setRepeat,
       cycleRepeat,
+      isShuffle,
+      toggleShuffle,
       stop,
       jumpToTrack,
       removeFromQueue,
