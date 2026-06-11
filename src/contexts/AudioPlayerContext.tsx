@@ -1032,6 +1032,50 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setRepeat(order[(i + 1) % order.length]);
   }, [setRepeat]);
 
+  // === Shuffle toggle =======================================================
+  const toggleShuffle = useCallback(() => {
+    const next = !isShuffleRef.current;
+    const curTrack = queueRef.current[indexRef.current] ?? null;
+    if (next) {
+      // Ativar: snapshot da ordem original, embaralha o restante via Fisher-Yates
+      if (originalQueueRef.current.length === 0) {
+        originalQueueRef.current = queueRef.current.slice();
+      }
+      const shuffled = buildShuffleQueue(
+        originalQueueRef.current,
+        curTrack?.id ?? null,
+      );
+      setQueue(shuffled);
+      queueRef.current = shuffled;
+      const newIdx = curTrack
+        ? Math.max(0, shuffled.findIndex((t) => t.id === curTrack.id))
+        : 0;
+      setIndex(newIdx);
+      indexRef.current = newIdx;
+    } else {
+      // Desativar: restaura ordem original a partir da música atual
+      const original =
+        originalQueueRef.current.length > 0
+          ? originalQueueRef.current.slice()
+          : queueRef.current.slice();
+      setQueue(original);
+      queueRef.current = original;
+      const newIdx = curTrack
+        ? Math.max(0, original.findIndex((t) => t.id === curTrack.id))
+        : 0;
+      setIndex(newIdx);
+      indexRef.current = newIdx;
+      originalQueueRef.current = [];
+    }
+    isShuffleRef.current = next;
+    setIsShuffleState(next);
+    shuffleHistRef.current = [];
+    if (typeof window !== "undefined") {
+      localStorage.setItem("global-player-shuffle", next ? "1" : "0");
+    }
+    void pruneAndPreload();
+  }, [pruneAndPreload]);
+
   const setPreloadCount = useCallback((n: PreloadCount) => {
     preloadCountRef.current = n;
     setPreloadCountState(n);
