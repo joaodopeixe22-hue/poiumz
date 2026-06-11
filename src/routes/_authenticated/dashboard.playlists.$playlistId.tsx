@@ -25,7 +25,7 @@ import { useSongs } from "@/hooks/use-songs";
 import { usePlaylist } from "@/hooks/use-playlists";
 import { useAudioPlayer, type AudioTrack } from "@/hooks/useAudioPlayer";
 import { supabase } from "@/integrations/supabase/client";
-import { formatTime } from "@/lib/format";
+import { formatTime, formatPlaylistDuration } from "@/lib/format";
 import { toast } from "sonner";
 import { TrackContextMenu } from "@/components/player/TrackContextMenu";
 
@@ -165,8 +165,10 @@ function PlaylistDetailPage() {
           </p>
           <h1 className="text-3xl font-bold tracking-tight">{playlist.nome}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {items.length} {items.length === 1 ? "música" : "músicas"} ·{" "}
-            {formatTime(totalDuration)}
+            {formatPlaylistDuration(
+              playlist.song_count ?? items.length,
+              playlist.total_duration_seconds,
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -135,6 +135,13 @@ export type Database = {
             foreignKeyName: "playback_state_current_playlist_id_fkey"
             columns: ["current_playlist_id"]
             isOneToOne: false
+            referencedRelation: "playlist_stats"
+            referencedColumns: ["playlist_id"]
+          },
+          {
+            foreignKeyName: "playback_state_current_playlist_id_fkey"
+            columns: ["current_playlist_id"]
+            isOneToOne: false
             referencedRelation: "playlists"
             referencedColumns: ["id"]
           },
@@ -174,6 +181,13 @@ export type Database = {
           song_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "playlist_songs_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlist_stats"
+            referencedColumns: ["playlist_id"]
+          },
           {
             foreignKeyName: "playlist_songs_playlist_id_fkey"
             columns: ["playlist_id"]
@@ -373,7 +387,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      playlist_stats: {
+        Row: {
+          playlist_id: string | null
+          songs_count: number | null
+          total_duration_seconds: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       advance_playback: {

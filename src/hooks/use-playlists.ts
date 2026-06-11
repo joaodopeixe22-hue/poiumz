@@ -7,6 +7,7 @@ export type Playlist = {
   created_by: string | null;
   created_at: string;
   song_count?: number;
+  total_duration_seconds?: number;
 };
 
 export type PlaylistSong = {
@@ -23,6 +24,30 @@ export type PlaylistSong = {
   } | null;
 };
 
+type StatsRow = {
+  playlist_id: string;
+  songs_count: number | null;
+  total_duration_seconds: number | null;
+};
+
+async function fetchStatsMap(playlistIds: string[]) {
+  const map = new Map<string, { songs_count: number; total_duration_seconds: number }>();
+  if (playlistIds.length === 0) return map;
+  const { data, error } = await supabase
+    .from("playlist_stats" as never)
+    .select("playlist_id, songs_count, total_duration_seconds")
+    .in("playlist_id", playlistIds);
+  if (!error && data) {
+    for (const r of data as unknown as StatsRow[]) {
+      map.set(r.playlist_id, {
+        songs_count: Number(r.songs_count ?? 0),
+        total_duration_seconds: Number(r.total_duration_seconds ?? 0),
+      });
+    }
+  }
+  return map;
+}
+
 export function usePlaylists() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,17 +55,20 @@ export function usePlaylists() {
   const refresh = useCallback(async () => {
     const { data, error } = await supabase
       .from("playlists")
-      .select("id, nome, created_by, created_at, playlist_songs(count)")
+      .select("id, nome, created_by, created_at")
       .order("created_at", { ascending: false });
     if (!error && data) {
+      const ids = (data as Playlist[]).map((p) => p.id);
+      const stats = await fetchStatsMap(ids);
       setPlaylists(
-        (data as unknown as (Playlist & { playlist_songs: { count: number }[] })[]).map((p) => ({
-          id: p.id,
-          nome: p.nome,
-          created_by: p.created_by,
-          created_at: p.created_at,
-          song_count: p.playlist_songs?.[0]?.count ?? 0,
-        })),
+        (data as Playlist[]).map((p) => {
+          const s = stats.get(p.id);
+          return {
+            ...p,
+            song_count: s?.songs_count ?? 0,
+            total_duration_seconds: s?.total_duration_seconds ?? 0,
+          };
+        }),
       );
     }
     setLoading(false);
@@ -76,7 +104,7 @@ export function usePlaylist(playlistId: string | undefined) {
 
   const refresh = useCallback(async () => {
     if (!playlistId) return;
-    const [{ data: pl }, { data: ps }] = await Promise.all([
+    const [{ data: pl }, { data: ps }, { data: st }] = await Promise.all([
       supabase
         .from("playlists")
         .select("id, nome, created_by, created_at")
@@ -89,8 +117,23 @@ export function usePlaylist(playlistId: string | undefined) {
         )
         .eq("playlist_id", playlistId)
         .order("posicao", { ascending: true }),
+      supabase
+        .from("playlist_stats" as never)
+        .select("songs_count, total_duration_seconds")
+        .eq("playlist_id", playlistId)
+        .maybeSingle(),
     ]);
-    if (pl) setPlaylist(pl as Playlist);
+    if (pl) {
+      const stats = st as unknown as {
+        songs_count: number | null;
+        total_duration_seconds: number | null;
+      } | null;
+      setPlaylist({
+        ...(pl as Playlist),
+        song_count: Number(stats?.songs_count ?? 0),
+        total_duration_seconds: Number(stats?.total_duration_seconds ?? 0),
+      });
+    }
     if (ps) setItems(ps as unknown as PlaylistSong[]);
     setLoading(false);
   }, [playlistId]);
