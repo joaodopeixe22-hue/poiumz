@@ -69,6 +69,10 @@ type AudioPlayerContextValue = {
   setMode: (m: PlayerMode) => void;
   setRepeat: (r: RepeatMode) => void;
   cycleRepeat: () => void;
+  /** Shuffle profissional (estilo Spotify): fila pré-embaralhada via
+   *  Fisher-Yates, faixa atual preservada, ordem original restaurável. */
+  isShuffle: boolean;
+  toggleShuffle: () => void;
   stop: () => void;
   jumpToTrack: (index: number) => Promise<void>;
   removeFromQueue: (index: number) => void;
