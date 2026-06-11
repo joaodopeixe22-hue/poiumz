@@ -620,10 +620,18 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       void startCrossfade(nextI);
     };
 
+    let lastPosSet = 0;
     const bind = (el: HTMLAudioElement) => {
       const onTime = () => {
         if (!isActive(el)) return;
-        setPosition(el.currentTime);
+        // Throttle: only update React state if the position changed enough
+        // to be visually meaningful. `timeupdate` fires up to ~15Hz and
+        // each setPosition rebuilds the memoized context value.
+        const cur = el.currentTime;
+        if (Math.abs(cur - lastPosSet) >= 0.25 || cur === 0) {
+          lastPosSet = cur;
+          setPosition(cur);
+        }
         tryCrossfade(el);
       };
       const onDur = () => {
