@@ -23,7 +23,7 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 import { usePlaylists, type Playlist } from "@/hooks/use-playlists";
 import { supabase } from "@/integrations/supabase/client";
-import { formatRelative, formatPlaylistDuration } from "@/lib/format";
+import { formatPlaylistDuration } from "@/lib/format";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard/playlists/")({
