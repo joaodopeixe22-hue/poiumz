@@ -25,6 +25,7 @@ export function TrackContextMenu({
   track,
   sourcePlaylistId,
   onOpenSourcePlaylist,
+  onAddToPlaylist,
 }: Props) {
   const { playTrack, addNext, addToQueue } = useAudioPlayer();
   const tagged: AudioTrack = {
