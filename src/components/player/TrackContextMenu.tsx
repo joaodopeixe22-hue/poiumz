@@ -1,4 +1,4 @@
-import { MoreVertical, Play, ListPlus, ListMusic, FolderOpen } from "lucide-react";
+import { MoreVertical, Play, ListPlus, ListMusic, FolderOpen, FolderPlus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ type Props = {
   track: AudioTrack;
   sourcePlaylistId?: string | null;
   onOpenSourcePlaylist?: (playlistId: string) => void;
+  onAddToPlaylist?: () => void;
 };
 
 /**
@@ -24,6 +25,7 @@ export function TrackContextMenu({
   track,
   sourcePlaylistId,
   onOpenSourcePlaylist,
+  onAddToPlaylist,
 }: Props) {
   const { playTrack, addNext, addToQueue } = useAudioPlayer();
   const tagged: AudioTrack = {
@@ -69,6 +71,15 @@ export function TrackContextMenu({
           <ListMusic className="size-4 mr-2" />
           Adicionar à fila
         </DropdownMenuItem>
+        {onAddToPlaylist && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onAddToPlaylist}>
+              <FolderPlus className="size-4 mr-2" />
+              Adicionar à playlist
+            </DropdownMenuItem>
+          </>
+        )}
         {sourcePlaylistId && onOpenSourcePlaylist && (
           <>
             <DropdownMenuSeparator />

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Music, Plus, Search, Pencil, Trash2, Play, Pause } from "lucide-react";
+import { Music, Plus, Search, Pencil, Trash2, Play, Pause, FolderPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,6 +24,7 @@ import { UploadDialog } from "@/components/musicas/upload-dialog";
 import { EditSongSheet } from "@/components/musicas/edit-song-sheet";
 import { toast } from "sonner";
 import { TrackContextMenu } from "@/components/player/TrackContextMenu";
+import { AddToPlaylistModal } from "@/components/musicas/add-to-playlist-modal";
 
 export const Route = createFileRoute("/_authenticated/dashboard/musicas")({
   component: MusicasPage,
@@ -43,11 +44,14 @@ function MusicasPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkRunning, setBulkRunning] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addSongIds, setAddSongIds] = useState<string[]>([]);
   const player = useAudioPlayer();
 
   const canUpload = !!profile?.can_upload || profile?.role === "admin";
   const isAdmin = profile?.role === "admin";
   const canDelete = isAdmin || !!profile?.can_upload;
+  const canEditPlaylists = profile?.status === "aprovado";
 
   const unusedCount = useMemo(
     () => songs.filter((s) => !songsInPlaylists.has(s.id)).length,
@@ -66,7 +70,8 @@ function MusicasPage() {
     });
   }, [songs, query, filter, songsInPlaylists]);
 
-  const selectionMode = filter === "unused" && canDelete;
+  const selectionMode = canEditPlaylists || (filter === "unused" && canDelete);
+  const canBulkDelete = filter === "unused" && canDelete;
   const allFilteredSelected =
     selectionMode && filtered.length > 0 && filtered.every((s) => selected.has(s.id));
 
@@ -228,16 +233,35 @@ function MusicasPage() {
           </button>
         </div>
         {selectionMode && selected.size > 0 && (
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={bulkRunning}
-            onClick={() => setBulkConfirm(true)}
-            className="gap-2 md:ml-auto"
-          >
-            <Trash2 className="size-3.5" />
-            Excluir selecionadas ({selected.size})
-          </Button>
+          <div className="flex flex-wrap gap-2 md:ml-auto">
+            {canEditPlaylists && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={bulkRunning}
+                onClick={() => {
+                  setAddSongIds(Array.from(selected));
+                  setAddOpen(true);
+                }}
+                className="gap-2"
+              >
+                <FolderPlus className="size-3.5" />
+                Adicionar à playlist ({selected.size})
+              </Button>
+            )}
+            {canBulkDelete && (
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={bulkRunning}
+                onClick={() => setBulkConfirm(true)}
+                className="gap-2"
+              >
+                <Trash2 className="size-3.5" />
+                Excluir selecionadas ({selected.size})
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -350,6 +374,14 @@ function MusicasPage() {
                             duracao_segundos: song.duracao_segundos,
                             storage_path: song.storage_path,
                           }}
+                          onAddToPlaylist={
+                            canEditPlaylists
+                              ? () => {
+                                  setAddSongIds([song.id]);
+                                  setAddOpen(true);
+                                }
+                              : undefined
+                          }
                         />
                         {isAdmin && (
                           <button
@@ -422,6 +454,19 @@ function MusicasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AddToPlaylistModal
+        open={addOpen}
+        onOpenChange={(v) => {
+          setAddOpen(v);
+          if (!v) setAddSongIds([]);
+        }}
+        songIds={addSongIds}
+        onDone={() => {
+          setSelected(new Set());
+          refresh();
+        }}
+      />
     </div>
   );
 }
