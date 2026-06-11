@@ -233,16 +233,35 @@ function MusicasPage() {
           </button>
         </div>
         {selectionMode && selected.size > 0 && (
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={bulkRunning}
-            onClick={() => setBulkConfirm(true)}
-            className="gap-2 md:ml-auto"
-          >
-            <Trash2 className="size-3.5" />
-            Excluir selecionadas ({selected.size})
-          </Button>
+          <div className="flex flex-wrap gap-2 md:ml-auto">
+            {canEditPlaylists && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={bulkRunning}
+                onClick={() => {
+                  setAddSongIds(Array.from(selected));
+                  setAddOpen(true);
+                }}
+                className="gap-2"
+              >
+                <FolderPlus className="size-3.5" />
+                Adicionar à playlist ({selected.size})
+              </Button>
+            )}
+            {canBulkDelete && (
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={bulkRunning}
+                onClick={() => setBulkConfirm(true)}
+                className="gap-2"
+              >
+                <Trash2 className="size-3.5" />
+                Excluir selecionadas ({selected.size})
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
