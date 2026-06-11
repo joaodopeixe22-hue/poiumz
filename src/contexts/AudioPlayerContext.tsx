@@ -765,16 +765,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Helpers internos para navegação por modo
-  const pickShuffleIndex = useCallback(() => {
-    const q = queueRef.current;
-    if (q.length <= 1) return indexRef.current;
-    let r = indexRef.current;
-    let guard = 0;
-    while (r === indexRef.current && guard++ < 8) {
-      r = Math.floor(Math.random() * q.length);
-    }
-    return r;
-  }, []);
+  // (modo legado "shuffle" removido: agora `isShuffle` independente
+  //  embaralha a fila ativa via Fisher-Yates antes da reprodução,
+  //  e o advance percorre linearmente — sem repetições prematuras.)
 
   const goToIndex = useCallback(
     async (i: number) => {
