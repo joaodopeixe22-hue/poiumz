@@ -374,6 +374,14 @@ function MusicasPage() {
                             duracao_segundos: song.duracao_segundos,
                             storage_path: song.storage_path,
                           }}
+                          onAddToPlaylist={
+                            canEditPlaylists
+                              ? () => {
+                                  setAddSongIds([song.id]);
+                                  setAddOpen(true);
+                                }
+                              : undefined
+                          }
                         />
                         {isAdmin && (
                           <button
