@@ -829,20 +829,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       }
       return;
     }
-    if (m === "shuffle") {
-      const hist = shuffleHistRef.current;
-      if (hist.length > 0) {
-        const pi = hist.pop()!;
-        await goToIndex(pi);
-        return;
-      }
-      const a = audioRef.current;
-      if (a) {
-        a.currentTime = 0;
-        setPosition(0);
-      }
-      return;
-    }
+    // Em shuffle ligado, prev percorre a fila (que já é o histórico real
+    // da ordem em que tocou) — não recalcula embaralhamento.
     const pi = indexRef.current - 1;
     if (pi < 0) {
       // Em repeat=all, volta para o final da fila
