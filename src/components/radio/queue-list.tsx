@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ListMusic } from "lucide-react";
+import { ListMusic, Play } from "lucide-react";
+import { toast } from "sonner";
 import { formatTime } from "@/lib/format";
 import { usePlayback } from "@/hooks/use-playback";
+import { useProfile } from "@/hooks/use-profile";
+import { useAuth } from "@/hooks/use-auth";
 
 type Item = {
   id: string;
   posicao: number;
+  source: "queue" | "playlist";
+  rawId: string;
   song: {
     id: string;
     titulo: string;
@@ -15,26 +20,38 @@ type Item = {
   } | null;
 };
 
+
 export function QueueList() {
   const { playback } = usePlayback();
+  const { profile } = useProfile();
+  const { user } = useAuth();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const [jumping, setJumping] = useState<string | null>(null);
+
+  const canControl =
+    !!profile &&
+    profile.status === "aprovado" &&
+    (profile.role === "admin" || profile.role === "operador") &&
+    !(playback?.is_locked && profile.role !== "admin");
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      // 1. Fila prioritária
       const { data: queueData } = await supabase
         .from("queue")
         .select("id, posicao, song:songs(id, titulo, artista, duracao_segundos)")
         .order("posicao", { ascending: true })
         .limit(5);
-      const queueItems = ((queueData as unknown as Item[]) ?? []).map((q) => ({
-        ...q,
-        id: `q-${q.id}`,
-      }));
+      const queueItems = ((queueData as unknown as Omit<Item, "source" | "rawId">[]) ?? []).map(
+        (q) => ({
+          ...q,
+          rawId: q.id,
+          source: "queue" as const,
+          id: `q-${q.id}`,
+        }),
+      );
 
-      // 2. Playlist no ar — completa até 5 próximas
       let playlistNext: Item[] = [];
       if (playback?.active_playlist_id) {
         const { data } = await supabase
@@ -42,7 +59,11 @@ export function QueueList() {
           .select("id, posicao, song:songs(id, titulo, artista, duracao_segundos)")
           .eq("playlist_id", playback.active_playlist_id)
           .order("posicao", { ascending: true });
-        const all = (data as unknown as Item[]) ?? [];
+        const all = ((data as unknown as Omit<Item, "source" | "rawId">[]) ?? []).map((p) => ({
+          ...p,
+          rawId: p.id,
+          source: "playlist" as const,
+        }));
         if (all.length > 0) {
           const startIdx = ((playback.loop_index ?? 0) + 1) % all.length;
           const remaining = Math.max(0, 5 - queueItems.length);
@@ -85,6 +106,34 @@ export function QueueList() {
     };
   }, [playback?.active_playlist_id, playback?.loop_index]);
 
+  const jumpTo = async (it: Item) => {
+    if (!canControl || !it.song) return;
+    setJumping(it.id);
+    try {
+      const { error } = await supabase
+        .from("playback_state")
+        .update({
+          current_song_id: it.song.id,
+          current_institutional_id: null,
+          loop_index: it.source === "playlist" ? it.posicao : (playback?.loop_index ?? 0),
+          position_seconds: 0,
+          started_at: new Date().toISOString(),
+          is_playing: true,
+          controlled_by: user?.id ?? null,
+        } as never)
+        .eq("id", true);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      if (it.source === "queue") {
+        await supabase.from("queue").delete().eq("id", it.rawId);
+      }
+    } finally {
+      setJumping(null);
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
       <div className="flex items-center gap-2 mb-5">
@@ -118,6 +167,17 @@ export function QueueList() {
               <span className="text-xs font-mono text-muted-foreground tabular-nums shrink-0">
                 {formatTime(it.song?.duracao_segundos)}
               </span>
+              {canControl && it.song && (
+                <button
+                  onClick={() => jumpTo(it)}
+                  disabled={jumping === it.id}
+                  className="size-7 rounded-full grid place-items-center text-muted-foreground hover:text-primary-foreground hover:bg-primary transition-colors disabled:opacity-50"
+                  aria-label={`Pular para ${it.song.titulo}`}
+                  title="Pular para esta faixa"
+                >
+                  <Play className="size-3" />
+                </button>
+              )}
             </li>
           ))}
         </ol>

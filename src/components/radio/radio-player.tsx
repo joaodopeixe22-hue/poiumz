@@ -38,9 +38,31 @@ export function RadioPlayer() {
   const hasPlayedThisSession = useRef(false);
 
   const targetVolume = () => {
+    // Override local (controles avançados) tem prioridade sobre o default global
+    if (typeof window !== "undefined") {
+      const v = window.localStorage.getItem("radioVolume");
+      const n = v ? Number(v) : NaN;
+      if (Number.isFinite(n)) return Math.max(0, Math.min(1, n));
+    }
     const defaultVol = settings?.default_volume ?? 80;
     return Math.max(0, Math.min(1, defaultVol / 100));
   };
+
+  // Aceita ajustes de volume local emitidos por outros componentes (HomeRadioControls)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onSetVolume = (e: Event) => {
+      const detail = (e as CustomEvent<{ volume: number }>).detail;
+      const a = audioRef.current;
+      if (!a || !detail) return;
+      a.volume = Math.max(0, Math.min(1, detail.volume));
+      if (a.volume > 0 && a.muted) a.muted = false;
+    };
+    window.addEventListener("radio:setVolume", onSetVolume as EventListener);
+    return () =>
+      window.removeEventListener("radio:setVolume", onSetVolume as EventListener);
+  }, []);
+
 
   // Nome da playlist no ar
   useEffect(() => {
