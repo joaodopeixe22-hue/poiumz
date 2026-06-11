@@ -470,7 +470,7 @@ export function RadioPlayer() {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-2 font-mono text-xs text-muted-foreground tabular-nums">
-              <span>{formatTime(livePos)}</span>
+              <span>{formatTime(dur > 0 ? Math.min(livePos, dur) : livePos)}</span>
               <span>{formatTime(dur)}</span>
             </div>
             <div className="h-1.5 bg-border rounded-full overflow-hidden">
