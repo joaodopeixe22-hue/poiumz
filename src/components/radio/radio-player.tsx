@@ -35,6 +35,7 @@ export function RadioPlayer() {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("radioUnlocked") === "1";
   });
+  const hasPlayedThisSession = useRef(false);
 
   const targetVolume = () => {
     const defaultVol = settings?.default_volume ?? 80;
@@ -330,6 +331,11 @@ export function RadioPlayer() {
   const dur = current?.duracao_segundos ?? 0;
   const progressPct = dur ? Math.min(100, (livePos / dur) * 100) : 0;
   const playBtnDisabled = !audioUrl || !playback?.is_playing;
+  const audioEl = audioRef.current;
+  const isActuallyPlaying =
+    !!audioEl && !audioEl.paused && !audioEl.ended && audioEl.currentTime > 0;
+  const shouldShowUnlockMessage =
+    !unlocked && !isActuallyPlaying && !hasPlayedThisSession.current;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
@@ -386,7 +392,7 @@ export function RadioPlayer() {
         </div>
 
         {/* Aviso: primeira interação para liberar autoplay */}
-        {!unlocked && (
+        {shouldShowUnlockMessage && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
             <span className="text-foreground/90">
               Clique em <strong>▶ Iniciar Rádio</strong> para liberar o áudio neste navegador.
@@ -487,6 +493,7 @@ export function RadioPlayer() {
           onPlaying={() => {
             setBuffering(false);
             setLocalPlaying(true);
+            hasPlayedThisSession.current = true;
           }}
           onPause={() => setLocalPlaying(false)}
           onEnded={() => setLocalPlaying(false)}
