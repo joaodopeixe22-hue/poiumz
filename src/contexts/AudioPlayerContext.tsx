@@ -69,6 +69,10 @@ type AudioPlayerContextValue = {
   setMode: (m: PlayerMode) => void;
   setRepeat: (r: RepeatMode) => void;
   cycleRepeat: () => void;
+  /** Shuffle profissional (estilo Spotify): fila pré-embaralhada via
+   *  Fisher-Yates, faixa atual preservada, ordem original restaurável. */
+  isShuffle: boolean;
+  toggleShuffle: () => void;
   stop: () => void;
   jumpToTrack: (index: number) => Promise<void>;
   removeFromQueue: (index: number) => void;
@@ -124,6 +128,34 @@ async function resolveTrackUrl(track: AudioTrack): Promise<string> {
   return data.signedUrl;
 }
 
+// Fisher-Yates (Durstenfeld) — embaralhamento uniforme, sem viés.
+// NÃO usar `sort(() => Math.random() - 0.5)`: distribuição enviesada.
+function fisherYatesShuffle<T>(arr: T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Constrói a fila embaralhada mantendo a faixa atual no topo, de modo
+// que a música em reprodução seja preservada e o restante seja
+// embaralhado uniformemente.
+function buildShuffleQueue(
+  full: AudioTrack[],
+  currentId: string | null,
+): AudioTrack[] {
+  if (full.length <= 1) return full.slice();
+  if (!currentId) return fisherYatesShuffle(full);
+  const idx = full.findIndex((t) => t.id === currentId);
+  if (idx === -1) return fisherYatesShuffle(full);
+  const current = full[idx];
+  const rest = full.slice(0, idx).concat(full.slice(idx + 1));
+  return [current, ...fisherYatesShuffle(rest)];
+}
+
+
 type RemoteEvent =
   | { type: "play_queue"; tracks: AudioTrack[]; index: number; mode: PlayerMode }
   | { type: "toggle"; play: boolean }
@@ -174,6 +206,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         index?: number;
         mode?: PlayerMode;
         history?: HistoryItem[];
+        isShuffle?: boolean;
+        originalQueue?: AudioTrack[];
       };
       return parsed;
     } catch {
@@ -188,9 +222,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     () => (typeof persisted?.index === "number" ? persisted!.index : 0),
   );
   const [mode, setModeState] = useState<PlayerMode>(
-    () => (persisted?.mode === "playlist" || persisted?.mode === "shuffle" || persisted?.mode === "radio"
-      ? persisted.mode
-      : "playlist"),
+    // Migração: o modo legado "shuffle" foi substituído pelo isShuffle
+    // independente; coerce para "playlist" e mantém isShuffle on abaixo.
+    () => (persisted?.mode === "radio" ? "radio" : "playlist"),
   );
   const [repeat, setRepeatState] = useState<RepeatMode>(() => {
     if (typeof window === "undefined") return "all";
@@ -235,6 +269,23 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  // === Shuffle profissional (estilo Spotify) =================================
+  // Fila pré-embaralhada (Fisher-Yates) + snapshot da ordem original para
+  // restauração. Sem ciclo prematuro: a fila ativa cobre todas as faixas
+  // exatamente uma vez antes de qualquer repetição.
+  const [isShuffle, setIsShuffleState] = useState<boolean>(
+    () => persisted?.isShuffle === true || persisted?.mode === "shuffle",
+  );
+  const isShuffleRef = useRef(isShuffle);
+  const originalQueueRef = useRef<AudioTrack[]>(
+    Array.isArray(persisted?.originalQueue)
+      ? (persisted!.originalQueue as AudioTrack[])
+      : [],
+  );
+  useEffect(() => {
+    isShuffleRef.current = isShuffle;
+  }, [isShuffle]);
 
   // Load persisted Smart Mix settings on mount
   useEffect(() => {
@@ -320,7 +371,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
 
 
-  // Persist queue/index/mode/history (debounced via microtask grouping)
+  // Persist queue/index/mode/history/shuffle (debounced via microtask grouping)
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (mode === "radio") return; // radio is driven by server playback_state
@@ -328,14 +379,23 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem(
           "global-player-state",
-          JSON.stringify({ queue, index, mode, history }),
+          JSON.stringify({
+            queue,
+            index,
+            mode,
+            history,
+            isShuffle,
+            // Persist a snapshot da ordem original para restaurar pós-reload
+            // sem gerar novo shuffle.
+            originalQueue: isShuffle ? originalQueueRef.current : [],
+          }),
         );
       } catch {
         /* quota or serialization issue — ignore */
       }
     }, 250);
     return () => window.clearTimeout(id);
-  }, [queue, index, mode, history]);
+  }, [queue, index, mode, history, isShuffle]);
 
 
 
@@ -705,16 +765,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Helpers internos para navegação por modo
-  const pickShuffleIndex = useCallback(() => {
-    const q = queueRef.current;
-    if (q.length <= 1) return indexRef.current;
-    let r = indexRef.current;
-    let guard = 0;
-    while (r === indexRef.current && guard++ < 8) {
-      r = Math.floor(Math.random() * q.length);
-    }
-    return r;
-  }, []);
+  // (modo legado "shuffle" removido: agora `isShuffle` independente
+  //  embaralha a fila ativa via Fisher-Yates antes da reprodução,
+  //  e o advance percorre linearmente — sem repetições prematuras.)
 
   const goToIndex = useCallback(
     async (i: number) => {
@@ -728,7 +781,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     [loadAndPlay, broadcast],
   );
 
-  // next / prev / ended respeitando o modo
+  // next / prev / ended — fila ativa percorrida linearmente.
+  // Quando `isShuffle` está ligado, a fila já foi pré-embaralhada;
+  // andar 1 a 1 garante que cada faixa toca exatamente uma vez antes
+  // de qualquer ciclo (sem repetição prematura).
   const advanceNext = useCallback(async () => {
     const m = modeRef.current;
     if (m === "radio") {
@@ -736,24 +792,32 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       if (error) toast.error(error.message);
       return;
     }
-    if (m === "shuffle") {
-      const cur = indexRef.current;
-      const ni = pickShuffleIndex();
-      shuffleHistRef.current.push(cur);
-      await goToIndex(ni);
-      return;
-    }
     const q = queueRef.current;
     const ni = indexRef.current + 1;
     if (ni >= q.length) {
-      // Fila acabou — em playlist com repeat=all, recomeça do início (fila contínua)
+      // Fim da fila — em repeat=all com shuffle ligado, gera nova rodada
+      // (reshuffle do restante, sem repetir a última imediatamente).
       if (repeatRef.current === "all" && q.length > 0) {
+        if (isShuffleRef.current && q.length > 1) {
+          const curTrack = q[indexRef.current];
+          const original =
+            originalQueueRef.current.length > 0
+              ? originalQueueRef.current.slice()
+              : q.slice();
+          const reshuffled = buildShuffleQueue(original, curTrack?.id ?? null);
+          // Pula a faixa atual (já tocada) e segue para a próxima da nova
+          // rodada — startIndex = 1.
+          setQueue(reshuffled);
+          queueRef.current = reshuffled;
+          await goToIndex(Math.min(1, reshuffled.length - 1));
+          return;
+        }
         await goToIndex(0);
       }
       return;
     }
     await goToIndex(ni);
-  }, [goToIndex, pickShuffleIndex]);
+  }, [goToIndex]);
 
   const advancePrev = useCallback(async () => {
     const m = modeRef.current;
@@ -765,20 +829,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       }
       return;
     }
-    if (m === "shuffle") {
-      const hist = shuffleHistRef.current;
-      if (hist.length > 0) {
-        const pi = hist.pop()!;
-        await goToIndex(pi);
-        return;
-      }
-      const a = audioRef.current;
-      if (a) {
-        a.currentTime = 0;
-        setPosition(0);
-      }
-      return;
-    }
+    // Em shuffle ligado, prev percorre a fila (que já é o histórico real
+    // da ordem em que tocou) — não recalcula embaralhamento.
     const pi = indexRef.current - 1;
     if (pi < 0) {
       // Em repeat=all, volta para o final da fila
@@ -813,10 +865,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       }
       return;
     }
-    if (m === "shuffle") {
-      await advanceNext();
-      return;
-    }
+    // (modo legado "shuffle" não cai mais aqui; advanceNext cuida do walk)
     const q = queueRef.current;
     if (indexRef.current + 1 >= q.length) {
       // Fim da fila: loop contínuo se repeat=all
@@ -834,13 +883,34 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     async (tracks: AudioTrack[], startIndex = 0) => {
       if (tracks.length === 0) return;
       const i = Math.min(Math.max(0, startIndex), tracks.length - 1);
-      setQueue(tracks);
-      setIndex(i);
-      queueRef.current = tracks;
-      indexRef.current = i;
+      const startTrack = tracks[i];
+      let activeQueue = tracks;
+      let activeIndex = i;
+      if (isShuffleRef.current && tracks.length > 1) {
+        // Snapshot da ordem original (jamais alteramos playlist_songs)
+        originalQueueRef.current = tracks.slice();
+        activeQueue = buildShuffleQueue(tracks, startTrack.id);
+        activeIndex = Math.max(
+          0,
+          activeQueue.findIndex((t) => t.id === startTrack.id),
+        );
+      } else if (isShuffleRef.current) {
+        originalQueueRef.current = tracks.slice();
+      } else {
+        originalQueueRef.current = [];
+      }
+      setQueue(activeQueue);
+      setIndex(activeIndex);
+      queueRef.current = activeQueue;
+      indexRef.current = activeIndex;
       shuffleHistRef.current = [];
-      await loadAndPlay(tracks[i]);
-      broadcast({ type: "play_queue", tracks, index: i, mode: modeRef.current });
+      await loadAndPlay(activeQueue[activeIndex]);
+      broadcast({
+        type: "play_queue",
+        tracks: activeQueue,
+        index: activeIndex,
+        mode: modeRef.current,
+      });
     },
     [loadAndPlay, broadcast],
   );
@@ -929,6 +999,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     queueRef.current = [];
     indexRef.current = 0;
     shuffleHistRef.current = [];
+    // Limpa snapshot do shuffle (preserva a preferência isShuffle do usuário)
+    originalQueueRef.current = [];
     broadcast({ type: "stop" });
   }, [abortCrossfade, broadcast]);
 
@@ -959,6 +1031,50 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     const i = order.indexOf(repeatRef.current);
     setRepeat(order[(i + 1) % order.length]);
   }, [setRepeat]);
+
+  // === Shuffle toggle =======================================================
+  const toggleShuffle = useCallback(() => {
+    const next = !isShuffleRef.current;
+    const curTrack = queueRef.current[indexRef.current] ?? null;
+    if (next) {
+      // Ativar: snapshot da ordem original, embaralha o restante via Fisher-Yates
+      if (originalQueueRef.current.length === 0) {
+        originalQueueRef.current = queueRef.current.slice();
+      }
+      const shuffled = buildShuffleQueue(
+        originalQueueRef.current,
+        curTrack?.id ?? null,
+      );
+      setQueue(shuffled);
+      queueRef.current = shuffled;
+      const newIdx = curTrack
+        ? Math.max(0, shuffled.findIndex((t) => t.id === curTrack.id))
+        : 0;
+      setIndex(newIdx);
+      indexRef.current = newIdx;
+    } else {
+      // Desativar: restaura ordem original a partir da música atual
+      const original =
+        originalQueueRef.current.length > 0
+          ? originalQueueRef.current.slice()
+          : queueRef.current.slice();
+      setQueue(original);
+      queueRef.current = original;
+      const newIdx = curTrack
+        ? Math.max(0, original.findIndex((t) => t.id === curTrack.id))
+        : 0;
+      setIndex(newIdx);
+      indexRef.current = newIdx;
+      originalQueueRef.current = [];
+    }
+    isShuffleRef.current = next;
+    setIsShuffleState(next);
+    shuffleHistRef.current = [];
+    if (typeof window !== "undefined") {
+      localStorage.setItem("global-player-shuffle", next ? "1" : "0");
+    }
+    void pruneAndPreload();
+  }, [pruneAndPreload]);
 
   const setPreloadCount = useCallback((n: PreloadCount) => {
     preloadCountRef.current = n;
@@ -1291,6 +1407,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setMode,
       setRepeat,
       cycleRepeat,
+      isShuffle,
+      toggleShuffle,
       stop,
       jumpToTrack,
       removeFromQueue,
@@ -1335,6 +1453,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setMode,
       setRepeat,
       cycleRepeat,
+      isShuffle,
+      toggleShuffle,
       stop,
       jumpToTrack,
       removeFromQueue,

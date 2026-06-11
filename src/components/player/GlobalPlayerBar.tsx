@@ -85,6 +85,8 @@ export function GlobalPlayerBar() {
     setSmartMix,
     isCrossfading,
     crossfadeProgress,
+    isShuffle,
+    toggleShuffle,
   } = useAudioPlayer();
   const [muted, setMuted] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -353,6 +355,19 @@ export function GlobalPlayerBar() {
                 <TooltipContent>Ver fila completa</TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
+            <button
+              onClick={toggleShuffle}
+              className={`size-8 rounded-md grid place-items-center transition-all duration-200 ${
+                isShuffle
+                  ? "text-primary bg-primary/10 hover:bg-primary/15 scale-105"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              }`}
+              aria-label={isShuffle ? "Desativar reprodução aleatória" : "Ativar reprodução aleatória"}
+              title={isShuffle ? "Desativar reprodução aleatória" : "Ativar reprodução aleatória"}
+            >
+              <Shuffle className="size-4" />
+            </button>
 
             <button
               onClick={cycleRepeat}
