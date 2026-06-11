@@ -46,15 +46,24 @@ export function PriorityQueue({ disabled }: { disabled?: boolean }) {
 
   useEffect(() => {
     load();
+    let debounceId: number | null = null;
+    const scheduleReload = () => {
+      if (debounceId !== null) window.clearTimeout(debounceId);
+      debounceId = window.setTimeout(() => {
+        debounceId = null;
+        load();
+      }, 120);
+    };
     const ch = supabase
-      .channel("priority-queue")
+      .channel(`priority-queue-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "queue" },
-        () => load(),
+        scheduleReload,
       )
       .subscribe();
     return () => {
+      if (debounceId !== null) window.clearTimeout(debounceId);
       supabase.removeChannel(ch);
     };
   }, [load]);
