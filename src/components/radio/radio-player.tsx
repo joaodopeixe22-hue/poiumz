@@ -275,13 +275,37 @@ export function RadioPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings?.default_volume]);
 
-  // Tick local para barra de progresso (sem auto-avanço — quem agenda é o operador)
+  // Reset de posição ao trocar de faixa (evita decorrido > duração)
+  useEffect(() => {
+    setLivePos(0);
+    const a = audioRef.current;
+    if (a) {
+      try {
+        a.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [current?.id]);
+
+  // Tick local para barra de progresso (lê do elemento audio quando disponível)
   useEffect(() => {
     const id = setInterval(() => {
-      setLivePos(computeLivePosition(playback));
+      const a = audioRef.current;
+      const dur = current?.duracao_segundos ?? 0;
+      let pos: number;
+      if (a && Number.isFinite(a.currentTime) && a.currentTime > 0) {
+        pos = a.currentTime;
+      } else {
+        pos = computeLivePosition(playback);
+      }
+      if (dur > 0 && pos > dur) pos = dur;
+      if (pos < 0 || !Number.isFinite(pos)) pos = 0;
+      setLivePos(pos);
     }, 500);
     return () => clearInterval(id);
-  }, [playback]);
+  }, [playback, current?.id, current?.duracao_segundos]);
+
 
   const handleManualPlay = async () => {
     const a = audioRef.current;
