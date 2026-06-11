@@ -454,6 +454,19 @@ function MusicasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AddToPlaylistModal
+        open={addOpen}
+        onOpenChange={(v) => {
+          setAddOpen(v);
+          if (!v) setAddSongIds([]);
+        }}
+        songIds={addSongIds}
+        onDone={() => {
+          setSelected(new Set());
+          refresh();
+        }}
+      />
     </div>
   );
 }
