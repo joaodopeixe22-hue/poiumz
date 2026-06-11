@@ -371,6 +371,11 @@ export function RadioPlayer() {
             <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
               {current?.kind === "institutional" ? "Mensagem institucional" : "Tocando agora"}
             </p>
+            {playlistName && current?.kind !== "institutional" && (
+              <span className="text-xs font-mono uppercase tracking-widest text-primary/80 truncate">
+                · {playlistName}
+              </span>
+            )}
           </div>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-2">
             {current?.titulo ?? "Aguardando programação"}
@@ -380,7 +385,14 @@ export function RadioPlayer() {
           </p>
         </div>
 
-        {/* Avisos */}
+        {/* Aviso: primeira interação para liberar autoplay */}
+        {!unlocked && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
+            <span className="text-foreground/90">
+              Clique em <strong>▶ Iniciar Rádio</strong> para liberar o áudio neste navegador.
+            </span>
+          </div>
+        )}
         {needsGesture && playback?.is_playing && (
           <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
             <AlertCircle className="size-4 text-primary shrink-0" />
