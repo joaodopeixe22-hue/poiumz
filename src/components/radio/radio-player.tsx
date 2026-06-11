@@ -303,6 +303,12 @@ export function RadioPlayer() {
       logRadio("play_attempt", { trigger: "manual", url: audioUrl, seek_to: pos });
       await a.play();
       logRadio("play_success", { trigger: "manual" });
+      try {
+        window.localStorage.setItem("radioUnlocked", "1");
+      } catch {
+        /* ignore */
+      }
+      setUnlocked(true);
       setNeedsGesture(false);
       setLocalPlaying(true);
       setLoadError(null);
