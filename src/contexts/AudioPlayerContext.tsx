@@ -128,6 +128,34 @@ async function resolveTrackUrl(track: AudioTrack): Promise<string> {
   return data.signedUrl;
 }
 
+// Fisher-Yates (Durstenfeld) — embaralhamento uniforme, sem viés.
+// NÃO usar `sort(() => Math.random() - 0.5)`: distribuição enviesada.
+function fisherYatesShuffle<T>(arr: T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Constrói a fila embaralhada mantendo a faixa atual no topo, de modo
+// que a música em reprodução seja preservada e o restante seja
+// embaralhado uniformemente.
+function buildShuffleQueue(
+  full: AudioTrack[],
+  currentId: string | null,
+): AudioTrack[] {
+  if (full.length <= 1) return full.slice();
+  if (!currentId) return fisherYatesShuffle(full);
+  const idx = full.findIndex((t) => t.id === currentId);
+  if (idx === -1) return fisherYatesShuffle(full);
+  const current = full[idx];
+  const rest = full.slice(0, idx).concat(full.slice(idx + 1));
+  return [current, ...fisherYatesShuffle(rest)];
+}
+
+
 type RemoteEvent =
   | { type: "play_queue"; tracks: AudioTrack[]; index: number; mode: PlayerMode }
   | { type: "toggle"; play: boolean }
