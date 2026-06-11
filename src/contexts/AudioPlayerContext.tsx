@@ -1455,6 +1455,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       preloadedIds,
       preloadCount,
       setPreloadCount,
+      playbackSource,
+      setPlaybackSource,
       playTrack,
       playQueue,
       toggle,
