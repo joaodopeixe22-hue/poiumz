@@ -44,8 +44,9 @@ function LandingPage() {
       {/* Conteúdo */}
       <main className="max-w-6xl mx-auto px-6 py-10 md:py-16">
         <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <RadioPlayer />
+            <HomeRadioControls />
           </div>
           <div className="space-y-6">
             <QueueList />
