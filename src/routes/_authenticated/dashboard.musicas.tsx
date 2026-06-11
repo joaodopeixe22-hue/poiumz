@@ -24,6 +24,7 @@ import { UploadDialog } from "@/components/musicas/upload-dialog";
 import { EditSongSheet } from "@/components/musicas/edit-song-sheet";
 import { toast } from "sonner";
 import { TrackContextMenu } from "@/components/player/TrackContextMenu";
+import { AddToPlaylistModal } from "@/components/musicas/add-to-playlist-modal";
 
 export const Route = createFileRoute("/_authenticated/dashboard/musicas")({
   component: MusicasPage,
