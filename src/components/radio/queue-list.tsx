@@ -57,21 +57,30 @@ export function QueueList() {
       setLoading(false);
     };
     load();
+    let debounceId: number | null = null;
+    const scheduleReload = () => {
+      if (debounceId !== null) window.clearTimeout(debounceId);
+      debounceId = window.setTimeout(() => {
+        debounceId = null;
+        load();
+      }, 150);
+    };
     const ch = supabase
-      .channel("queue-list-watch")
+      .channel(`queue-list-watch-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "playlist_songs" },
-        () => load(),
+        scheduleReload,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "queue" },
-        () => load(),
+        scheduleReload,
       )
       .subscribe();
     return () => {
       cancelled = true;
+      if (debounceId !== null) window.clearTimeout(debounceId);
       supabase.removeChannel(ch);
     };
   }, [playback?.active_playlist_id, playback?.loop_index]);
