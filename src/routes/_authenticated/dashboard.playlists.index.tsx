@@ -23,7 +23,7 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 import { usePlaylists, type Playlist } from "@/hooks/use-playlists";
 import { supabase } from "@/integrations/supabase/client";
-import { formatRelative, formatPlaylistDuration } from "@/lib/format";
+import { formatPlaylistDuration } from "@/lib/format";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard/playlists/")({
@@ -142,9 +142,6 @@ function PlaylistsPage() {
                 <h3 className="font-semibold truncate">{pl.nome}</h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   {formatPlaylistDuration(pl.song_count, pl.total_duration_seconds)}
-                </p>
-                <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-                  Criada {formatRelative(pl.created_at)}
                 </p>
               </Link>
               {canEdit && (
