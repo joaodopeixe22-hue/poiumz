@@ -115,6 +115,24 @@ function MusicasPage() {
   const confirmDelete = async () => {
     if (!deleting) return;
     const song = deleting;
+
+    // Verifica se a música está em alguma playlist (proteção contra exclusão acidental)
+    const { data: inPl, error: checkErr } = await supabase
+      .from("playlist_songs")
+      .select("playlist_id")
+      .eq("song_id", song.id);
+    if (checkErr) {
+      toast.error(checkErr.message);
+      return;
+    }
+    if (inPl && inPl.length > 0) {
+      setDeleting(null);
+      toast.error(
+        `Esta música está em ${inPl.length} playlist(s). Remova-a das playlists antes de excluir.`,
+      );
+      return;
+    }
+
     setDeleting(null);
     const { error: storageErr } = await supabase.storage.from("songs").remove([song.storage_path]);
     if (storageErr) {
@@ -134,6 +152,8 @@ function MusicasPage() {
     if (selected.size === 0) return;
     setBulkRunning(true);
     try {
+      const selectedIds = Array.from(selected);
+
       // Bloqueia exclusão da música atualmente em reprodução
       const { data: pb } = await supabase
         .from("playback_state")
@@ -142,13 +162,39 @@ function MusicasPage() {
         .maybeSingle();
       const playingNow = pb?.current_song_id ?? null;
 
+      // Verificação eficiente: uma única query para todos os ids selecionados
+      const { data: usage, error: usageErr } = await supabase
+        .from("playlist_songs")
+        .select("song_id")
+        .in("song_id", selectedIds);
+      if (usageErr) {
+        toast.error(usageErr.message);
+        return;
+      }
+
+      // Conta em quantas playlists cada música aparece
+      const usageCount = new Map<string, number>();
+      for (const row of (usage ?? []) as { song_id: string }[]) {
+        usageCount.set(row.song_id, (usageCount.get(row.song_id) ?? 0) + 1);
+      }
+      const inPlaylistIds = new Set(usageCount.keys());
+
       const targets = songs.filter(
-        (s) => selected.has(s.id) && !songsInPlaylists.has(s.id) && s.id !== playingNow,
+        (s) => selected.has(s.id) && !inPlaylistIds.has(s.id) && s.id !== playingNow,
       );
-      const skipped = selected.size - targets.length;
+      const keptForPlaylist = selectedIds.filter((id) => inPlaylistIds.has(id)).length;
+      const playingSkipped =
+        playingNow && selected.has(playingNow) && !inPlaylistIds.has(playingNow) ? 1 : 0;
 
       if (targets.length === 0) {
-        toast.error("Nada para excluir (verifique a música em reprodução).");
+        if (keptForPlaylist > 0) {
+          const totalRefs = Array.from(usageCount.values()).reduce((a, b) => a + b, 0);
+          toast.error(
+            `Nenhuma música excluída. ${keptForPlaylist} música(s) estão em playlists (${totalRefs} vínculo(s) no total).`,
+          );
+        } else {
+          toast.error("Nada para excluir (verifique a música em reprodução).");
+        }
         return;
       }
 
@@ -164,9 +210,14 @@ function MusicasPage() {
         return;
       }
 
-      toast.success(
-        `${targets.length} música(s) removida(s)${skipped > 0 ? ` · ${skipped} ignorada(s)` : ""}.`,
-      );
+      const parts = [`${targets.length} música(s) excluída(s)`];
+      if (keptForPlaylist > 0) {
+        parts.push(`${keptForPlaylist} mantida(s) porque estão em playlists`);
+      }
+      if (playingSkipped > 0) {
+        parts.push(`1 ignorada (em reprodução)`);
+      }
+      toast.success(parts.join(" · ") + ".");
       setSelected(new Set());
       refresh();
     } finally {
