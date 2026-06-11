@@ -70,7 +70,8 @@ function MusicasPage() {
     });
   }, [songs, query, filter, songsInPlaylists]);
 
-  const selectionMode = filter === "unused" && canDelete;
+  const selectionMode = canEditPlaylists || (filter === "unused" && canDelete);
+  const canBulkDelete = filter === "unused" && canDelete;
   const allFilteredSelected =
     selectionMode && filtered.length > 0 && filtered.every((s) => selected.has(s.id));
 
