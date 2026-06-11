@@ -1,4 +1,4 @@
-import { MoreVertical, Play, ListPlus, ListMusic, FolderOpen } from "lucide-react";
+import { MoreVertical, Play, ListPlus, ListMusic, FolderOpen, FolderPlus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ type Props = {
   track: AudioTrack;
   sourcePlaylistId?: string | null;
   onOpenSourcePlaylist?: (playlistId: string) => void;
+  onAddToPlaylist?: () => void;
 };
 
 /**
