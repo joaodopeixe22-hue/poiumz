@@ -44,6 +44,13 @@ export type PlayerMode = "playlist" | "shuffle" | "radio";
 export type RepeatMode = "off" | "all" | "one";
 export type PreloadCount = 2 | 3 | 4 | 5;
 export type HistoryItem = AudioTrack & { playedAt: number };
+/**
+ * Origem da reprodução ativa.
+ * - `radio`: o player espelha playback_state e NÃO decide reprodução localmente.
+ *   Consumidores devem checar `playbackSource === 'radio'` antes de operar.
+ * - `playlist` | `library`: comportamento padrão controlado pelo contexto.
+ */
+export type PlaybackSource = "radio" | "playlist" | "library";
 
 type AudioPlayerContextValue = {
   currentTrack: AudioTrack | null;
