@@ -222,9 +222,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     () => (typeof persisted?.index === "number" ? persisted!.index : 0),
   );
   const [mode, setModeState] = useState<PlayerMode>(
-    () => (persisted?.mode === "playlist" || persisted?.mode === "shuffle" || persisted?.mode === "radio"
-      ? persisted.mode
-      : "playlist"),
+    // Migração: o modo legado "shuffle" foi substituído pelo isShuffle
+    // independente; coerce para "playlist" e mantém isShuffle on abaixo.
+    () => (persisted?.mode === "radio" ? "radio" : "playlist"),
   );
   const [repeat, setRepeatState] = useState<RepeatMode>(() => {
     if (typeof window === "undefined") return "all";
