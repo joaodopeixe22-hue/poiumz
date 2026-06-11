@@ -71,6 +71,15 @@ export function TrackContextMenu({
           <ListMusic className="size-4 mr-2" />
           Adicionar à fila
         </DropdownMenuItem>
+        {onAddToPlaylist && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onAddToPlaylist}>
+              <FolderPlus className="size-4 mr-2" />
+              Adicionar à playlist
+            </DropdownMenuItem>
+          </>
+        )}
         {sourcePlaylistId && onOpenSourcePlaylist && (
           <>
             <DropdownMenuSeparator />
