@@ -371,7 +371,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
 
 
-  // Persist queue/index/mode/history (debounced via microtask grouping)
+  // Persist queue/index/mode/history/shuffle (debounced via microtask grouping)
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (mode === "radio") return; // radio is driven by server playback_state
@@ -379,14 +379,23 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem(
           "global-player-state",
-          JSON.stringify({ queue, index, mode, history }),
+          JSON.stringify({
+            queue,
+            index,
+            mode,
+            history,
+            isShuffle,
+            // Persist a snapshot da ordem original para restaurar pós-reload
+            // sem gerar novo shuffle.
+            originalQueue: isShuffle ? originalQueueRef.current : [],
+          }),
         );
       } catch {
         /* quota or serialization issue — ignore */
       }
     }, 250);
     return () => window.clearTimeout(id);
-  }, [queue, index, mode, history]);
+  }, [queue, index, mode, history, isShuffle]);
 
 
 
