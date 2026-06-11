@@ -883,13 +883,34 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     async (tracks: AudioTrack[], startIndex = 0) => {
       if (tracks.length === 0) return;
       const i = Math.min(Math.max(0, startIndex), tracks.length - 1);
-      setQueue(tracks);
-      setIndex(i);
-      queueRef.current = tracks;
-      indexRef.current = i;
+      const startTrack = tracks[i];
+      let activeQueue = tracks;
+      let activeIndex = i;
+      if (isShuffleRef.current && tracks.length > 1) {
+        // Snapshot da ordem original (jamais alteramos playlist_songs)
+        originalQueueRef.current = tracks.slice();
+        activeQueue = buildShuffleQueue(tracks, startTrack.id);
+        activeIndex = Math.max(
+          0,
+          activeQueue.findIndex((t) => t.id === startTrack.id),
+        );
+      } else if (isShuffleRef.current) {
+        originalQueueRef.current = tracks.slice();
+      } else {
+        originalQueueRef.current = [];
+      }
+      setQueue(activeQueue);
+      setIndex(activeIndex);
+      queueRef.current = activeQueue;
+      indexRef.current = activeIndex;
       shuffleHistRef.current = [];
-      await loadAndPlay(tracks[i]);
-      broadcast({ type: "play_queue", tracks, index: i, mode: modeRef.current });
+      await loadAndPlay(activeQueue[activeIndex]);
+      broadcast({
+        type: "play_queue",
+        tracks: activeQueue,
+        index: activeIndex,
+        mode: modeRef.current,
+      });
     },
     [loadAndPlay, broadcast],
   );
