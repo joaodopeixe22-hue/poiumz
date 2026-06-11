@@ -30,11 +30,37 @@ export function RadioPlayer() {
   const [needsGesture, setNeedsGesture] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [buffering, setBuffering] = useState(false);
+  const [playlistName, setPlaylistName] = useState<string | null>(null);
+  const [unlocked, setUnlocked] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("radioUnlocked") === "1";
+  });
 
   const targetVolume = () => {
     const defaultVol = settings?.default_volume ?? 80;
     return Math.max(0, Math.min(1, defaultVol / 100));
   };
+
+  // Nome da playlist no ar
+  useEffect(() => {
+    let cancelled = false;
+    const pid = playback?.active_playlist_id;
+    if (!pid) {
+      setPlaylistName(null);
+      return;
+    }
+    supabase
+      .from("playlists")
+      .select("nome")
+      .eq("id", pid)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setPlaylistName((data as { nome?: string } | null)?.nome ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [playback?.active_playlist_id]);
 
   // Diagnóstico: emite snapshot do playback_state recebido sempre que muda
   useEffect(() => {
