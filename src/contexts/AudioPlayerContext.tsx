@@ -206,6 +206,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         index?: number;
         mode?: PlayerMode;
         history?: HistoryItem[];
+        isShuffle?: boolean;
+        originalQueue?: AudioTrack[];
       };
       return parsed;
     } catch {
