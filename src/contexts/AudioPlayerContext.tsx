@@ -865,10 +865,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       }
       return;
     }
-    if (m === "shuffle") {
-      await advanceNext();
-      return;
-    }
+    // (modo legado "shuffle" não cai mais aqui; advanceNext cuida do walk)
     const q = queueRef.current;
     if (indexRef.current + 1 >= q.length) {
       // Fim da fila: loop contínuo se repeat=all
