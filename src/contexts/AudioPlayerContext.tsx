@@ -66,6 +66,8 @@ type AudioPlayerContextValue = {
   preloadedIds: Set<string>;
   preloadCount: PreloadCount;
   setPreloadCount: (n: PreloadCount) => void;
+  playbackSource: PlaybackSource;
+  setPlaybackSource: (s: PlaybackSource) => void;
   playTrack: (track: AudioTrack) => Promise<void>;
   playQueue: (tracks: AudioTrack[], startIndex?: number) => Promise<void>;
   toggle: () => Promise<void>;
