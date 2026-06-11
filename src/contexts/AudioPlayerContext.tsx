@@ -999,6 +999,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     queueRef.current = [];
     indexRef.current = 0;
     shuffleHistRef.current = [];
+    // Limpa snapshot do shuffle (preserva a preferência isShuffle do usuário)
+    originalQueueRef.current = [];
     broadcast({ type: "stop" });
   }, [abortCrossfade, broadcast]);
 
