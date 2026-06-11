@@ -3,6 +3,7 @@ import { LogIn } from "lucide-react";
 import { RadioPlayer } from "@/components/radio/radio-player";
 import { QueueList } from "@/components/radio/queue-list";
 import { HistoryList } from "@/components/radio/history-list";
+import { HomeRadioControls } from "@/components/radio/home-radio-controls";
 
 export const Route = createFileRoute("/")({
   head: () => ({
