@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { AuthCard, Field } from "@/components/auth/auth-card";
 
 export const Route = createFileRoute("/reset-password")({
+  head: () => pageHead("Definir nova senha", "Defina uma nova senha para sua conta da Rádio RD Saúde."),
   component: ResetPasswordPage,
 });
 

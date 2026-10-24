@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { AuthCard, Field } from "@/components/auth/auth-card";
 
 export const Route = createFileRoute("/login")({
+  head: () => pageHead("Acessar painel", "Entre na sua conta para administrar a Rádio RD Saúde."),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/dashboard" });

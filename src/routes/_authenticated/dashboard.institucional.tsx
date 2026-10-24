@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -39,6 +40,7 @@ import { InstitutionalUploadDialog } from "@/components/institucional/upload-dia
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard/institucional")({
+  head: () => pageHead("Conteúdos institucionais", "Gerencie vinhetas e avisos da Rádio RD Saúde."),
   component: InstitucionalPage,
 });
 

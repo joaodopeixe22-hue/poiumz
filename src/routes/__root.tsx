@@ -68,40 +68,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Aethel — Music, considered." },
-      {
-        name: "description",
-        content:
-          "Aethel is a premium music & radio streaming platform with multi-device sync, smart queues, and atmospheric audio.",
-      },
-      { name: "author", content: "Aethel" },
-      { name: "theme-color", content: "#1c1a17" },
-      { property: "og:title", content: "Aethel — Music, considered." },
-      {
-        property: "og:description",
-        content: "Aura Stream is a modern, multi-device music and online radio streaming platform.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Aethel — Music, considered." },
-      {
-        name: "description",
-        content: "Aura Stream is a modern, multi-device music and online radio streaming platform.",
-      },
-      {
-        name: "twitter:description",
-        content: "Aura Stream is a modern, multi-device music and online radio streaming platform.",
-      },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/37f047de-a41e-4d4a-949b-8dea105e0d02/id-preview-9b7cac7f--2f72403f-8763-45b7-8b3a-1f09c5133b55.lovable.app-1779318466913.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/37f047de-a41e-4d4a-949b-8dea105e0d02/id-preview-9b7cac7f--2f72403f-8763-45b7-8b3a-1f09c5133b55.lovable.app-1779318466913.png",
-      },
+      { title: "Rádio RD Saúde" },
+      { name: "description", content: "Rádio corporativa da RD Saúde." },
+      { name: "author", content: "RD Saúde" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

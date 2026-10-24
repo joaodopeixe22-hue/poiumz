@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LogIn } from "lucide-react";
 import { RadioPlayer } from "@/components/radio/radio-player";
@@ -6,16 +7,7 @@ import { HistoryList } from "@/components/radio/history-list";
 import { HomeRadioControls } from "@/components/radio/home-radio-controls";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Rádio Corporativa — RD Saúde" },
-      {
-        name: "description",
-        content:
-          "Rádio corporativa da RD Saúde — ouça a programação ao vivo, acompanhe a próxima música e o histórico de reproduções.",
-      },
-    ],
-  }),
+  head: () => pageHead("Rádio ao vivo", "Ouça a programação da Rádio RD Saúde e acompanhe as próximas músicas."),
   component: LandingPage,
 });
 

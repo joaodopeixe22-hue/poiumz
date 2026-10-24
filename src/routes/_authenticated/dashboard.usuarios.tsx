@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +27,7 @@ type Row = {
 };
 
 export const Route = createFileRoute("/_authenticated/dashboard/usuarios")({
+  head: () => pageHead("Usuários", "Gerencie acessos e aprovações da Rádio RD Saúde."),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) return;
