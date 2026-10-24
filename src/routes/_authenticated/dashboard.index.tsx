@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Music, ListMusic, Users, Radio } from "lucide-react";
@@ -5,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
+  head: () => pageHead("Painel", "Acompanhe a programação e o acervo da Rádio RD Saúde."),
   component: DashboardPage,
 });
 

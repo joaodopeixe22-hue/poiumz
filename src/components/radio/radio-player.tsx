@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { usePlayback, computeLivePosition } from "@/hooks/use-playback";
 import { useRadioSettings } from "@/hooks/use-radio-settings";
+import { boundedAudioPosition } from "@/lib/playback-continuity";
+import { Button } from "@/components/ui/button";
 import { logRadio } from "@/lib/radio-diagnostics";
 
 type CurrentItem = {
@@ -31,10 +33,10 @@ export function RadioPlayer() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [buffering, setBuffering] = useState(false);
   const [playlistName, setPlaylistName] = useState<string | null>(null);
-  const [unlocked, setUnlocked] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("radioUnlocked") === "1";
-  });
+  const [unlocked, setUnlocked] = useState(false);
+  useEffect(() => {
+    try { setUnlocked(window.localStorage.getItem("radioUnlocked") === "1"); } catch { /* ignore */ }
+  }, []);
   const hasPlayedThisSession = useRef(false);
 
   const targetVolume = () => {
@@ -109,6 +111,9 @@ export function RadioPlayer() {
     let cancelled = false;
     const load = async () => {
       setLoadError(null);
+      setCurrent(null);
+      setAudioUrl(null);
+      audioRef.current?.pause();
       if (playback?.current_institutional_id) {
         const { data, error } = await supabase
           .from("institutional_contents")
@@ -164,47 +169,11 @@ export function RadioPlayer() {
         const { data: pub } = supabase.storage
           .from(SONG_BUCKET)
           .getPublicUrl(data.storage_path);
-        let url = pub.publicUrl;
-        let method: "public" | "signed" = "public";
-        let headStatus: number | null = null;
-        try {
-          const head = await fetch(url, { method: "HEAD" });
-          headStatus = head.status;
-          if (!head.ok) throw new Error(`HTTP ${head.status}`);
-        } catch (e) {
-          logRadio("url_resolution_failed", {
-            kind: "song",
-            id: data.id,
-            stage: "head",
-            head_status: headStatus,
-            error: (e as Error)?.message,
-          });
-          const { data: signed, error: signErr } = await supabase.storage
-            .from(SONG_BUCKET)
-            .createSignedUrl(data.storage_path, 3600);
-          if (cancelled) return;
-          if (signErr || !signed?.signedUrl) {
-            logRadio("url_resolution_failed", {
-              kind: "song",
-              id: data.id,
-              stage: "signed",
-              error: signErr?.message,
-            });
-            setAudioUrl(null);
-            setLoadError("Não foi possível obter a URL do áudio");
-            return;
-          }
-          url = signed.signedUrl;
-          method = "signed";
-        }
+        if (cancelled) return;
+        const url = pub.publicUrl;
         logRadio("url_resolved", {
-          kind: "song",
-          id: data.id,
-          bucket: SONG_BUCKET,
-          storage_path: data.storage_path,
-          url,
-          method,
-          head_status: headStatus,
+          kind: "song", id: data.id, bucket: SONG_BUCKET,
+          storage_path: data.storage_path, url, method: "public",
         });
         setCurrent({
           kind: "song",
@@ -231,7 +200,14 @@ export function RadioPlayer() {
   // que reagia a cada tick do realtime.
   useEffect(() => {
     const a = audioRef.current;
-    if (!a || !audioUrl) return;
+    if (!a) return;
+    if (!audioUrl) {
+      a.pause();
+      a.removeAttribute("src");
+      a.load();
+      setLocalPlaying(false);
+      return;
+    }
 
     const srcChanged = a.src !== audioUrl;
     if (srcChanged) {
@@ -242,7 +218,7 @@ export function RadioPlayer() {
 
     a.volume = targetVolume();
 
-    const pos = computeLivePosition(playback);
+    const pos = boundedAudioPosition(computeLivePosition(playback), Number.isFinite(a.duration) ? a.duration : current?.duracao_segundos ?? 0);
     if (Number.isFinite(pos) && Math.abs(a.currentTime - pos) > 1.5) {
       try {
         a.currentTime = pos;
@@ -273,7 +249,7 @@ export function RadioPlayer() {
               setNeedsGesture(true);
             } else {
               logRadio("play_failed", { name: e?.name, message: e?.message });
-              setLoadError(e?.message ?? "Falha ao iniciar a reprodução");
+              setLoadError("Falha ao iniciar a reprodução. Tente novamente.");
             }
             setLocalPlaying(false);
           });
@@ -287,7 +263,7 @@ export function RadioPlayer() {
       setLocalPlaying(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioUrl, playback?.is_playing, playback?.started_at]);
+  }, [audioUrl, playback?.is_playing, playback?.started_at, playback?.position_seconds]);
 
   // Ajusta volume em tempo real quando configuração mudar
   useEffect(() => {
@@ -297,24 +273,14 @@ export function RadioPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings?.default_volume]);
 
-  // Reset de posição ao trocar de faixa (evita decorrido > duração)
-  useEffect(() => {
-    setLivePos(0);
-    const a = audioRef.current;
-    if (a) {
-      try {
-        a.currentTime = 0;
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [current?.id]);
+  // Reset only the display: source loading and metadata apply the live seek.
+  useEffect(() => { setLivePos(0); }, [current?.id]);
 
   // Tick local para barra de progresso (lê do elemento audio quando disponível)
   useEffect(() => {
     const id = setInterval(() => {
       const a = audioRef.current;
-      const dur = current?.duracao_segundos ?? 0;
+      const dur = a && Number.isFinite(a.duration) && a.duration > 0 ? a.duration : current?.duracao_segundos ?? 0;
       let pos: number;
       if (a && Number.isFinite(a.currentTime) && a.currentTime > 0) {
         pos = a.currentTime;
@@ -339,7 +305,7 @@ export function RadioPlayer() {
         a.load();
       }
       a.volume = targetVolume();
-      const pos = computeLivePosition(playback);
+      const pos = boundedAudioPosition(computeLivePosition(playback), Number.isFinite(a.duration) ? a.duration : current?.duracao_segundos ?? 0);
       if (Number.isFinite(pos)) {
         try {
           a.currentTime = pos;
@@ -362,7 +328,7 @@ export function RadioPlayer() {
     } catch (err) {
       const e = err as { name?: string; message?: string };
       logRadio("play_failed", { trigger: "manual", name: e?.name, message: e?.message });
-      setLoadError(e?.message ?? "Não foi possível iniciar");
+      setLoadError("Não foi possível iniciar o áudio. Tente novamente.");
     }
   };
 
@@ -374,7 +340,8 @@ export function RadioPlayer() {
   };
 
   const isOnAir = !!playback?.is_playing && !!current;
-  const dur = current?.duracao_segundos ?? 0;
+  const measuredDuration = audioRef.current?.duration;
+  const dur = measuredDuration && Number.isFinite(measuredDuration) ? measuredDuration : current?.duracao_segundos ?? 0;
   const progressPct = dur ? Math.min(100, (livePos / dur) * 100) : 0;
   const playBtnDisabled = !audioUrl || !playback?.is_playing;
   const audioEl = audioRef.current;
@@ -468,7 +435,7 @@ export function RadioPlayer() {
 
         {/* Controles */}
         <div className="flex items-center gap-6">
-          <button
+          <Button
             onClick={handleManualPlay}
             disabled={playBtnDisabled}
             className="size-16 md:size-20 rounded-full bg-primary text-primary-foreground grid place-items-center hover:scale-105 transition-transform shadow-xl shadow-primary/30 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -488,7 +455,7 @@ export function RadioPlayer() {
             ) : (
               <Play className="size-7 translate-x-0.5" />
             )}
-          </button>
+          </Button>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-2 font-mono text-xs text-muted-foreground tabular-nums">
@@ -505,13 +472,13 @@ export function RadioPlayer() {
             </div>
           </div>
 
-          <button
+          <Button
             onClick={onToggleMute}
             className="size-10 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             aria-label={muted ? "Tirar mudo" : "Mutar"}
           >
             {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-          </button>
+          </Button>
         </div>
 
         <audio
@@ -521,7 +488,7 @@ export function RadioPlayer() {
           onLoadedMetadata={() => {
             const a = audioRef.current;
             if (!a) return;
-            const pos = computeLivePosition(playback);
+            const pos = boundedAudioPosition(computeLivePosition(playback), Number.isFinite(a.duration) ? a.duration : current?.duracao_segundos ?? 0);
             try {
               if (Number.isFinite(pos) && Math.abs(a.currentTime - pos) > 1) {
                 a.currentTime = pos;
@@ -542,7 +509,10 @@ export function RadioPlayer() {
             hasPlayedThisSession.current = true;
           }}
           onPause={() => setLocalPlaying(false)}
-          onEnded={() => setLocalPlaying(false)}
+          onEnded={() => {
+            setLocalPlaying(false);
+            window.dispatchEvent(new Event("radio:ended"));
+          }}
           onError={() => {
             const a = audioRef.current;
             logRadio("audio_error", {

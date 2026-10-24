@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { hasPlaybackFinished, playbackInstance } from "@/lib/playback-continuity";
 
 export type PlaybackState = {
   id: boolean;
@@ -24,9 +25,52 @@ export type PlaybackState = {
   updated_at: string;
 };
 
-export function usePlayback() {
+export function usePlayback(options?: { autoAdvance?: boolean }) {
   const [playback, setPlayback] = useState<PlaybackState | null>(null);
   const [loading, setLoading] = useState(true);
+  const latestRef = useRef(playback);
+  latestRef.current = playback;
+  const advancingRef = useRef(false);
+
+  useEffect(() => {
+    if (!options?.autoAdvance) return;
+    let cancelled = false;
+    let retryAt = 0;
+    const advance = async () => {
+      const observed = latestRef.current;
+      if (cancelled || advancingRef.current || !observed?.is_playing || Date.now() < retryAt) return;
+      advancingRef.current = true;
+      try {
+        const { data: fresh, error: readError } = await supabase.from("playback_state").select("*").eq("id", true).maybeSingle();
+        if (readError || !fresh || playbackInstance(fresh) !== playbackInstance(observed) || !fresh.is_playing || cancelled) return;
+        const { data: session } = await supabase.auth.getSession();
+        if (!session.session) return;
+        const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", session.session.user.id).maybeSingle();
+        if (profile?.status !== "aprovado" || !["admin", "operador"].includes(profile.role) || (fresh.is_locked && profile.role !== "admin")) return;
+        const item = fresh.current_institutional_id
+          ? await supabase.from("institutional_contents").select("duracao_segundos").eq("id", fresh.current_institutional_id).maybeSingle()
+          : fresh.current_song_id
+            ? await supabase.from("songs").select("duracao_segundos").eq("id", fresh.current_song_id).maybeSingle()
+            : null;
+        if (!hasPlaybackFinished(fresh, item?.data?.duracao_segundos ?? 0) || cancelled) return;
+        const { data, error } = await supabase.rpc("advance_playback", {
+          expected_song: fresh.current_song_id ?? undefined,
+          expected_institutional: fresh.current_institutional_id ?? undefined,
+        });
+        if (error) { retryAt = Date.now() + 5000; console.warn("[radio] Falha no avanço automático", error.message); }
+        if (data && !cancelled) setPlayback(data as unknown as PlaybackState);
+      } finally { advancingRef.current = false; }
+    };
+    const tick = () => {
+      // Prevent duplicate controller tabs in the same browser.
+      if (navigator.locks) void navigator.locks.request("radio-auto-advance", { ifAvailable: true }, (lock) => lock ? advance() : undefined);
+      else void advance();
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    window.addEventListener("radio:ended", tick);
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("radio:ended", tick); };
+  }, [options?.autoAdvance]);
 
   const refresh = useCallback(async () => {
     const { data } = await supabase
@@ -34,7 +78,7 @@ export function usePlayback() {
       .select("*")
       .eq("id", true)
       .maybeSingle();
-    if (data) setPlayback(data as PlaybackState);
+    if (data) setPlayback((previous) => previous && Date.parse(previous.updated_at) > Date.parse(data.updated_at) ? previous : data as PlaybackState);
     setLoading(false);
   }, []);
 
@@ -47,7 +91,7 @@ export function usePlayback() {
       "postgres_changes",
       { event: "UPDATE", schema: "public", table: "playback_state" },
       (payload) => setPlayback(payload.new as PlaybackState),
-    ).subscribe();
+    ).subscribe((status) => { if (status === "SUBSCRIBED") void refresh(); });
     return () => {
       supabase.removeChannel(ch);
     };

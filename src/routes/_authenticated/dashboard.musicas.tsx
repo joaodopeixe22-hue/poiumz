@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Music, Plus, Search, Pencil, Trash2, Play, Pause, FolderPlus } from "lucide-react";
@@ -27,6 +28,7 @@ import { TrackContextMenu } from "@/components/player/TrackContextMenu";
 import { AddToPlaylistModal } from "@/components/musicas/add-to-playlist-modal";
 
 export const Route = createFileRoute("/_authenticated/dashboard/musicas")({
+  head: () => pageHead("Músicas", "Gerencie o acervo de músicas da Rádio RD Saúde."),
   component: MusicasPage,
 });
 

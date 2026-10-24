@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { AuthCard, Field } from "@/components/auth/auth-card";
 
 export const Route = createFileRoute("/forgot-password")({
+  head: () => pageHead("Recuperar senha", "Recupere o acesso à sua conta da Rádio RD Saúde."),
   component: ForgotPasswordPage,
 });
 

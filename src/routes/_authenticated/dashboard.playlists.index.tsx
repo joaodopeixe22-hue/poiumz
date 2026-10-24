@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ListMusic, Plus, Trash2, Pencil } from "lucide-react";
@@ -27,6 +28,7 @@ import { formatPlaylistDuration } from "@/lib/format";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard/playlists/")({
+  head: () => pageHead("Listas de reprodução", "Organize as listas de músicas da Rádio RD Saúde."),
   component: PlaylistsPage,
 });
 

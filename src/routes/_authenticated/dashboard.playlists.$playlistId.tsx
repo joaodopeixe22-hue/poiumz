@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
@@ -30,6 +31,7 @@ import { toast } from "sonner";
 import { TrackContextMenu } from "@/components/player/TrackContextMenu";
 
 export const Route = createFileRoute("/_authenticated/dashboard/playlists/$playlistId")({
+  head: () => pageHead("Detalhes da lista", "Consulte músicas e ajustes da lista de reprodução da Rádio RD Saúde."),
   component: PlaylistDetailPage,
 });
 

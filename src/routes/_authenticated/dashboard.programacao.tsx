@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
@@ -31,6 +32,7 @@ import { formatTime } from "@/lib/format";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard/programacao")({
+  head: () => pageHead("Programação ao vivo", "Controle a programação sincronizada da Rádio RD Saúde."),
   component: ProgramacaoPage,
 });
 
@@ -47,7 +49,7 @@ function ProgramacaoPage() {
     setInstitutionalEnabled,
     setLoopPlaylist,
     setResumeAfterInstitutional,
-  } = usePlayback();
+  } = usePlayback({ autoAdvance: true });
   const { playlists } = usePlaylists();
   const [currentLabel, setCurrentLabel] = useState<{
     titulo: string;

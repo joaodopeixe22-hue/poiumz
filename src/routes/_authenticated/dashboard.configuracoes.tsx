@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Save, Settings as SettingsIcon, Radio, Mail, MessageCircle, Image as ImageIcon } from "lucide-react";
@@ -11,6 +12,7 @@ import { useRadioSettings, type RadioSettings } from "@/hooks/use-radio-settings
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard/configuracoes")({
+  head: () => pageHead("Configurações", "Ajuste a identidade e as preferências da Rádio RD Saúde."),
   component: ConfiguracoesPage,
 });
 
