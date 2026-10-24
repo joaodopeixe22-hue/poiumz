@@ -9,35 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
-import { Route as AuthenticatedDashboardUsuariosRouteImport } from './routes/_authenticated/dashboard.usuarios'
-import { Route as AuthenticatedDashboardProgramacaoRouteImport } from './routes/_authenticated/dashboard.programacao'
-import { Route as AuthenticatedDashboardMusicasRouteImport } from './routes/_authenticated/dashboard.musicas'
-import { Route as AuthenticatedDashboardInstitucionalRouteImport } from './routes/_authenticated/dashboard.institucional'
 import { Route as AuthenticatedDashboardConfiguracoesRouteImport } from './routes/_authenticated/dashboard.configuracoes'
+import { Route as AuthenticatedDashboardInstitucionalRouteImport } from './routes/_authenticated/dashboard.institucional'
+import { Route as AuthenticatedDashboardMusicasRouteImport } from './routes/_authenticated/dashboard.musicas'
+import { Route as AuthenticatedDashboardProgramacaoRouteImport } from './routes/_authenticated/dashboard.programacao'
+import { Route as AuthenticatedDashboardUsuariosRouteImport } from './routes/_authenticated/dashboard.usuarios'
 import { Route as AuthenticatedDashboardPlaylistsIndexRouteImport } from './routes/_authenticated/dashboard.playlists.index'
 import { Route as AuthenticatedDashboardPlaylistsPlaylistIdRouteImport } from './routes/_authenticated/dashboard.playlists.$playlistId'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -45,13 +39,19 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -65,22 +65,10 @@ const AuthenticatedDashboardIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
-const AuthenticatedDashboardUsuariosRoute =
-  AuthenticatedDashboardUsuariosRouteImport.update({
-    id: '/usuarios',
-    path: '/usuarios',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
-const AuthenticatedDashboardProgramacaoRoute =
-  AuthenticatedDashboardProgramacaoRouteImport.update({
-    id: '/programacao',
-    path: '/programacao',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
-const AuthenticatedDashboardMusicasRoute =
-  AuthenticatedDashboardMusicasRouteImport.update({
-    id: '/musicas',
-    path: '/musicas',
+const AuthenticatedDashboardConfiguracoesRoute =
+  AuthenticatedDashboardConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardInstitucionalRoute =
@@ -89,10 +77,22 @@ const AuthenticatedDashboardInstitucionalRoute =
     path: '/institucional',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
-const AuthenticatedDashboardConfiguracoesRoute =
-  AuthenticatedDashboardConfiguracoesRouteImport.update({
-    id: '/configuracoes',
-    path: '/configuracoes',
+const AuthenticatedDashboardMusicasRoute =
+  AuthenticatedDashboardMusicasRouteImport.update({
+    id: '/musicas',
+    path: '/musicas',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardProgramacaoRoute =
+  AuthenticatedDashboardProgramacaoRouteImport.update({
+    id: '/programacao',
+    path: '/programacao',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardUsuariosRoute =
+  AuthenticatedDashboardUsuariosRouteImport.update({
+    id: '/usuarios',
+    path: '/usuarios',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardPlaylistsIndexRoute =
@@ -219,32 +219,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -254,11 +233,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
@@ -275,25 +275,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
-    '/_authenticated/dashboard/usuarios': {
-      id: '/_authenticated/dashboard/usuarios'
-      path: '/usuarios'
-      fullPath: '/dashboard/usuarios'
-      preLoaderRoute: typeof AuthenticatedDashboardUsuariosRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
-    '/_authenticated/dashboard/programacao': {
-      id: '/_authenticated/dashboard/programacao'
-      path: '/programacao'
-      fullPath: '/dashboard/programacao'
-      preLoaderRoute: typeof AuthenticatedDashboardProgramacaoRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
-    '/_authenticated/dashboard/musicas': {
-      id: '/_authenticated/dashboard/musicas'
-      path: '/musicas'
-      fullPath: '/dashboard/musicas'
-      preLoaderRoute: typeof AuthenticatedDashboardMusicasRouteImport
+    '/_authenticated/dashboard/configuracoes': {
+      id: '/_authenticated/dashboard/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/dashboard/configuracoes'
+      preLoaderRoute: typeof AuthenticatedDashboardConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/institucional': {
@@ -303,11 +289,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardInstitucionalRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
-    '/_authenticated/dashboard/configuracoes': {
-      id: '/_authenticated/dashboard/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/dashboard/configuracoes'
-      preLoaderRoute: typeof AuthenticatedDashboardConfiguracoesRouteImport
+    '/_authenticated/dashboard/musicas': {
+      id: '/_authenticated/dashboard/musicas'
+      path: '/musicas'
+      fullPath: '/dashboard/musicas'
+      preLoaderRoute: typeof AuthenticatedDashboardMusicasRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/programacao': {
+      id: '/_authenticated/dashboard/programacao'
+      path: '/programacao'
+      fullPath: '/dashboard/programacao'
+      preLoaderRoute: typeof AuthenticatedDashboardProgramacaoRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/usuarios': {
+      id: '/_authenticated/dashboard/usuarios'
+      path: '/usuarios'
+      fullPath: '/dashboard/usuarios'
+      preLoaderRoute: typeof AuthenticatedDashboardUsuariosRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/playlists/': {
