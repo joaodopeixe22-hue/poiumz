@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { nextQueueIndex } from "@/lib/playback-continuity";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -116,25 +117,14 @@ type AudioPlayerContextValue = {
 
 export const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
 
-const urlCache = new Map<string, { url: string; expiresAt: number }>();
-
 async function resolveTrackUrl(track: AudioTrack): Promise<string> {
-  if (track.url) return track.url;
-  if (!track.storage_path) throw new Error("Faixa sem storage_path nem url");
-  const now = Date.now();
-  const cached = urlCache.get(track.storage_path);
-  if (cached && cached.expiresAt > now + 30_000) return cached.url;
-  const { data, error } = await supabase.storage
-    .from("songs")
-    .createSignedUrl(track.storage_path, 3600);
-  if (error || !data?.signedUrl) {
-    throw new Error(error?.message ?? "Não foi possível obter a URL do áudio");
+  if (track.storage_path) {
+    const { data } = supabase.storage.from("songs").getPublicUrl(track.storage_path);
+    console.log("[global-player] Fonte de áudio", { id: track.id, url: data.publicUrl });
+    return data.publicUrl;
   }
-  urlCache.set(track.storage_path, {
-    url: data.signedUrl,
-    expiresAt: now + 3500_000,
-  });
-  return data.signedUrl;
+  if (track.url) return track.url;
+  throw new Error("Arquivo de áudio não informado.");
 }
 
 // Fisher-Yates (Durstenfeld) — embaralhamento uniforme, sem viés.
@@ -189,6 +179,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
   // Smart Mix crossfade engine state
   const inCrossfadeRef = useRef(false);
+  const transitionRef = useRef(0);
+  const volumeRef = useRef(0.8);
+  const endedCallbackRef = useRef<() => Promise<void>>(async () => {});
+  const crossfadeCallbackRef = useRef<(index: number) => Promise<void>>(async () => {});
   const crossfadeTimerRef = useRef<number | null>(null);
   const smartMixRef = useRef<SmartMixSettings>(DEFAULT_SMART_MIX);
   const [smartMix, setSmartMixState] = useState<SmartMixSettings>(DEFAULT_SMART_MIX);
@@ -248,6 +242,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     const v = Number(localStorage.getItem("global-player-volume"));
     return Number.isFinite(v) && v > 0 && v <= 1 ? v : 0.8;
   });
+
+  volumeRef.current = volume;
 
   const [history, setHistory] = useState<HistoryItem[]>(
     () => (Array.isArray(persisted?.history) ? (persisted!.history as HistoryItem[]) : []),
@@ -510,7 +506,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       window.clearInterval(crossfadeTimerRef.current);
       crossfadeTimerRef.current = null;
     }
-    if (!inCrossfadeRef.current) return;
+    transitionRef.current += 1;
     inCrossfadeRef.current = false;
     setIsCrossfading(false);
     setCrossfadeProgress(0);
@@ -518,7 +514,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     if (inactive) {
       try {
         inactive.pause();
-        inactive.src = "";
+        // Keep buffered source available for the next transport action.
       } catch {
         /* ignore */
       }
@@ -529,16 +525,31 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
   const loadAndPlay = useCallback(
     async (track: AudioTrack) => {
+      const prepared = getInactiveAudio();
+      const preparedUrl = prepared?.src;
       abortCrossfade();
+      const request = transitionRef.current;
       const a = getActiveAudio();
       if (!a) return;
       try {
         a.volume = volume;
         const url = await resolveTrackUrl(track);
-        a.src = url;
-        a.currentTime = 0;
+        if (request !== transitionRef.current) return;
+        // Switch to a buffered inactive element instead of reloading the outgoing one.
+        let target = a;
+        if (prepared && preparedUrl === url) {
+          a.pause();
+          activeKeyRef.current = activeKeyRef.current === "A" ? "B" : "A";
+          audioRef.current = prepared;
+          target = prepared;
+        } else {
+          a.src = url;
+        }
+        target.volume = volumeRef.current;
+        target.currentTime = 0;
         setPosition(0);
-        await a.play();
+        await target.play();
+        if (request !== transitionRef.current) return;
         pushHistory(track);
         // Fire-and-forget preload of upcoming tracks
         void pruneAndPreload();
@@ -547,7 +558,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         toast.error(e instanceof Error ? e.message : "Não foi possível reproduzir");
       }
     },
-    [abortCrossfade, getActiveAudio, pushHistory, pruneAndPreload, volume],
+    [abortCrossfade, getActiveAudio, getInactiveAudio, pushHistory, pruneAndPreload, volume],
   );
 
   // Start a Smart Mix crossfade into the track at `nextIndex`.
@@ -569,16 +580,23 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       const dur = eff.durationSec;
       if (dur <= 0) return;
 
+      const request = ++transitionRef.current;
+      const isCurrent = () => request === transitionRef.current && getActiveAudio() === active && queueRef.current[nextIndex] === nextTrack;
       inCrossfadeRef.current = true;
       setIsCrossfading(true);
       setCrossfadeProgress(0);
       try {
         const url = await resolveTrackUrl(nextTrack);
-        inactive.src = url;
+        if (!isCurrent()) return;
+        if (inactive.src !== url) inactive.src = url;
         inactive.currentTime = 0;
         inactive.volume = 0;
         await inactive.play();
+        if (!isCurrent()) { if (getActiveAudio() !== inactive) inactive.pause(); return; }
       } catch (e) {
+        if (!isCurrent()) return;
+        inactive.pause();
+        inactive.removeAttribute("src");
         console.warn("[smart-mix] crossfade prep failed; falling back", e);
         inCrossfadeRef.current = false;
         setIsCrossfading(false);
@@ -586,11 +604,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const startVol = volume;
+      let startVol = volumeRef.current;
       const startAt = performance.now();
       let lastProgressSet = 0;
       const tick = () => {
+        if (!isCurrent()) { abortCrossfade(); return; }
         if (!inCrossfadeRef.current) return;
+        startVol = volumeRef.current;
         const elapsed = (performance.now() - startAt) / 1000;
         const t = Math.min(1, elapsed / dur);
         const g = equalPowerGains(t);
@@ -636,6 +656,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       crossfadeTimerRef.current = window.setInterval(tick, 50);
     },
     [
+      abortCrossfade,
       getActiveAudio,
       getInactiveAudio,
       pushHistory,
@@ -693,7 +714,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       ) {
         return;
       }
-      void startCrossfade(nextI);
+      void crossfadeCallbackRef.current(nextI);
     };
 
     let lastPosSet = 0;
@@ -727,7 +748,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       const onEnded = () => {
         if (!isActive(el)) return;
         if (inCrossfadeRef.current) return; // crossfade handles the swap itself
-        void handleEnded();
+        void endedCallbackRef.current();
       };
       const onError = () => {
         if (!isActive(el)) return;
@@ -876,18 +897,29 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       return;
     }
     // (modo legado "shuffle" não cai mais aqui; advanceNext cuida do walk)
-    const q = queueRef.current;
-    if (indexRef.current + 1 >= q.length) {
-      // Fim da fila: loop contínuo se repeat=all
-      if (repeatRef.current === "all" && q.length > 0) {
-        await goToIndex(0);
-        return;
-      }
-      setIsPlaying(false);
-      return;
-    }
+    const nextIndex = nextQueueIndex(indexRef.current, queueRef.current.length, repeatRef.current);
+    if (nextIndex === null) { setIsPlaying(false); return; }
     await advanceNext();
-  }, [advanceNext, goToIndex]);
+  }, [advanceNext]);
+
+  endedCallbackRef.current = handleEnded;
+  crossfadeCallbackRef.current = startCrossfade;
+
+  // Prepare the actual incoming audio element from the current dynamic order.
+  useEffect(() => {
+    if (mode === "radio" || inCrossfadeRef.current) return;
+    const nextIndex = nextQueueIndex(index, queue.length, repeat);
+    const track = nextIndex === null ? null : queue[nextIndex];
+    const incoming = getInactiveAudio();
+    if (!track || !incoming) return;
+    let cancelled = false;
+    void resolveTrackUrl(track).then((url) => {
+      if (cancelled || inCrossfadeRef.current || incoming === getActiveAudio()) return;
+      if (incoming.src !== url) { incoming.src = url; incoming.load(); }
+    });
+    void pruneAndPreload();
+    return () => { cancelled = true; };
+  }, [queue, index, mode, repeat, preloadCount, getInactiveAudio, getActiveAudio, pruneAndPreload]);
 
   const playQueue = useCallback(
     async (tracks: AudioTrack[], startIndex = 0) => {
@@ -947,6 +979,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   }, [advancePrev]);
 
   const toggle = useCallback(async () => {
+    abortCrossfade();
     const a = audioRef.current;
     if (!a) return;
     if (a.paused) {
@@ -960,7 +993,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       a.pause();
       broadcast({ type: "toggle", play: false });
     }
-  }, [broadcast]);
+  }, [broadcast, abortCrossfade]);
 
   const seek = useCallback(
     (sec: number) => {
