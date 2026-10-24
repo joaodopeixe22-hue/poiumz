@@ -47,7 +47,7 @@ function ProgramacaoPage() {
     setInstitutionalEnabled,
     setLoopPlaylist,
     setResumeAfterInstitutional,
-  } = usePlayback();
+  } = usePlayback({ autoAdvance: true });
   const { playlists } = usePlaylists();
   const [currentLabel, setCurrentLabel] = useState<{
     titulo: string;
