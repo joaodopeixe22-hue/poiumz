@@ -455,11 +455,6 @@ export function HomeRadioControls() {
         </SelectContent>
       </Select>
 
-      <p className="text-xs text-muted-foreground">
-        Reprodução, próxima/anterior, shuffle, repeat, seek e playlist gravam em{" "}
-        <code className="font-mono">playback_state</code> e sincronizam em tempo real para
-        todos os ouvintes. O volume é local deste dispositivo.
-      </p>
     </div>
   );
 }

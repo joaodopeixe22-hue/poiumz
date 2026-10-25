@@ -905,6 +905,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   endedCallbackRef.current = handleEnded;
   crossfadeCallbackRef.current = startCrossfade;
 
+  useEffect(() => {
+    if (inCrossfadeRef.current) abortCrossfade();
+  }, [queue, abortCrossfade]);
+
   // Prepare the actual incoming audio element from the current dynamic order.
   useEffect(() => {
     if (mode === "radio" || inCrossfadeRef.current) return;
@@ -1013,6 +1017,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
   const setVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
+    volumeRef.current = clamped;
     setVolumeState(clamped);
     // During a crossfade the per-element volumes are being ramped by the
     // engine; updating both elements directly would break the ramp. The

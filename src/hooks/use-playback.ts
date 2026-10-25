@@ -36,23 +36,30 @@ export function usePlayback(options?: { autoAdvance?: boolean }) {
     if (!options?.autoAdvance) return;
     let cancelled = false;
     let retryAt = 0;
+    const durations = new Map<string, number>();
     const advance = async () => {
       const observed = latestRef.current;
       if (cancelled || advancingRef.current || !observed?.is_playing || Date.now() < retryAt) return;
       advancingRef.current = true;
       try {
+        const contentId = observed.current_institutional_id ?? observed.current_song_id;
+        if (!contentId) return;
+        if (!durations.has(contentId)) {
+          const item = observed.current_institutional_id
+            ? await supabase.from("institutional_contents").select("duracao_segundos").eq("id", contentId).maybeSingle()
+            : await supabase.from("songs").select("duracao_segundos").eq("id", contentId).maybeSingle();
+          if (item.error) { retryAt = Date.now() + 5000; return; }
+          durations.set(contentId, item.data?.duracao_segundos ?? 0);
+        }
+        const duration = durations.get(contentId) ?? 0;
+        if (!hasPlaybackFinished(observed, duration)) return;
         const { data: fresh, error: readError } = await supabase.from("playback_state").select("*").eq("id", true).maybeSingle();
         if (readError || !fresh || playbackInstance(fresh) !== playbackInstance(observed) || !fresh.is_playing || cancelled) return;
         const { data: session } = await supabase.auth.getSession();
         if (!session.session) return;
         const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", session.session.user.id).maybeSingle();
         if (profile?.status !== "aprovado" || !["admin", "operador"].includes(profile.role) || (fresh.is_locked && profile.role !== "admin")) return;
-        const item = fresh.current_institutional_id
-          ? await supabase.from("institutional_contents").select("duracao_segundos").eq("id", fresh.current_institutional_id).maybeSingle()
-          : fresh.current_song_id
-            ? await supabase.from("songs").select("duracao_segundos").eq("id", fresh.current_song_id).maybeSingle()
-            : null;
-        if (!hasPlaybackFinished(fresh, item?.data?.duracao_segundos ?? 0) || cancelled) return;
+        if (!hasPlaybackFinished(fresh, duration) || cancelled) return;
         const { data, error } = await supabase.rpc("advance_playback", {
           expected_song: fresh.current_song_id ?? undefined,
           expected_institutional: fresh.current_institutional_id ?? undefined,
