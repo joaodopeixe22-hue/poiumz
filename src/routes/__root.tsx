@@ -47,7 +47,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
         <p className="font-mono-caption text-muted-foreground">Erro</p>
         <h1 className="font-display text-4xl mt-3">Algo deu errado.</h1>
 
-        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+        <p className="mt-2 text-sm text-muted-foreground">Não foi possível carregar esta página. Tente novamente.</p>
         <div className="mt-6 flex justify-center gap-2">
           <button
             onClick={() => {
