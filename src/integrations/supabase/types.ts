@@ -428,6 +428,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      can_read_radio: { Args: never; Returns: boolean }
       can_user_upload: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_approved_member: { Args: never; Returns: boolean }

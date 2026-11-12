@@ -46,11 +46,6 @@ type DocumentPiP = {
   window: Window | null;
 };
 
-declare global {
-  interface Window {
-    documentPictureInPicture?: DocumentPiP;
-  }
-}
 
 export function GlobalPlayerBar() {
   const {
@@ -199,7 +194,7 @@ export function GlobalPlayerBar() {
 
   const togglePiP = async () => {
     if (!pipSupported) return;
-    const pip = window.documentPictureInPicture!;
+    const pip = (window as unknown as { documentPictureInPicture: DocumentPiP }).documentPictureInPicture;
     if (pip.window) {
       pip.window.close();
       setPipActive(false);
