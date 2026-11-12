@@ -46,11 +46,6 @@ type DocumentPiP = {
   window: Window | null;
 };
 
-declare global {
-  interface Window {
-    documentPictureInPicture?: DocumentPiP;
-  }
-}
 
 export function GlobalPlayerBar() {
   const {
