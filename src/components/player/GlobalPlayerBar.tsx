@@ -194,7 +194,7 @@ export function GlobalPlayerBar() {
 
   const togglePiP = async () => {
     if (!pipSupported) return;
-    const pip = window.documentPictureInPicture!;
+    const pip = (window as unknown as { documentPictureInPicture: DocumentPiP }).documentPictureInPicture;
     if (pip.window) {
       pip.window.close();
       setPipActive(false);
