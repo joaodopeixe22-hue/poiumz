@@ -13,12 +13,16 @@ import { trackGainDb } from "@/lib/audio-analysis";
 import { createRadioAudioChain, type RadioAudioChain } from "@/lib/radio-audio-chain";
 import {
   DEFAULT_PROFILE_ID,
+  FOLLOW_RADIO,
   SOUND_PROFILES,
+  clampVolume,
   getProfile,
+  readDeviceProfileChoice,
   readSoundEnabled,
-  readStoredProfileId,
-  storeProfileId,
+  resolveProfileId,
+  storeDeviceProfileChoice,
   storeSoundEnabled,
+  type DeviceProfileChoice,
   type SoundProfileId,
 } from "@/lib/sound-profiles";
 
@@ -68,15 +72,20 @@ export function RadioPlayer() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundActive, setSoundActive] = useState(false);
   const [soundBlocked, setSoundBlocked] = useState(false);
-  const [profileId, setProfileId] = useState<SoundProfileId>(DEFAULT_PROFILE_ID);
+  // Por padrão o aparelho segue o perfil que o operador escolheu para a rádio.
+  const [profileChoice, setProfileChoice] = useState<DeviceProfileChoice>(FOLLOW_RADIO);
+  const profileId = resolveProfileId(profileChoice, playback?.sound_profile);
   const [reloadNonce, setReloadNonce] = useState(0);
+  // Volume: vem da rádio (playback_state.volume). Um ajuste feito nesta página
+  // vale na hora e segura o valor por um instante, até o banco confirmar.
+  const remoteVolumeRef = useRef<number | null>(null);
+  remoteVolumeRef.current = playback ? clampVolume(playback.volume) : null;
+  const localVolumeRef = useRef<{ value: number; until: number } | null>(null);
   useEffect(() => {
     const enabled = readSoundEnabled();
     soundWantedRef.current = enabled;
     setSoundEnabled(enabled);
-    const stored = readStoredProfileId();
-    profileRef.current = stored;
-    setProfileId(stored);
+    setProfileChoice(readDeviceProfileChoice());
     return () => {
       chainRef.current?.destroy();
       chainRef.current = null;
@@ -97,30 +106,44 @@ export function RadioPlayer() {
   }, []);
 
   const targetVolume = () => {
-    // Override local (controles avançados) tem prioridade sobre o default global
-    if (typeof window !== "undefined") {
-      const v = window.localStorage.getItem("radioVolume");
-      const n = v ? Number(v) : NaN;
-      if (Number.isFinite(n)) return Math.max(0, Math.min(1, n));
-    }
-    const defaultVol = settings?.default_volume ?? 80;
-    return Math.max(0, Math.min(1, defaultVol / 100));
+    const local = localVolumeRef.current;
+    if (local && Date.now() < local.until) return local.value;
+    if (remoteVolumeRef.current !== null) return remoteVolumeRef.current;
+    return clampVolume((settings?.default_volume ?? 80) / 100);
   };
 
-  // Aceita ajustes de volume local emitidos por outros componentes (HomeRadioControls)
+  // Resposta imediata aos controles de som desta mesma página (RemoteSoundControls)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onSetVolume = (e: Event) => {
       const detail = (e as CustomEvent<{ volume: number }>).detail;
       const a = audioRef.current;
       if (!a || !detail) return;
-      applyVolume(detail.volume);
-      if (detail.volume > 0 && a.muted) a.muted = false;
+      const volume = clampVolume(detail.volume);
+      localVolumeRef.current = { value: volume, until: Date.now() + 1500 };
+      applyVolume(volume);
+      if (volume > 0 && a.muted) {
+        a.muted = false;
+        setMuted(false);
+      }
+      // Passado o instante de espera, volta a valer o volume da rádio.
+      if (holdTimer !== null) window.clearTimeout(holdTimer);
+      holdTimer = window.setTimeout(() => applyVolume(targetVolume()), 1600);
     };
+    let holdTimer: number | null = null;
     window.addEventListener("radio:setVolume", onSetVolume as EventListener);
-    return () =>
+    return () => {
+      if (holdTimer !== null) window.clearTimeout(holdTimer);
       window.removeEventListener("radio:setVolume", onSetVolume as EventListener);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applyVolume]);
+
+  // Volume remoto: o operador mudou o volume da rádio (de qualquer aparelho).
+  useEffect(() => {
+    applyVolume(targetVolume());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playback?.volume]);
 
 
   // Nome da playlist no ar
@@ -429,9 +452,9 @@ export function RadioPlayer() {
     }
   };
 
-  const handlePickProfile = (id: SoundProfileId) => {
-    storeProfileId(id);
-    setProfileId(id);
+  const handlePickProfile = (choice: DeviceProfileChoice) => {
+    storeDeviceProfileChoice(choice);
+    setProfileChoice(choice);
   };
 
 
@@ -658,21 +681,32 @@ export function RadioPlayer() {
                 <>
                   <p className="text-xs text-muted-foreground">{soundStatus}</p>
                   <div className="space-y-1.5" role="radiogroup" aria-label="Perfil de ambiente">
-                    {SOUND_PROFILES.map((p) => (
+                    {[
+                      {
+                        id: FOLLOW_RADIO as DeviceProfileChoice,
+                        nome: "Seguir a rádio",
+                        descricao: `Usa o perfil escolhido pelo operador: ${getProfile(playback?.sound_profile).nome}.`,
+                      },
+                      ...SOUND_PROFILES.map((p) => ({
+                        id: p.id as DeviceProfileChoice,
+                        nome: `${p.nome} (só neste aparelho)`,
+                        descricao: p.descricao,
+                      })),
+                    ].map((option) => (
                       <button
-                        key={p.id}
+                        key={option.id}
                         type="button"
                         role="radio"
-                        aria-checked={profileId === p.id}
-                        onClick={() => handlePickProfile(p.id)}
+                        aria-checked={profileChoice === option.id}
+                        onClick={() => handlePickProfile(option.id)}
                         className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-                          profileId === p.id
+                          profileChoice === option.id
                             ? "border-primary bg-primary/10"
                             : "border-border hover:bg-secondary"
                         }`}
                       >
-                        <span className="block text-sm font-medium">{p.nome}</span>
-                        <span className="block text-xs text-muted-foreground">{p.descricao}</span>
+                        <span className="block text-sm font-medium">{option.nome}</span>
+                        <span className="block text-xs text-muted-foreground">{option.descricao}</span>
                       </button>
                     ))}
                   </div>

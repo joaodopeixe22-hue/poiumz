@@ -91,11 +91,32 @@ export const SOUND_PROFILES: readonly SoundProfile[] = [
 ] as const;
 
 export const DEFAULT_PROFILE_ID: SoundProfileId = "padrao";
-export const PROFILE_KEY = "radioSoundProfile";
 export const SOUND_ENABLED_KEY = "radioSoundEnabled";
+
+/**
+ * Cada aparelho segue o perfil escolhido pelo operador para a rádio
+ * (playback_state.sound_profile) ou fixa um perfil próprio.
+ */
+export const FOLLOW_RADIO = "radio" as const;
+export type DeviceProfileChoice = typeof FOLLOW_RADIO | SoundProfileId;
+export const PROFILE_CHOICE_KEY = "radioSoundProfileChoice";
 
 export function getProfile(id: string | null | undefined): SoundProfile {
   return SOUND_PROFILES.find((p) => p.id === id) ?? SOUND_PROFILES[0];
+}
+
+/** Perfil que o aparelho deve aplicar agora. */
+export function resolveProfileId(
+  choice: DeviceProfileChoice,
+  radioProfile: string | null | undefined,
+): SoundProfileId {
+  return choice === FOLLOW_RADIO ? getProfile(radioProfile).id : getProfile(choice).id;
+}
+
+/** Volume entre 0 e 1; valores inválidos caem no `fallback`. */
+export function clampVolume(value: unknown, fallback = 0.8): number {
+  const n = typeof value === "number" ? value : value == null || value === "" ? NaN : Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : fallback;
 }
 
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
@@ -108,17 +129,23 @@ function storage(): StorageLike | null {
   }
 }
 
-export function readStoredProfileId(store: StorageLike | null = storage()): SoundProfileId {
+export function readDeviceProfileChoice(
+  store: StorageLike | null = storage(),
+): DeviceProfileChoice {
   try {
-    return getProfile(store?.getItem(PROFILE_KEY)).id;
+    const raw = store?.getItem(PROFILE_CHOICE_KEY);
+    return SOUND_PROFILES.some((p) => p.id === raw) ? (raw as SoundProfileId) : FOLLOW_RADIO;
   } catch {
-    return DEFAULT_PROFILE_ID;
+    return FOLLOW_RADIO;
   }
 }
 
-export function storeProfileId(id: SoundProfileId, store: StorageLike | null = storage()): void {
+export function storeDeviceProfileChoice(
+  choice: DeviceProfileChoice,
+  store: StorageLike | null = storage(),
+): void {
   try {
-    store?.setItem(PROFILE_KEY, id);
+    store?.setItem(PROFILE_CHOICE_KEY, choice);
   } catch {
     /* armazenamento indisponível: vale só para esta sessão */
   }

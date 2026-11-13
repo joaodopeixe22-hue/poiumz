@@ -4,8 +4,11 @@ import {
   SOUND_PROFILES,
   getProfile,
   readSoundEnabled,
-  readStoredProfileId,
-  storeProfileId,
+  FOLLOW_RADIO,
+  clampVolume,
+  readDeviceProfileChoice,
+  resolveProfileId,
+  storeDeviceProfileChoice,
   storeSoundEnabled,
 } from "./sound-profiles";
 
@@ -46,11 +49,32 @@ describe("perfis de ambiente", () => {
     expect(getProfile("loja-cheia").nome).toBe("Loja cheia");
   });
 
-  it("guarda e lê o perfil do aparelho", () => {
+  it("o aparelho segue a rádio até fixar um perfil próprio", () => {
     const store = memoryStore();
-    expect(readStoredProfileId(store)).toBe(DEFAULT_PROFILE_ID);
-    storeProfileId("caixa-pequena", store);
-    expect(readStoredProfileId(store)).toBe("caixa-pequena");
+    expect(readDeviceProfileChoice(store)).toBe(FOLLOW_RADIO);
+    expect(resolveProfileId(readDeviceProfileChoice(store), "loja-cheia")).toBe("loja-cheia");
+    storeDeviceProfileChoice("caixa-pequena", store);
+    expect(readDeviceProfileChoice(store)).toBe("caixa-pequena");
+    expect(resolveProfileId(readDeviceProfileChoice(store), "loja-cheia")).toBe("caixa-pequena");
+    storeDeviceProfileChoice(FOLLOW_RADIO, store);
+    expect(resolveProfileId(readDeviceProfileChoice(store), "loja-vazia")).toBe("loja-vazia");
+  });
+
+  it("perfil da rádio desconhecido ou ausente vira o padrão", () => {
+    expect(resolveProfileId(FOLLOW_RADIO, "inventado")).toBe(DEFAULT_PROFILE_ID);
+    expect(resolveProfileId(FOLLOW_RADIO, null)).toBe(DEFAULT_PROFILE_ID);
+    expect(resolveProfileId(FOLLOW_RADIO, undefined)).toBe(DEFAULT_PROFILE_ID);
+  });
+
+  it("limita o volume entre 0 e 1", () => {
+    expect(clampVolume(0.35)).toBe(0.35);
+    expect(clampVolume(1.7)).toBe(1);
+    expect(clampVolume(-2)).toBe(0);
+    expect(clampVolume("0.5")).toBe(0.5);
+    expect(clampVolume(null)).toBe(0.8);
+    expect(clampVolume(undefined, 0.6)).toBe(0.6);
+    expect(clampVolume(NaN)).toBe(0.8);
+    expect(clampVolume("")).toBe(0.8);
   });
 
   it("vem ligado e respeita quando o usuário desliga", () => {
@@ -61,9 +85,9 @@ describe("perfis de ambiente", () => {
   });
 
   it("não quebra quando o armazenamento está bloqueado", () => {
-    expect(readStoredProfileId(brokenStore)).toBe(DEFAULT_PROFILE_ID);
+    expect(readDeviceProfileChoice(brokenStore)).toBe(FOLLOW_RADIO);
     expect(readSoundEnabled(brokenStore)).toBe(true);
-    expect(() => storeProfileId("loja-vazia", brokenStore)).not.toThrow();
+    expect(() => storeDeviceProfileChoice("loja-vazia", brokenStore)).not.toThrow();
     expect(() => storeSoundEnabled(false, brokenStore)).not.toThrow();
   });
 });
