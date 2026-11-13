@@ -1,7 +1,7 @@
 import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Music, Plus, Search, Pencil, Trash2, Play, Pause, FolderPlus } from "lucide-react";
+import { Music, Plus, Search, Pencil, Trash2, Play, Pause, FolderPlus, AudioLines } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,6 +22,7 @@ import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime, formatRelative } from "@/lib/format";
 import { UploadDialog } from "@/components/musicas/upload-dialog";
+import { AnalyzeLibraryDialog } from "@/components/musicas/analyze-library-dialog";
 import { EditSongSheet } from "@/components/musicas/edit-song-sheet";
 import { toast } from "sonner";
 import { TrackContextMenu } from "@/components/player/TrackContextMenu";
@@ -41,6 +42,7 @@ function MusicasPage() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterMode>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [editing, setEditing] = useState<Song | null>(null);
   const [deleting, setDeleting] = useState<Song | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -245,12 +247,20 @@ function MusicasPage() {
             )}
           </p>
         </div>
-        {canUpload && (
-          <Button onClick={() => setUploadOpen(true)} className="gap-2">
-            <Plus className="size-4" />
-            Enviar músicas
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {isAdmin && (
+            <Button variant="outline" onClick={() => setAnalyzeOpen(true)} className="gap-2">
+              <AudioLines className="size-4" />
+              Nivelar volume
+            </Button>
+          )}
+          {canUpload && (
+            <Button onClick={() => setUploadOpen(true)} className="gap-2">
+              <Plus className="size-4" />
+              Enviar músicas
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center gap-3">
@@ -465,6 +475,7 @@ function MusicasPage() {
       </div>
 
       <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} onComplete={refresh} />
+      {isAdmin && <AnalyzeLibraryDialog open={analyzeOpen} onOpenChange={setAnalyzeOpen} />}
       <EditSongSheet
         song={editing}
         open={!!editing}

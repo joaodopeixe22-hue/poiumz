@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { analysisColumns, tryAnalyzeAudio } from "@/lib/audio-analysis-browser";
 
 type Item = {
   id: string;
@@ -83,6 +84,8 @@ export function UploadDialog({
       setItems((p) => p.map((i) => (i.id === item.id ? { ...i, status: "uploading", progress: 10 } : i)));
       try {
         const duracao = await readDuration(item.file);
+        // Som de loja: mede volume e silêncio antes de enviar (não impede o envio se falhar).
+        const analysis = await tryAnalyzeAudio(item.file);
         setItems((p) => p.map((i) => (i.id === item.id ? { ...i, progress: 30 } : i)));
         const path = `${user.id}/${crypto.randomUUID()}-${sanitize(item.file.name)}`;
         const { error: upErr } = await supabase.storage
@@ -94,9 +97,11 @@ export function UploadDialog({
         const { error: insErr } = await supabase.from("songs").insert({
           titulo,
           artista: null,
-          duracao_segundos: duracao,
+          duracao_segundos:
+            duracao ?? (analysis?.duracao_segundos ? Math.round(analysis.duracao_segundos) : null),
           storage_path: path,
           uploaded_by: user.id,
+          ...analysisColumns(analysis),
         });
         if (insErr) {
           await supabase.storage.from("songs").remove([path]);

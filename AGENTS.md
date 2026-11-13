@@ -3,3 +3,4 @@
 - Keep public radio audio separate from the authenticated shared player; the latter owns two bound audio elements for music-only Smart Mix and reuses the prepared inactive element for transitions.
 - Keep playback continuity decisions in browser-safe pure helpers with regression tests, and read current callback refs from lifetime audio listeners to avoid stale queue/settings closures.
 - Each content route owns its head metadata via the shared pageHead helper so titles and social descriptions remain unique and consistently branded.
+- Keep the "Som de loja" processing optional on the public radio: the Web Audio chain (radio-audio-chain) attaches only after the element has actually played with crossOrigin="anonymous", and any failure must fall back to the plain audio element. Loudness and silence analysis stay in pure helpers (audio-analysis) with tests; the server treats fim_segundos as the real end of an item.
