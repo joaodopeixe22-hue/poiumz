@@ -16,40 +16,55 @@ export type Database = {
     Tables: {
       institutional_contents: {
         Row: {
+          analisado_em: string | null
           ativo: boolean
           created_at: string
           created_by: string | null
           duracao_segundos: number | null
+          fim_segundos: number | null
           frequencia_musicas: number | null
           horario: string | null
           id: string
+          inicio_segundos: number | null
           last_played_at: string | null
+          loudness_lufs: number | null
+          pico_db: number | null
           storage_path: string
           tipo: Database["public"]["Enums"]["institutional_type"]
           titulo: string
         }
         Insert: {
+          analisado_em?: string | null
           ativo?: boolean
           created_at?: string
           created_by?: string | null
           duracao_segundos?: number | null
+          fim_segundos?: number | null
           frequencia_musicas?: number | null
           horario?: string | null
           id?: string
+          inicio_segundos?: number | null
           last_played_at?: string | null
+          loudness_lufs?: number | null
+          pico_db?: number | null
           storage_path: string
           tipo: Database["public"]["Enums"]["institutional_type"]
           titulo: string
         }
         Update: {
+          analisado_em?: string | null
           ativo?: boolean
           created_at?: string
           created_by?: string | null
           duracao_segundos?: number | null
+          fim_segundos?: number | null
           frequencia_musicas?: number | null
           horario?: string | null
           id?: string
+          inicio_segundos?: number | null
           last_played_at?: string | null
+          loudness_lufs?: number | null
+          pico_db?: number | null
           storage_path?: string
           tipo?: Database["public"]["Enums"]["institutional_type"]
           titulo?: string
@@ -349,28 +364,43 @@ export type Database = {
       }
       songs: {
         Row: {
+          analisado_em: string | null
           artista: string | null
           created_at: string
           duracao_segundos: number | null
+          fim_segundos: number | null
           id: string
+          inicio_segundos: number | null
+          loudness_lufs: number | null
+          pico_db: number | null
           storage_path: string
           titulo: string
           uploaded_by: string | null
         }
         Insert: {
+          analisado_em?: string | null
           artista?: string | null
           created_at?: string
           duracao_segundos?: number | null
+          fim_segundos?: number | null
           id?: string
+          inicio_segundos?: number | null
+          loudness_lufs?: number | null
+          pico_db?: number | null
           storage_path: string
           titulo: string
           uploaded_by?: string | null
         }
         Update: {
+          analisado_em?: string | null
           artista?: string | null
           created_at?: string
           duracao_segundos?: number | null
+          fim_segundos?: number | null
           id?: string
+          inicio_segundos?: number | null
+          loudness_lufs?: number | null
+          pico_db?: number | null
           storage_path?: string
           titulo?: string
           uploaded_by?: string | null
@@ -397,6 +427,41 @@ export type Database = {
       }
     }
     Functions: {
+      _advance_core: {
+        Args: {
+          expected_institutional?: string
+          expected_song?: string
+          expected_started_at?: string
+        }
+        Returns: {
+          active_playlist_id: string | null
+          controlled_by: string | null
+          current_institutional_id: string | null
+          current_playlist_id: string | null
+          current_song_id: string | null
+          id: boolean
+          institutional_enabled: boolean
+          interrupted_song_id: string | null
+          interrupted_song_position: number
+          is_locked: boolean
+          is_playing: boolean
+          loop_index: number
+          loop_playlist: boolean
+          position_seconds: number
+          resume_song_after_institutional: boolean
+          shuffle: boolean
+          songs_since_institutional: number
+          started_at: string | null
+          updated_at: string
+          volume: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "playback_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       advance_playback: {
         Args: { expected_institutional?: string; expected_song?: string }
         Returns: {
@@ -464,6 +529,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      radio_tick: { Args: { p_ended?: boolean }; Returns: boolean }
       reorder_queue: {
         Args: { p_item_id: string; p_new_position: number }
         Returns: undefined
