@@ -42,7 +42,7 @@ export function HomeRadioControls() {
   const { profile, loading: profileLoading } = useProfile();
   const { user } = useAuth();
   const { playback, startPlaylist, pause, resume, next, setShuffle, setLoopPlaylist } =
-    usePlayback({ autoAdvance: true });
+    usePlayback();
   const { playlists } = usePlaylists();
   const [busy, setBusy] = useState(false);
   const [currentSongMeta, setCurrentSongMeta] = useState<{

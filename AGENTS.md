@@ -1,5 +1,5 @@
 # Architecture rules
-- Keep the public radio synchronized through playback_state and existing guarded RPCs; automatic advancement requires an approved operator/admin session and never grants anonymous control.
+- Keep the public radio synchronized through playback_state and guarded RPCs; automatic advancement goes only through radio_tick(), which advances solely when the server confirms the current item has ended (called by any listener and by pg_cron every 10s), so it never grants anonymous control over what plays. Operator commands keep requiring an approved session.
 - Keep public radio audio separate from the authenticated shared player; the latter owns two bound audio elements for music-only Smart Mix and reuses the prepared inactive element for transitions.
 - Keep playback continuity decisions in browser-safe pure helpers with regression tests, and read current callback refs from lifetime audio listeners to avoid stale queue/settings closures.
 - Each content route owns its head metadata via the shared pageHead helper so titles and social descriptions remain unique and consistently branded.

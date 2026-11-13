@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boundedAudioPosition, hasPlaybackFinished, nextQueueIndex, playbackInstance } from "./playback-continuity";
+import { boundedAudioPosition, effectiveEnd, hasPlaybackFinished, nextQueueIndex, playbackInstance } from "./playback-continuity";
 
 const state = { is_playing: true, current_song_id: "a", current_institutional_id: null, started_at: "2026-10-24T22:00:00Z", position_seconds: 0 };
 describe("continuidade", () => {
@@ -24,4 +24,11 @@ describe("continuidade", () => {
   it("reinicia fila com repetição total", () => { expect(nextQueueIndex(2, 3, "all")).toBe(0); });
   it("para sem repetição", () => { expect(nextQueueIndex(2, 3, "off")).toBeNull(); });
   it("repete a atual no modo uma", () => { expect(nextQueueIndex(1, 3, "one")).toBe(1); });
+  it("usa o fim cortado quando existe, senão a duração", () => {
+    expect(effectiveEnd({ duracao_segundos: 200, fim_segundos: 187.4 })).toBe(187.4);
+    expect(effectiveEnd({ duracao_segundos: 200, fim_segundos: null })).toBe(200);
+    expect(effectiveEnd({ duracao_segundos: 200 })).toBe(200);
+    expect(effectiveEnd({ duracao_segundos: null, fim_segundos: 0 })).toBe(0);
+    expect(effectiveEnd(null)).toBe(0);
+  });
 });
