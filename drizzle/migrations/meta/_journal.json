@@ -8,6 +8,13 @@
       "when": 1794522395076,
       "tag": "0000_restrict_public_radio_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794566297820,
+      "tag": "0001_fase1_radio_autonoma",
+      "breakpoints": true
     }
   ]
 }

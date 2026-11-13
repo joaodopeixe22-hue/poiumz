@@ -22,7 +22,7 @@ const INSTITUTIONAL_BUCKET = "institutional";
 
 export function RadioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const { playback } = usePlayback();
+  const { playback } = usePlayback({ autoAdvance: true });
   const { settings } = useRadioSettings();
   const [current, setCurrent] = useState<CurrentItem | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);

@@ -28,3 +28,15 @@ export function nextQueueIndex(index: number, length: number, repeat: "off" | "a
   if (index + 1 < length) return index + 1;
   return repeat === "all" ? 0 : null;
 }
+/**
+ * Ponto (em segundos) em que o item realmente termina: `fim_segundos` quando a
+ * análise de áudio cortou o silêncio final, senão a duração. 0 = desconhecido.
+ */
+export function effectiveEnd(
+  item: { duracao_segundos?: number | null; fim_segundos?: number | null } | null | undefined,
+): number {
+  const fim = Number(item?.fim_segundos);
+  if (Number.isFinite(fim) && fim > 0) return fim;
+  const dur = Number(item?.duracao_segundos);
+  return Number.isFinite(dur) && dur > 0 ? dur : 0;
+}
