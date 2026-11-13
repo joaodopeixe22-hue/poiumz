@@ -1,12 +1,26 @@
-import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Radio, Megaphone, Lock, AlertCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Play, Pause, Volume2, VolumeX, Radio, Megaphone, Lock, AlertCircle, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
 import { usePlayback, computeLivePosition } from "@/hooks/use-playback";
 import { useRadioSettings } from "@/hooks/use-radio-settings";
 import { boundedAudioPosition } from "@/lib/playback-continuity";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 import { logRadio } from "@/lib/radio-diagnostics";
+import { trackGainDb } from "@/lib/audio-analysis";
+import { createRadioAudioChain, type RadioAudioChain } from "@/lib/radio-audio-chain";
+import {
+  DEFAULT_PROFILE_ID,
+  SOUND_PROFILES,
+  getProfile,
+  readSoundEnabled,
+  readStoredProfileId,
+  storeProfileId,
+  storeSoundEnabled,
+  type SoundProfileId,
+} from "@/lib/sound-profiles";
 
 type CurrentItem = {
   kind: "song" | "institutional";
@@ -15,6 +29,9 @@ type CurrentItem = {
   artista: string | null;
   duracao_segundos: number | null;
   storage_path: string;
+  loudness_lufs: number | null;
+  pico_db: number | null;
+  fim_segundos: number | null;
 };
 
 const SONG_BUCKET = "songs";
@@ -39,6 +56,46 @@ export function RadioPlayer() {
   }, []);
   const hasPlayedThisSession = useRef(false);
 
+  // --- Som de loja: nivelamento, limitador e perfil de ambiente (por aparelho) ---
+  const chainRef = useRef<RadioAudioChain | null>(null);
+  const chainPendingRef = useRef(false);
+  const soundWantedRef = useRef<boolean | null>(null);
+  const corsProbeRef = useRef(false);
+  const cueFiredRef = useRef<string | null>(null);
+  const profileRef = useRef<SoundProfileId>(DEFAULT_PROFILE_ID);
+  const currentRef = useRef<CurrentItem | null>(null);
+  currentRef.current = current;
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundActive, setSoundActive] = useState(false);
+  const [soundBlocked, setSoundBlocked] = useState(false);
+  const [profileId, setProfileId] = useState<SoundProfileId>(DEFAULT_PROFILE_ID);
+  const [reloadNonce, setReloadNonce] = useState(0);
+  useEffect(() => {
+    const enabled = readSoundEnabled();
+    soundWantedRef.current = enabled;
+    setSoundEnabled(enabled);
+    const stored = readStoredProfileId();
+    profileRef.current = stored;
+    setProfileId(stored);
+    return () => {
+      chainRef.current?.destroy();
+      chainRef.current = null;
+    };
+  }, []);
+
+  // Com a cadeia ligada, o volume fica depois do limitador e o elemento fica em 100%.
+  const applyVolume = useCallback((value: number) => {
+    const a = audioRef.current;
+    const chain = chainRef.current;
+    const volume = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 1));
+    if (chain) {
+      chain.setVolume(volume);
+      if (a) a.volume = 1;
+    } else if (a) {
+      a.volume = volume;
+    }
+  }, []);
+
   const targetVolume = () => {
     // Override local (controles avançados) tem prioridade sobre o default global
     if (typeof window !== "undefined") {
@@ -57,13 +114,13 @@ export function RadioPlayer() {
       const detail = (e as CustomEvent<{ volume: number }>).detail;
       const a = audioRef.current;
       if (!a || !detail) return;
-      a.volume = Math.max(0, Math.min(1, detail.volume));
-      if (a.volume > 0 && a.muted) a.muted = false;
+      applyVolume(detail.volume);
+      if (detail.volume > 0 && a.muted) a.muted = false;
     };
     window.addEventListener("radio:setVolume", onSetVolume as EventListener);
     return () =>
       window.removeEventListener("radio:setVolume", onSetVolume as EventListener);
-  }, []);
+  }, [applyVolume]);
 
 
   // Nome da playlist no ar
@@ -117,7 +174,7 @@ export function RadioPlayer() {
       if (playback?.current_institutional_id) {
         const { data, error } = await supabase
           .from("institutional_contents")
-          .select("id, titulo, tipo, duracao_segundos, storage_path")
+          .select("id, titulo, tipo, duracao_segundos, storage_path, loudness_lufs, pico_db, fim_segundos")
           .eq("id", playback.current_institutional_id)
           .maybeSingle();
         if (cancelled) return;
@@ -148,12 +205,15 @@ export function RadioPlayer() {
           artista: data.tipo === "vinheta" ? "Vinheta institucional" : "Aviso",
           duracao_segundos: data.duracao_segundos,
           storage_path: data.storage_path,
+          loudness_lufs: data.loudness_lufs,
+          pico_db: data.pico_db,
+          fim_segundos: data.fim_segundos,
         });
         setAudioUrl(pub.publicUrl);
       } else if (playback?.current_song_id) {
         const { data, error } = await supabase
           .from("songs")
-          .select("id, titulo, artista, duracao_segundos, storage_path")
+          .select("id, titulo, artista, duracao_segundos, storage_path, loudness_lufs, pico_db, fim_segundos")
           .eq("id", playback.current_song_id)
           .maybeSingle();
         if (cancelled) return;
@@ -182,6 +242,9 @@ export function RadioPlayer() {
           artista: data.artista,
           duracao_segundos: data.duracao_segundos,
           storage_path: data.storage_path,
+          loudness_lufs: data.loudness_lufs,
+          pico_db: data.pico_db,
+          fim_segundos: data.fim_segundos,
         });
         setAudioUrl(url);
       } else {
@@ -209,14 +272,22 @@ export function RadioPlayer() {
       return;
     }
 
-    const srcChanged = a.src !== audioUrl;
+    // O "Som de loja" precisa do arquivo carregado com CORS. Depois que a cadeia
+    // de áudio é ligada ao elemento, o CORS tem de continuar ligado.
+    if (soundWantedRef.current === null) soundWantedRef.current = readSoundEnabled();
+    const wantCors = soundWantedRef.current || !!chainRef.current;
+    const corsChanged = (a.crossOrigin === "anonymous") !== wantCors;
+    const srcChanged = a.src !== audioUrl || corsChanged;
     if (srcChanged) {
+      if (wantCors) a.crossOrigin = "anonymous";
+      else a.removeAttribute("crossorigin");
       a.src = audioUrl;
       a.load();
-      logRadio("src_applied", { url: audioUrl });
+      logRadio("src_applied", { url: audioUrl, cors: wantCors });
     }
 
-    a.volume = targetVolume();
+    applyVolume(targetVolume());
+    void chainRef.current?.resume();
 
     const pos = boundedAudioPosition(computeLivePosition(playback), Number.isFinite(a.duration) ? a.duration : current?.duracao_segundos ?? 0);
     if (Number.isFinite(pos) && Math.abs(a.currentTime - pos) > 1.5) {
@@ -263,15 +334,27 @@ export function RadioPlayer() {
       setLocalPlaying(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioUrl, playback?.is_playing, playback?.started_at, playback?.position_seconds]);
+  }, [audioUrl, playback?.is_playing, playback?.started_at, playback?.position_seconds, reloadNonce]);
 
   // Ajusta volume em tempo real quando configuração mudar
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    a.volume = targetVolume();
+    applyVolume(targetVolume());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings?.default_volume]);
+
+  // Nivelamento: aplica o ganho da faixa que está no ar.
+  useEffect(() => {
+    if (current) chainRef.current?.setTrackGainDb(trackGainDb(current));
+  }, [current, soundActive]);
+
+  // Perfil de ambiente e liga/desliga deste aparelho.
+  useEffect(() => {
+    profileRef.current = profileId;
+    chainRef.current?.setProfile(getProfile(profileId));
+    chainRef.current?.setBypass(!soundEnabled);
+  }, [profileId, soundEnabled, soundActive]);
 
   // Reset only the display: source loading and metadata apply the live seek.
   useEffect(() => { setLivePos(0); }, [current?.id]);
@@ -290,9 +373,66 @@ export function RadioPlayer() {
       if (dur > 0 && pos > dur) pos = dur;
       if (pos < 0 || !Number.isFinite(pos)) pos = 0;
       setLivePos(pos);
+
+      // Fim real da faixa (silêncio final cortado pela análise): avisa como se o
+      // áudio tivesse terminado, uma única vez por execução.
+      const fim = current?.fim_segundos ?? 0;
+      if (a && current && fim > 0 && playback?.is_playing && !a.paused && a.currentTime >= fim) {
+        const key = `${current.id}:${playback.started_at}`;
+        if (cueFiredRef.current !== key) {
+          cueFiredRef.current = key;
+          window.dispatchEvent(new Event("radio:ended"));
+        }
+      }
     }, 500);
     return () => clearInterval(id);
-  }, [playback, current?.id, current?.duracao_segundos]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playback, current?.id, current?.duracao_segundos, current?.fim_segundos]);
+
+  // Liga a cadeia de áudio na primeira vez em que o som realmente toca: nesse
+  // ponto o navegador já liberou o áudio e o arquivo já provou que aceita CORS.
+  const ensureChain = async () => {
+    const a = audioRef.current;
+    if (!a || chainRef.current || chainPendingRef.current || !soundWantedRef.current) return;
+    if (a.crossOrigin !== "anonymous") return;
+    chainPendingRef.current = true;
+    try {
+      const chain = await createRadioAudioChain(a);
+      if (!chain) return; // navegador ainda não liberou: tenta de novo no próximo "playing"
+      if (audioRef.current !== a) {
+        chain.destroy();
+        return;
+      }
+      chainRef.current = chain;
+      chain.setProfile(getProfile(profileRef.current));
+      chain.setTrackGainDb(trackGainDb(currentRef.current));
+      applyVolume(targetVolume());
+      chain.onStateChange((running) => {
+        if (!running && audioRef.current && !audioRef.current.paused) setNeedsGesture(true);
+      });
+      setSoundActive(true);
+    } finally {
+      chainPendingRef.current = false;
+    }
+  };
+
+  const handleToggleSound = (next: boolean) => {
+    storeSoundEnabled(next);
+    setSoundEnabled(next);
+    if (next) setSoundBlocked(false);
+    // Sem cadeia ainda: muda o modo de carregamento do áudio. Com cadeia: o
+    // efeito acima troca para o caminho direto, sem recarregar nada.
+    if (!chainRef.current) {
+      soundWantedRef.current = next;
+      corsProbeRef.current = false;
+      setReloadNonce((n) => n + 1);
+    }
+  };
+
+  const handlePickProfile = (id: SoundProfileId) => {
+    storeProfileId(id);
+    setProfileId(id);
+  };
 
 
   const handleManualPlay = async () => {
@@ -301,10 +441,12 @@ export function RadioPlayer() {
     logRadio("manual_play", { url: audioUrl });
     try {
       if (!a.src && audioUrl) {
+        if (soundWantedRef.current || chainRef.current) a.crossOrigin = "anonymous";
         a.src = audioUrl;
         a.load();
       }
-      a.volume = targetVolume();
+      applyVolume(targetVolume());
+      void chainRef.current?.resume();
       const pos = boundedAudioPosition(computeLivePosition(playback), Number.isFinite(a.duration) ? a.duration : current?.duracao_segundos ?? 0);
       if (Number.isFinite(pos)) {
         try {
@@ -349,6 +491,14 @@ export function RadioPlayer() {
     !!audioEl && !audioEl.paused && !audioEl.ended && audioEl.currentTime > 0;
   const shouldShowUnlockMessage =
     !unlocked && !isActuallyPlaying && !hasPlayedThisSession.current;
+  const currentGainDb = trackGainDb(current);
+  const soundStatus = soundBlocked
+    ? "Indisponível agora: o áudio não pôde ser carregado para processamento. A rádio segue no modo simples."
+    : !soundActive
+      ? "Entra em ação assim que a rádio começar a tocar."
+      : current?.loudness_lufs == null
+        ? "Faixa ainda não analisada: só o limitador e o perfil estão atuando."
+        : `Faixa nivelada em ${currentGainDb > 0 ? "+" : ""}${currentGainDb.toFixed(1).replace(".", ",")} dB.`;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
@@ -479,6 +629,57 @@ export function RadioPlayer() {
           >
             {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
           </Button>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                className="size-10 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                aria-label="Som de loja"
+                title="Som de loja"
+              >
+                <SlidersHorizontal className="size-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">Som de loja</p>
+                  <p className="text-xs text-muted-foreground">
+                    Volume nivelado, limitador e equalização neste aparelho.
+                  </p>
+                </div>
+                <Switch
+                  checked={soundEnabled}
+                  onCheckedChange={handleToggleSound}
+                  aria-label="Ligar Som de loja"
+                />
+              </div>
+              {soundEnabled && (
+                <>
+                  <p className="text-xs text-muted-foreground">{soundStatus}</p>
+                  <div className="space-y-1.5" role="radiogroup" aria-label="Perfil de ambiente">
+                    {SOUND_PROFILES.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={profileId === p.id}
+                        onClick={() => handlePickProfile(p.id)}
+                        className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
+                          profileId === p.id
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:bg-secondary"
+                        }`}
+                      >
+                        <span className="block text-sm font-medium">{p.nome}</span>
+                        <span className="block text-xs text-muted-foreground">{p.descricao}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
 
         <audio
@@ -507,6 +708,7 @@ export function RadioPlayer() {
             setBuffering(false);
             setLocalPlaying(true);
             hasPlayedThisSession.current = true;
+            void ensureChain();
           }}
           onPause={() => setLocalPlaying(false)}
           onEnded={() => {
@@ -526,6 +728,28 @@ export function RadioPlayer() {
                 : "Falha ao carregar o áudio",
             );
             setLocalPlaying(false);
+
+            // Com CORS ligado e a cadeia ainda não criada, confere se o bloqueio é
+            // de CORS. Se for, volta ao player simples nesta página.
+            if (a && a.src && a.crossOrigin === "anonymous" && soundWantedRef.current && !chainRef.current && !corsProbeRef.current) {
+              corsProbeRef.current = true;
+              const controller = new AbortController();
+              fetch(a.src, { mode: "cors", cache: "no-store", signal: controller.signal })
+                .then(() => {
+                  controller.abort(); // CORS está certo: o problema é do arquivo
+                  corsProbeRef.current = false;
+                })
+                .catch(() => {
+                  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+                    corsProbeRef.current = false;
+                    return;
+                  }
+                  soundWantedRef.current = false;
+                  setSoundBlocked(true);
+                  setLoadError(null);
+                  setReloadNonce((n) => n + 1);
+                });
+            }
           }}
         />
       </div>

@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { InstitutionalType } from "@/hooks/use-institutional";
 import { toast } from "sonner";
+import { analysisColumns, tryAnalyzeAudio } from "@/lib/audio-analysis-browser";
 
 const ACCEPT = "audio/*";
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -99,6 +100,8 @@ export function InstitutionalUploadDialog({
     setError(null);
     try {
       const duracao = await readDuration(file);
+      // Som de loja: mede volume e silêncio antes de enviar (não impede o envio se falhar).
+      const analysis = await tryAnalyzeAudio(file);
       setProgress(35);
       const path = `${user.id}/${crypto.randomUUID()}-${sanitize(file.name)}`;
       const { error: upErr } = await supabase.storage
@@ -115,11 +118,13 @@ export function InstitutionalUploadDialog({
         tipo,
         titulo: titulo.trim(),
         storage_path: path,
-        duracao_segundos: duracao,
+        duracao_segundos:
+          duracao ?? (analysis?.duracao_segundos ? Math.round(analysis.duracao_segundos) : null),
         ativo: true,
         frequencia_musicas: freq && freq > 0 ? freq : null,
         horario: hora,
         created_by: user.id,
+        ...analysisColumns(analysis),
       });
       if (insErr) {
         await supabase.storage.from("institutional").remove([path]);

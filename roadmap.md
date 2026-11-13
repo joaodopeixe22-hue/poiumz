@@ -10,3 +10,10 @@ Limite preservado: a rádio depende de uma página de operação aberta por admi
 - [x] Ouvintes passam a ler a vinheta que está no ar.
 
 Limite removido: a rádio não depende mais de uma página de operação aberta.
+
+# Som de loja
+- [x] Volume nivelado por faixa (LUFS, alvo −14), medido no upload e pelo botão "Nivelar volume" da biblioteca.
+- [x] Limitador e perfis de ambiente por aparelho (Padrão, Caixa pequena, Loja cheia, Loja vazia).
+- [x] Corte de silêncio no início e no fim das faixas.
+
+Pendente: analisar a biblioteca existente (admin, em Músicas → Nivelar volume) e pré-carregar a próxima faixa para reduzir o intervalo entre músicas.
