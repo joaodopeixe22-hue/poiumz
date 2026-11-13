@@ -15,6 +15,13 @@
       "when": 1794566297820,
       "tag": "0001_fase1_radio_autonoma",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794570322420,
+      "tag": "0002_som_remoto_playback_state",
+      "breakpoints": true
     }
   ]
 }

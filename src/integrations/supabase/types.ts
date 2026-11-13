@@ -90,6 +90,7 @@ export type Database = {
           resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
+          sound_profile: string
           started_at: string | null
           updated_at: string
           volume: number
@@ -112,6 +113,7 @@ export type Database = {
           resume_song_after_institutional?: boolean
           shuffle?: boolean
           songs_since_institutional?: number
+          sound_profile?: string
           started_at?: string | null
           updated_at?: string
           volume?: number
@@ -134,6 +136,7 @@ export type Database = {
           resume_song_after_institutional?: boolean
           shuffle?: boolean
           songs_since_institutional?: number
+          sound_profile?: string
           started_at?: string | null
           updated_at?: string
           volume?: number
@@ -451,6 +454,7 @@ export type Database = {
           resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
+          sound_profile: string
           started_at: string | null
           updated_at: string
           volume: number
@@ -482,6 +486,7 @@ export type Database = {
           resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
+          sound_profile: string
           started_at: string | null
           updated_at: string
           volume: number
@@ -518,6 +523,7 @@ export type Database = {
           resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
+          sound_profile: string
           started_at: string | null
           updated_at: string
           volume: number
@@ -554,6 +560,7 @@ export type Database = {
           resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
+          sound_profile: string
           started_at: string | null
           updated_at: string
           volume: number
@@ -587,6 +594,7 @@ export type Database = {
           resume_song_after_institutional: boolean
           shuffle: boolean
           songs_since_institutional: number
+          sound_profile: string
           started_at: string | null
           updated_at: string
           volume: number
