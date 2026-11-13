@@ -15,6 +15,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { PriorityQueue } from "@/components/radio/priority-queue";
+import { RemoteSoundControls } from "@/components/radio/remote-sound-controls";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -49,6 +50,8 @@ function ProgramacaoPage() {
     setInstitutionalEnabled,
     setLoopPlaylist,
     setResumeAfterInstitutional,
+    setRemoteVolume,
+    setSoundProfile,
   } = usePlayback({ autoAdvance: true });
   const { playlists } = usePlaylists();
   const [currentLabel, setCurrentLabel] = useState<{
@@ -305,6 +308,15 @@ function ProgramacaoPage() {
           Trocar a playlist reinicia a transmissão a partir do primeiro item.
         </p>
       </div>
+
+      {/* Som remoto: volume e perfil de todos os aparelhos que estão ouvindo */}
+      <RemoteSoundControls
+        playback={playback}
+        disabled={lockedForMe}
+        onVolume={setRemoteVolume}
+        onProfile={setSoundProfile}
+        className="rounded-2xl border border-border bg-card p-6"
+      />
 
       {/* Fila prioritária */}
       <PriorityQueue disabled={lockedForMe} />

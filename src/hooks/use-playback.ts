@@ -5,6 +5,17 @@ import { effectiveEnd, hasPlaybackFinished, playbackInstance } from "@/lib/playb
 /** Folga do temporizador: dá tempo de o fim natural do áudio avisar primeiro. */
 const TIMER_GRACE_SECONDS = 1.5;
 
+/** Evento local: um controle desta página gravou o estado e avisa os outros componentes. */
+const LOCAL_STATE_EVENT = "radio:playback";
+/** Reserva para quando o tempo real cai: confere o estado de tempos em tempos. */
+const FALLBACK_REFRESH_MS = 20000;
+
+function publishLocalState(row: PlaybackState | null | undefined) {
+  if (row && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(LOCAL_STATE_EVENT, { detail: row }));
+  }
+}
+
 export type PlaybackState = {
   id: boolean;
   is_playing: boolean;
@@ -23,6 +34,8 @@ export type PlaybackState = {
   started_at: string | null;
   shuffle: boolean;
   volume: number;
+  /** Perfil de som da rádio, escolhido pelo operador (ver sound-profiles). */
+  sound_profile?: string | null;
   controlled_by: string | null;
   institutional_enabled: boolean;
   updated_at: string;
@@ -130,7 +143,27 @@ export function usePlayback(options?: { autoAdvance?: boolean }) {
       { event: "UPDATE", schema: "public", table: "playback_state" },
       (payload) => setPlayback(payload.new as PlaybackState),
     ).subscribe((status) => { if (status === "SUBSCRIBED") void refresh(); });
+
+    // Outro componente desta página gravou o estado: aplica na hora, sem esperar o tempo real.
+    const onLocalState = (event: Event) => {
+      const row = (event as CustomEvent<PlaybackState | null>).detail;
+      if (!row) return;
+      setPlayback((previous) =>
+        previous && Date.parse(previous.updated_at) > Date.parse(row.updated_at) ? previous : row,
+      );
+    };
+    // Reserva: se o tempo real cair (rede, aba dormindo), o aparelho volta a obedecer sozinho.
+    const onWake = () => { if (document.visibilityState === "visible") void refresh(); };
+    const onOnline = () => void refresh();
+    const poll = window.setInterval(() => void refresh(), FALLBACK_REFRESH_MS);
+    window.addEventListener(LOCAL_STATE_EVENT, onLocalState);
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onWake);
     return () => {
+      window.clearInterval(poll);
+      window.removeEventListener(LOCAL_STATE_EVENT, onLocalState);
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onWake);
       supabase.removeChannel(ch);
     };
   }, [refresh]);
@@ -175,6 +208,30 @@ export function usePlayback(options?: { autoAdvance?: boolean }) {
     return { error: error?.message ?? null };
   };
 
+  // Som remoto: valem para todos os aparelhos que estão ouvindo.
+  const setRemoteVolume = async (next: number) => {
+    const volume = Math.max(0, Math.min(1, Number.isFinite(next) ? next : 0.8));
+    const { data, error } = await supabase
+      .from("playback_state")
+      .update({ volume })
+      .eq("id", true)
+      .select("*")
+      .maybeSingle();
+    publishLocalState(data as PlaybackState | null);
+    return { error: error?.message ?? null };
+  };
+
+  const setSoundProfile = async (next: string) => {
+    const { data, error } = await supabase
+      .from("playback_state")
+      .update({ sound_profile: next } as never)
+      .eq("id", true)
+      .select("*")
+      .maybeSingle();
+    publishLocalState(data as PlaybackState | null);
+    return { error: error?.message ?? null };
+  };
+
   const startPlaylist = async (playlistId: string) => {
     const { data, error } = await supabase.rpc("start_playback", {
       p_playlist_id: playlistId,
@@ -213,6 +270,8 @@ export function usePlayback(options?: { autoAdvance?: boolean }) {
     setLocked,
     setLoopPlaylist,
     setResumeAfterInstitutional,
+    setRemoteVolume,
+    setSoundProfile,
     startPlaylist,
     pause,
     resume,

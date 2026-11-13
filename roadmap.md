@@ -17,3 +17,8 @@ Limite removido: a rádio não depende mais de uma página de operação aberta.
 - [x] Corte de silêncio no início e no fim das faixas.
 
 Pendente: analisar a biblioteca existente (admin, em Músicas → Nivelar volume) e pré-carregar a próxima faixa para reduzir o intervalo entre músicas.
+
+# Som remoto
+- [x] Volume da rádio ajustado pelo operador (Programação e controles da página inicial), aplicado em todos os aparelhos.
+- [x] Perfil de ambiente da rádio escolhido pelo operador; cada aparelho pode fixar um perfil próprio.
+- [x] Consulta de reserva a cada 20 s para o aparelho voltar a obedecer se o tempo real cair.

@@ -190,16 +190,10 @@ function ConfiguracoesPage() {
           />
         </div>
 
-        <Field label={`Volume padrão (${form.default_volume}%)`}>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={form.default_volume}
-            onChange={(e) => set("default_volume", Number(e.target.value))}
-            className="w-full accent-primary"
-          />
-        </Field>
+        <p className="text-xs text-muted-foreground">
+          O volume e o perfil de som da rádio são ajustados em Programação (ou nos controles da página
+          inicial) e valem para todos os aparelhos que estão ouvindo.
+        </p>
       </Section>
 
       <div className="sticky bottom-4 flex justify-end">

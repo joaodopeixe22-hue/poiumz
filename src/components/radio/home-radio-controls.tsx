@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Play,
   Pause,
@@ -8,14 +8,11 @@ import {
   Lock,
   Shuffle,
   Repeat,
-  Volume2,
-  VolumeX,
   Radio as RadioIcon,
   User as UserIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -29,20 +26,28 @@ import { usePlayback, computeLivePosition } from "@/hooks/use-playback";
 import { usePlaylists } from "@/hooks/use-playlists";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTime } from "@/lib/format";
-
-const VOLUME_KEY = "radioVolume";
-const VOLUME_EVENT = "radio:setVolume";
+import { RemoteSoundControls } from "@/components/radio/remote-sound-controls";
 
 /**
  * Painel avançado de operação exibido na Home para admin/operador aprovado.
  * Toda alteração de estado de reprodução é gravada em playback_state
- * (RLS continua sendo a proteção real). O volume é local por dispositivo.
+ * (RLS continua sendo a proteção real), inclusive o volume e o perfil de som,
+ * que valem para todos os aparelhos que estão ouvindo.
  */
 export function HomeRadioControls() {
   const { profile, loading: profileLoading } = useProfile();
   const { user } = useAuth();
-  const { playback, startPlaylist, pause, resume, next, setShuffle, setLoopPlaylist } =
-    usePlayback();
+  const {
+    playback,
+    startPlaylist,
+    pause,
+    resume,
+    next,
+    setShuffle,
+    setLoopPlaylist,
+    setRemoteVolume,
+    setSoundProfile,
+  } = usePlayback();
   const { playlists } = usePlaylists();
   const [busy, setBusy] = useState(false);
   const [currentSongMeta, setCurrentSongMeta] = useState<{
@@ -52,14 +57,6 @@ export function HomeRadioControls() {
   } | null>(null);
   const [controllerName, setControllerName] = useState<string | null>(null);
   const [livePos, setLivePos] = useState(0);
-  const [volume, setVolume] = useState<number>(() => {
-    if (typeof window === "undefined") return 0.8;
-    const v = window.localStorage.getItem(VOLUME_KEY);
-    const n = v ? Number(v) : NaN;
-    return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0.8;
-  });
-  const lastVolBeforeMute = useRef<number>(0.8);
-
   const canControl =
     !!profile &&
     profile.status === "aprovado" &&
@@ -121,17 +118,6 @@ export function HomeRadioControls() {
     }, 500);
     return () => clearInterval(id);
   }, [playback, currentSongMeta?.duracao_segundos]);
-
-  // Propaga volume para o elemento <audio> do RadioPlayer
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(VOLUME_KEY, String(volume));
-    } catch {
-      /* ignore */
-    }
-    window.dispatchEvent(new CustomEvent(VOLUME_EVENT, { detail: { volume } }));
-  }, [volume]);
 
   const stamp = useMemo(
     () => ({ controlled_by: user?.id ?? null }),
@@ -258,15 +244,6 @@ export function HomeRadioControls() {
       } as never)
       .eq("id", true);
     if (error) toast.error(error.message);
-  };
-
-  const handleMuteToggle = () => {
-    if (volume > 0) {
-      lastVolBeforeMute.current = volume;
-      setVolume(0);
-    } else {
-      setVolume(lastVolBeforeMute.current || 0.8);
-    }
   };
 
   const dur = currentSongMeta?.duracao_segundos ?? 0;
@@ -406,28 +383,6 @@ export function HomeRadioControls() {
           <Repeat className="size-4" />
         </Button>
 
-        {/* Volume local */}
-        <div className="ml-auto flex items-center gap-2 min-w-[180px]">
-          <button
-            onClick={handleMuteToggle}
-            className="size-8 grid place-items-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-            aria-label={volume === 0 ? "Tirar mudo" : "Mutar"}
-          >
-            {volume === 0 ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-          </button>
-          <Slider
-            value={[Math.round(volume * 100)]}
-            min={0}
-            max={100}
-            step={1}
-            onValueChange={(v) => setVolume(Math.max(0, Math.min(1, (v[0] ?? 0) / 100)))}
-            className="flex-1"
-            aria-label="Volume local deste dispositivo"
-          />
-          <span className="text-xs font-mono text-muted-foreground tabular-nums w-8 text-right">
-            {Math.round(volume * 100)}
-          </span>
-        </div>
       </div>
 
       {/* Seletor de playlist */}
@@ -455,6 +410,13 @@ export function HomeRadioControls() {
         </SelectContent>
       </Select>
 
+      <RemoteSoundControls
+        playback={playback}
+        disabled={busy || lockedForMe}
+        onVolume={setRemoteVolume}
+        onProfile={setSoundProfile}
+        className="border-t border-border pt-5"
+      />
     </div>
   );
 }
