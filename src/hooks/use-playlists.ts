@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { onSessionRefreshed } from "@/lib/session-events";
 
 export type Playlist = {
   id: string;
@@ -74,6 +75,8 @@ export function usePlaylists() {
     setLoading(false);
   }, []);
 
+  useEffect(() => onSessionRefreshed(() => void refresh()), [refresh]);
+
   useEffect(() => {
     refresh();
     const ch = supabase
@@ -137,6 +140,8 @@ export function usePlaylist(playlistId: string | undefined) {
     if (ps) setItems(ps as unknown as PlaylistSong[]);
     setLoading(false);
   }, [playlistId]);
+
+  useEffect(() => onSessionRefreshed(() => void refresh()), [refresh]);
 
   useEffect(() => {
     refresh();

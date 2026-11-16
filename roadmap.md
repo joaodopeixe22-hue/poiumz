@@ -22,3 +22,9 @@ Pendente: analisar a biblioteca existente (admin, em Músicas → Nivelar volume
 - [x] Volume da rádio ajustado pelo operador (Programação e controles da página inicial), aplicado em todos os aparelhos.
 - [x] Perfil de ambiente da rádio escolhido pelo operador; cada aparelho pode fixar um perfil próprio.
 - [x] Consulta de reserva a cada 20 s para o aparelho voltar a obedecer se o tempo real cair.
+
+# Relógio do servidor
+- [x] Hora do servidor medida pelo cabeçalho Date do próprio site e usada em toda conta de tempo da rádio.
+- [x] Login renovado pela hora do servidor, também com a aba em segundo plano, com conferência periódica no servidor.
+- [x] Músicas, playlists, institucional e configurações se recarregam quando o login é renovado.
+- [x] Anterior, arrastar a barra e pular para uma música gravam a hora do servidor.

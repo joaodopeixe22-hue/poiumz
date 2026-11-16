@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { effectiveEnd, hasPlaybackFinished, playbackInstance } from "@/lib/playback-continuity";
+import { serverNow } from "@/lib/server-clock";
 
 /** Folga do temporizador: dá tempo de o fim natural do áudio avisar primeiro. */
 const TIMER_GRACE_SECONDS = 1.5;
@@ -88,7 +89,7 @@ export function usePlayback(options?: { autoAdvance?: boolean }) {
           }
           const end = ends.get(contentId) ?? 0;
           // Sem fim conhecido, só o evento real de fim do áudio dispara o aviso.
-          if (end <= 0 || !hasPlaybackFinished(observed, end + TIMER_GRACE_SECONDS)) return;
+          if (end <= 0 || !hasPlaybackFinished(observed, end + TIMER_GRACE_SECONDS, serverNow())) return;
         }
         if (cancelled) return;
         const { data: advanced, error } = await supabase.rpc("radio_tick", { p_ended: heardEnd });
@@ -279,11 +280,14 @@ export function usePlayback(options?: { autoAdvance?: boolean }) {
   };
 }
 
-/** Calcula a posição real (em segundos) considerando o relógio do servidor */
-export function computeLivePosition(pb: PlaybackState | null): number {
+/**
+ * Posição real (em segundos) da faixa agora. `started_at` é gravado pelo
+ * servidor, então a conta usa a hora do servidor, não o relógio do aparelho.
+ */
+export function computeLivePosition(pb: PlaybackState | null, now: number = serverNow()): number {
   if (!pb) return 0;
   if (!pb.is_playing || !pb.started_at) return pb.position_seconds || 0;
   const startedMs = new Date(pb.started_at).getTime();
-  const elapsed = (Date.now() - startedMs) / 1000;
+  const elapsed = (now - startedMs) / 1000;
   return (pb.position_seconds || 0) + Math.max(0, elapsed);
 }

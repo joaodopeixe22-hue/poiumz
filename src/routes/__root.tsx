@@ -11,6 +11,9 @@ import {
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { syncServerClock } from "@/lib/server-clock";
+import { startSessionKeeper } from "@/lib/session-keeper";
+import { announceSessionRefreshed } from "@/lib/session-events";
 import { installRealtimeDebug } from "@/lib/realtime-debug";
 
 import appCss from "../styles.css?url";
@@ -113,12 +116,21 @@ function AuthSync() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((event) => {
       router.invalidate();
       queryClient.invalidateQueries();
+      // Login renovado: listas que falharam com o login vencido se recarregam.
+      if (event === "TOKEN_REFRESHED") announceSessionRefreshed();
     });
     return () => subscription.unsubscribe();
   }, [router, queryClient]);
+
+  // Mede a hora do servidor (relógios de loja podem estar errados) e mantém o
+  // login renovado por ela, mesmo com a aba em segundo plano.
+  useEffect(() => {
+    void syncServerClock();
+    return startSessionKeeper();
+  }, []);
   return null;
 }
 
