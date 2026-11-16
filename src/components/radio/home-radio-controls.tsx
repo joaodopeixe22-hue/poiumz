@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePlayback, computeLivePosition } from "@/hooks/use-playback";
 import { usePlaylists } from "@/hooks/use-playlists";
 import { supabase } from "@/integrations/supabase/client";
+import { serverNow } from "@/lib/server-clock";
 import { formatTime } from "@/lib/format";
 import { RemoteSoundControls } from "@/components/radio/remote-sound-controls";
 
@@ -189,7 +190,7 @@ export function HomeRadioControls() {
           current_institutional_id: null,
           loop_index: prev,
           position_seconds: 0,
-          started_at: new Date().toISOString(),
+          started_at: new Date(serverNow()).toISOString(),
           is_playing: true,
           controlled_by: user?.id ?? null,
         } as never)
@@ -239,7 +240,7 @@ export function HomeRadioControls() {
       .from("playback_state")
       .update({
         position_seconds: secs,
-        started_at: playback.is_playing ? new Date().toISOString() : null,
+        started_at: playback.is_playing ? new Date(serverNow()).toISOString() : null,
         controlled_by: user?.id ?? null,
       } as never)
       .eq("id", true);

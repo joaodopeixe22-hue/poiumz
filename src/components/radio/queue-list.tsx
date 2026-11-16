@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { serverNow } from "@/lib/server-clock";
 import { ListMusic, Play } from "lucide-react";
 import { toast } from "sonner";
 import { formatTime } from "@/lib/format";
@@ -117,7 +118,7 @@ export function QueueList() {
           current_institutional_id: null,
           loop_index: it.source === "playlist" ? it.posicao : (playback?.loop_index ?? 0),
           position_seconds: 0,
-          started_at: new Date().toISOString(),
+          started_at: new Date(serverNow()).toISOString(),
           is_playing: true,
           controlled_by: user?.id ?? null,
         } as never)

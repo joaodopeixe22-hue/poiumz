@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { onSessionRefreshed } from "@/lib/session-events";
 
 export type InstitutionalType = "vinheta" | "aviso";
 
@@ -30,6 +31,8 @@ export function useInstitutional() {
     if (!error && data) setItems(data as InstitutionalContent[]);
     setLoading(false);
   }, []);
+
+  useEffect(() => onSessionRefreshed(() => void refresh()), [refresh]);
 
   useEffect(() => {
     refresh();

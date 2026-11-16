@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { onSessionRefreshed } from "@/lib/session-events";
 
 export type RadioSettings = {
   id: boolean;
@@ -30,6 +31,8 @@ export function useRadioSettings() {
     if (data) setSettings(data as RadioSettings);
     setLoading(false);
   }, []);
+
+  useEffect(() => onSessionRefreshed(() => void refresh()), [refresh]);
 
   useEffect(() => {
     refresh();
