@@ -28,3 +28,6 @@ Pendente: analisar a biblioteca existente (admin, em Músicas → Nivelar volume
 - [x] Login renovado pela hora do servidor, também com a aba em segundo plano, com conferência periódica no servidor.
 - [x] Músicas, playlists, institucional e configurações se recarregam quando o login é renovado.
 - [x] Anterior, arrastar a barra e pular para uma música gravam a hora do servidor.
+
+# Custo
+- [x] Agendador da rádio reduzido: 1x/min das 06:00 às 23:59 de Brasília (antes a cada 10 s, 24 h). Motivo: os créditos de Cloud acabaram em 21/11 e o banco foi pausado.
